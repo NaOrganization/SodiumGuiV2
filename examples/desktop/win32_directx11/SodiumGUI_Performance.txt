@@ -1,0 +1,7 @@
+SodiumGUI performance summary
+Frames: 10227
+Elapsed: 2.148 s
+Average FPS: 4761.73
+Average frame: 0.198 ms
+Min frame: 0.028 ms
+Max frame: 14.378 ms
