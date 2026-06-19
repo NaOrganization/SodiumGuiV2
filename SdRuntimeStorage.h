@@ -104,6 +104,9 @@ namespace Sodium
 		SdUInt32 order = 0;
 		SdResolvedKey resolvedKey = 0;
 		SdUtf8String debugKey = {};
+		SdStyleWidgetClass cachedStyleClass = SdStyleWidgetClass::Default;
+		SdStyleInteractionState cachedStyleInteraction = SdStyleInteractionState::Normal;
+		bool hasCachedStyle = false;
 		void(*layoutCallback)(void*, SdLayoutContext&) = nullptr;
 		void(*paintCallback)(void*, SdPaintContext&) = nullptr;
 

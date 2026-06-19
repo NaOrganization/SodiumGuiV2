@@ -140,15 +140,15 @@ namespace Sodium
 			const float titleBarHeight = std::max(22.0f, state.options.titleBarHeight);
 			const SdRect rect = context.animatedRect;
 			const SdRect titleRect = { rect.min.x, rect.min.y, rect.max.x, rect.min.y + titleBarHeight };
-			const SdColor bodyFill = state.hovered ? SdColor{ 28, 35, 45, 245 } : context.style.background;
-			const SdColor titleFill = state.dragging ? SdColor{ 62, 100, 138, 255 }
-				: state.titleHovered ? SdColor{ 46, 68, 91, 255 }
-				: SdColor{ 38, 49, 64, 255 };
+			const SdTheme& theme = context.instance.GetStyleSystem().GetTheme();
+			const SdColor titleFill = state.dragging ? theme.GetColor(SdStyleToken::ColorButtonPressed)
+				: state.titleHovered ? theme.GetColor(SdStyleToken::ColorButtonHovered)
+				: theme.GetColor(SdStyleToken::ColorButton);
 
-			context.renderList.AddRectFilled(rect, SdApplyOpacity(bodyFill, context.opacity), context.clipRect, state.options.radius);
+			context.renderList.AddRectFilled(rect, SdApplyOpacity(context.style.background, context.opacity), context.clipRect, state.options.radius);
 			context.renderList.AddRectFilled(titleRect, SdApplyOpacity(titleFill, context.opacity), context.clipRect, state.options.radius);
 			context.renderList.AddRect(rect, SdApplyOpacity({ 102, 119, 140, 255 }, context.opacity), context.clipRect, 1.0f, state.options.radius);
-			context.renderList.AddText(state.title, { rect.min.x + 12.0f, rect.min.y + 8.0f }, SdApplyOpacity(SdColorWhite, context.opacity), context.clipRect);
+			context.renderList.AddText(state.title, { rect.min.x + 12.0f, rect.min.y + 8.0f }, SdApplyOpacity(context.style.color, context.opacity), context.clipRect);
 
 			if (state.options.collapsible)
 				DrawCollapseButton(context, BuildCollapseRect(rect, titleBarHeight), state);

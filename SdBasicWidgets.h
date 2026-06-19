@@ -147,7 +147,7 @@ namespace Sodium
 				context.animatedRect.min.x + 24.0f,
 				context.animatedRect.min.y + 26.0f
 			};
-			context.renderList.AddRectFilled(box, SdApplyOpacity(state.hovered ? SdColor{ 62, 86, 108, 255 } : context.style.background, context.opacity), context.clipRect);
+			context.renderList.AddRectFilled(box, SdApplyOpacity(context.style.background, context.opacity), context.clipRect, context.style.radius);
 			context.renderList.AddRect(box, SdApplyOpacity({ 130, 146, 164, 255 }, context.opacity), context.clipRect, 1.0f);
 			if (state.checked)
 			{

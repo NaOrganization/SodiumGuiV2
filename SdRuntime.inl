@@ -242,6 +242,23 @@ namespace Sodium
 		record.state.animationActive = record.state.layoutWeight != target || record.state.opacity != target;
 	}
 
+	inline void SdInstance::ResolveWidgetStyle(SdWidgetRecord& record, SdStyleInteractionState interactionState)
+	{
+		if (!record.state.styleDirty
+			&& record.hasCachedStyle
+			&& record.cachedStyleClass == record.state.styleClass
+			&& record.cachedStyleInteraction == interactionState)
+		{
+			return;
+		}
+
+		record.style = styleSystem.Resolve(record.state.styleClass, interactionState);
+		record.cachedStyleClass = record.state.styleClass;
+		record.cachedStyleInteraction = interactionState;
+		record.hasCachedStyle = true;
+		record.state.styleDirty = false;
+	}
+
 	inline void SdInstance::SolveLayoutAndPaint()
 	{
 		std::vector<SdWidgetId> liveIds;
@@ -315,7 +332,7 @@ namespace Sodium
 				styleInteraction = SdStyleInteractionState::Pressed;
 			else if (interactionSystem.IsHovered(id))
 				styleInteraction = SdStyleInteractionState::Hovered;
-			record.style = styleSystem.Resolve(record.state.styleClass, styleInteraction);
+			ResolveWidgetStyle(record, styleInteraction);
 
 			SdLayoutResult result = {};
 			result.desiredSize = {
@@ -340,7 +357,7 @@ namespace Sodium
 			if (record.layoutCallback && record.widgetObject.value)
 				record.layoutCallback(record.widgetObject.value, layoutContext);
 
-			record.style = styleSystem.Resolve(record.state.styleClass, styleInteraction);
+			ResolveWidgetStyle(record, styleInteraction);
 			record.state.measuredSize = result.desiredSize;
 
 			layoutSystem.AddNode({

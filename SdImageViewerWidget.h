@@ -88,8 +88,10 @@ namespace Sodium
 		void OnPaint(SdPaintContext& context)
 		{
 			const State& state = context.State<State>();
-			const SdColor frameFill = state.hovered ? SdColor{ 34, 45, 58, 255 } : SdColor{ 26, 34, 44, 255 };
-			context.renderList.AddRectFilled(context.animatedRect, SdApplyOpacity(frameFill, context.opacity), context.clipRect, 4.0f);
+			const SdTheme& theme = context.instance.GetStyleSystem().GetTheme();
+			const SdColor accent = theme.GetColor(SdStyleToken::ColorAccent);
+			const SdColor previewFill = theme.GetColor(SdStyleToken::ColorWindowBg);
+			context.renderList.AddRectFilled(context.animatedRect, SdApplyOpacity(context.style.background, context.opacity), context.clipRect, context.style.radius);
 
 			const SdRect imageRect = InsetRect(context.animatedRect, 2.0f);
 			if (state.texture.IsValid())
@@ -101,13 +103,13 @@ namespace Sodium
 				return;
 
 			const SdRect hoverSourceRect = BuildSourceMarkerRect(imageRect, state.options.uvRect, state.zoomUvRect);
-			context.renderList.AddRect(hoverSourceRect, SdApplyOpacity({ 118, 196, 255, 255 }, context.opacity), context.clipRect, 1.0f);
+			context.renderList.AddRect(hoverSourceRect, SdApplyOpacity(accent, context.opacity), context.clipRect, 1.0f);
 
 			const SdRect previewRect = BuildPreviewRect(state.mousePosition, state.options.previewSize, state.options.previewOffset, context.instance.GetDisplaySize());
 			const SdRect previewImageRect = InsetRect(previewRect, 4.0f);
-			context.renderList.AddRectFilled(previewRect, SdApplyOpacity({ 12, 18, 25, 245 }, context.opacity), context.clipRect, 5.0f);
+			context.renderList.AddRectFilled(previewRect, SdApplyOpacity(previewFill, context.opacity), context.clipRect, context.style.radius);
 			context.renderList.AddImage(state.texture, previewImageRect, state.zoomUvRect, SdApplyOpacity(SdColorWhite, context.opacity), context.clipRect);
-			context.renderList.AddRect(previewRect, SdApplyOpacity({ 118, 196, 255, 255 }, context.opacity), context.clipRect, 1.0f, 5.0f);
+			context.renderList.AddRect(previewRect, SdApplyOpacity(accent, context.opacity), context.clipRect, 1.0f, context.style.radius);
 		}
 
 	private:
