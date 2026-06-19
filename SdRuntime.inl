@@ -211,33 +211,7 @@ namespace Sodium
 		});
 
 		const SdVec2 displaySize = context.frame.displaySize;
-		const SdRect clipRect = { 0.0f, 0.0f, displaySize.x, displaySize.y };
-
-		auto intersectRect = [](const SdRect& left, const SdRect& right) -> SdRect
-		{
-			SdRect result = {
-				std::max(left.min.x, right.min.x),
-				std::max(left.min.y, right.min.y),
-				std::min(left.max.x, right.max.x),
-				std::min(left.max.y, right.max.y)
-			};
-			result.max.x = std::max(result.min.x, result.max.x);
-			result.max.y = std::max(result.min.y, result.max.y);
-			return result;
-		};
-
-		auto insetRect = [](const SdRect& rect, const SdSpacing& padding) -> SdRect
-		{
-			SdRect result = {
-				rect.min.x + padding.left,
-				rect.min.y + padding.top,
-				rect.max.x - padding.right,
-				rect.max.y - padding.bottom
-			};
-			result.max.x = std::max(result.min.x, result.max.x);
-			result.max.y = std::max(result.min.y, result.max.y);
-			return result;
-		};
+		const SdRect displayRect = { 0.0f, 0.0f, displaySize.x, displaySize.y };
 
 		auto setAnimatedRectTarget = [this](SdWidgetRecord& record, const SdRect& targetRect)
 		{
@@ -282,10 +256,11 @@ namespace Sodium
 				|| animationSystem.IsActive(record.animation.rectHeight);
 		};
 
+		layoutSystem.BeginFrame(liveIds.size());
 		for (SdWidgetId id : liveIds)
 		{
 			SdWidgetRecord& record = widgets[id];
-			record.state.computedClipRect = clipRect;
+			record.state.computedClipRect = displayRect;
 			SdStyleInteractionState styleInteraction = SdStyleInteractionState::Normal;
 			if (interactionSystem.IsPressed(id))
 				styleInteraction = SdStyleInteractionState::Pressed;
@@ -299,6 +274,8 @@ namespace Sodium
 				record.style.height > 0.0f ? record.style.height : 28.0f
 			};
 
+			SdLayoutConstraints constraints = {};
+			constraints.maxSize = displaySize;
 			SdLayoutContext layoutContext{
 				*this,
 				uiObject,
@@ -307,7 +284,7 @@ namespace Sodium
 				record.state,
 				record.style,
 				theme,
-				{ {}, displaySize },
+				constraints,
 				result
 			};
 			if (record.layoutCallback && record.widgetObject.value)
@@ -315,82 +292,39 @@ namespace Sodium
 
 			record.style = styleSystem.Resolve(record.state.styleClass, styleInteraction);
 			record.state.measuredSize = result.desiredSize;
+
+			layoutSystem.AddNode({
+				id,
+				record.parentId,
+				constraints,
+				result,
+				record.state.manualRect,
+				record.state.childPadding,
+				record.state.layoutWeight,
+				record.state.childSpacing,
+				record.state.manualLayout,
+				record.state.arrangeChildren,
+				record.state.clipChildren
+			});
 		}
 
-		auto parentArrangesChildren = [this](const SdWidgetRecord& record)
+		layoutSystem.Measure(displaySize);
+		layoutSystem.Arrange(displayRect);
+		const std::vector<SdLayoutNode>& layoutNodes = layoutSystem.GetNodes();
+		for (const SdLayoutNode& node : layoutNodes)
 		{
-			auto parent = widgets.find(record.parentId);
-			return parent != widgets.end() && parent->second.state.arrangeChildren;
-		};
-
-		auto arrangeChildren = [&](auto&& self, SdWidgetId parentId) -> void
-		{
-			SdWidgetRecord& parentRecord = widgets[parentId];
-			parentRecord.state.childContentRect = insetRect(parentRecord.state.targetRect, parentRecord.state.childPadding);
-			const SdRect childClipRect = parentRecord.state.clipChildren
-				? intersectRect(parentRecord.state.computedClipRect, parentRecord.state.childContentRect)
-				: parentRecord.state.computedClipRect;
-
-			float childY = parentRecord.state.childContentRect.min.y;
-			for (SdWidgetId childId : liveIds)
+			SdWidgetRecord& record = widgets[node.widgetId];
+			record.state.measuredSize = node.result.desiredSize;
+			record.state.targetRect = node.targetRect;
+			record.state.childContentRect = node.childContentRect;
+			record.state.computedClipRect = node.computedClipRect;
+			if (node.parentIndex != SdInvalidIndex<SdUInt32> && node.parentIndex < layoutNodes.size())
 			{
-				SdWidgetRecord& childRecord = widgets[childId];
-				if (childRecord.parentId != parentId)
-					continue;
-
-				const SdVec2 childSize = childRecord.state.measuredSize;
-				if (childRecord.state.manualLayout)
-				{
-					childRecord.state.targetRect = childRecord.state.manualRect;
-				}
-				else
-				{
-					const float availableWidth = std::max(0.0f, parentRecord.state.childContentRect.Width());
-					const float childWidth = std::min(childSize.x, availableWidth);
-					childRecord.state.targetRect = {
-						parentRecord.state.childContentRect.min.x,
-						childY,
-						parentRecord.state.childContentRect.min.x + childWidth,
-						childY + childSize.y
-					};
-					childY += (childSize.y * childRecord.state.layoutWeight) + parentRecord.state.childSpacing;
-				}
-
-				setAnimatedRectTarget(childRecord, childRecord.state.targetRect);
-				childRecord.state.computedClipRect = childClipRect;
-				if (static_cast<SdUInt8>(childRecord.state.layerPriority) < static_cast<SdUInt8>(parentRecord.state.layerPriority))
-					childRecord.state.layerPriority = parentRecord.state.layerPriority;
-				if (childRecord.state.arrangeChildren)
-					self(self, childId);
-			}
-		};
-
-		float y = 12.0f;
-		for (SdWidgetId id : liveIds)
-		{
-			SdWidgetRecord& record = widgets[id];
-			if (parentArrangesChildren(record))
-				continue;
-
-			if (record.state.manualLayout)
-			{
-				record.state.targetRect = record.state.manualRect;
-			}
-			else
-			{
-				const SdVec2 desiredSize = record.state.measuredSize;
-				record.state.targetRect = {
-					12.0f,
-					y,
-					12.0f + desiredSize.x,
-					y + desiredSize.y
-				};
-				y += (desiredSize.y * record.state.layoutWeight) + 8.0f;
+				const SdWidgetRecord& parentRecord = widgets[layoutNodes[node.parentIndex].widgetId];
+				if (static_cast<SdUInt8>(record.state.layerPriority) < static_cast<SdUInt8>(parentRecord.state.layerPriority))
+					record.state.layerPriority = parentRecord.state.layerPriority;
 			}
 			setAnimatedRectTarget(record, record.state.targetRect);
-			record.state.computedClipRect = clipRect;
-			if (record.state.arrangeChildren)
-				arrangeChildren(arrangeChildren, id);
 		}
 
 		animationSystem.Update(context.frame.deltaTime, false, false, true, true);

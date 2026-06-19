@@ -3,6 +3,7 @@
 #include "SdAnimation.h"
 #include "SdInput.h"
 #include "SdLayer.h"
+#include "SdLayout.h"
 #include "SdRenderCore.h"
 #include "SdStyle.h"
 #include "SdUi.h"
@@ -85,6 +86,7 @@ namespace Sodium
 		SdInputSystem input{ 512 };
 		SdAnimationSystem animationSystem = {};
 		SdStyleSystem styleSystem = {};
+		SdLayoutSystem layoutSystem = {};
 		SdLayerSystem layerSystem = {};
 		SdInteractionSystem interactionSystem = {};
 		SdRenderSharedData renderSharedData = {};
@@ -150,6 +152,7 @@ namespace Sodium
 		SdRenderSharedData& GetRenderSharedData() noexcept { return renderSharedData; }
 		const SdRenderSharedData& GetRenderSharedData() const noexcept { return renderSharedData; }
 		const SdInteractionSystem& GetInteractionSystem() const noexcept { return interactionSystem; }
+		const SdLayoutSystem& GetLayoutSystem() const noexcept { return layoutSystem; }
 		const SdLayerSystem& GetLayerSystem() const noexcept { return layerSystem; }
 		const SdAnimationSystem& GetAnimationSystem() const noexcept { return animationSystem; }
 		const SdStyleSystem& GetStyleSystem() const noexcept { return styleSystem; }
