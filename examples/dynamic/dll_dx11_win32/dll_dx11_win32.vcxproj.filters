@@ -143,18 +143,6 @@
     <ClInclude Include="..\..\..\SdBackendContracts.h">
       <Filter>SodiumGUI\Render</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\SdWidgets.h">
-      <Filter>SodiumGUI\Widgets</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SdBasicWidgets.h">
-      <Filter>SodiumGUI\Widgets</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SdWindowWidget.h">
-      <Filter>SodiumGUI\Widgets</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SdImageViewerWidget.h">
-      <Filter>SodiumGUI\Widgets</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\backends\SdWin32Platform.h">
       <Filter>SodiumGUI\Backends</Filter>
     </ClInclude>

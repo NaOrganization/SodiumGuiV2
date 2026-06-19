@@ -222,7 +222,6 @@
     <ClInclude Include="..\..\..\SdText.h" />
     <ClInclude Include="..\..\..\SdTypes.h" />
     <ClInclude Include="..\..\..\SdUtf8.h" />
-    <ClInclude Include="..\..\..\SdWidgets.h" />
     <ClInclude Include="..\..\..\SdCore.h" />
     <ClInclude Include="..\..\..\SdUiCore.h" />
     <ClInclude Include="..\..\..\SdRenderCore.h" />
@@ -232,9 +231,6 @@
     <ClInclude Include="..\..\..\SdUi.h" />
     <ClInclude Include="..\..\..\SdInstance.h" />
     <ClInclude Include="..\..\..\SdRuntime.inl" />
-    <ClInclude Include="..\..\..\SdBasicWidgets.h" />
-    <ClInclude Include="..\..\..\SdWindowWidget.h" />
-    <ClInclude Include="..\..\..\SdImageViewerWidget.h" />
     <ClInclude Include="..\..\..\SodiumGUI.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

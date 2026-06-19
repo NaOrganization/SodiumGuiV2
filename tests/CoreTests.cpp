@@ -1,9 +1,12 @@
 #include "SodiumGUI.h"
 
+#include <algorithm>
 #include <chrono>
 #include <cstdio>
 #include <string>
 #include <thread>
+#include <type_traits>
+#include <utility>
 
 namespace
 {
@@ -25,6 +28,73 @@ namespace
 		instance.EndFrame();
 	}
 
+	SdColor ApplyOpacity(SdColor color, float opacity)
+	{
+		color.a = static_cast<SdUInt8>(static_cast<float>(color.a) * std::clamp(opacity, 0.0f, 1.0f));
+		return color;
+	}
+
+	struct TestDrawWidget final : SdWidgetTag
+	{
+		struct State
+		{
+			SdUtf8String label = {};
+			bool clicked = false;
+		};
+
+		void OnUpdate(SdUpdateContext& context, SdUtf8StringView label)
+		{
+			State& state = context.State<State>();
+			state.label.assign(label.data(), label.size());
+			state.clicked = context.WasClicked();
+			context.widgetState.styleClass = SdStyleWidgetClass::Button;
+		}
+
+		void OnUpdate(SdUpdateContext& context, SdUtf8StringView label, bool& clicked)
+		{
+			OnUpdate(context, label);
+			clicked = context.State<State>().clicked;
+		}
+
+		void OnLayout(SdLayoutContext& context)
+		{
+			context.SetDesiredSize({ 120.0f, 32.0f });
+		}
+
+		void OnPaint(SdPaintContext& context)
+		{
+			const State& state = context.State<State>();
+			context.renderList.AddRectFilled(context.animatedRect, ApplyOpacity(context.style.background, context.opacity), context.clipRect, context.style.radius);
+			context.renderList.AddRect(context.animatedRect, ApplyOpacity(context.style.border, context.opacity), context.clipRect, 1.0f, context.style.radius);
+			context.renderList.AddText(state.label, { context.animatedRect.min.x + 8.0f, context.animatedRect.min.y + 8.0f }, ApplyOpacity(context.style.color, context.opacity), context.clipRect);
+		}
+	};
+
+	struct TestContainer final : SdWidgetTag
+	{
+		template<class TContent>
+			requires std::is_invocable_v<TContent&, SdUi&>
+		void OnUpdate(SdUpdateContext& context, TContent&& content)
+		{
+			context.widgetState.styleClass = SdStyleWidgetClass::Panel;
+			std::forward<TContent>(content)(context.ui);
+		}
+
+		void OnLayout(SdLayoutContext& context)
+		{
+			context.SetDesiredSize({ 220.0f, 110.0f });
+			context.widgetState.arrangeChildren = true;
+			context.widgetState.clipChildren = true;
+			context.widgetState.childPadding = { 6.0f, 6.0f, 6.0f, 6.0f };
+			context.widgetState.childSpacing = 4.0f;
+		}
+
+		void OnPaint(SdPaintContext& context)
+		{
+			context.renderList.AddRectFilled(context.animatedRect, ApplyOpacity(context.style.background, context.opacity), context.clipRect, context.style.radius);
+		}
+	};
+
 	struct StatefulWidget final : SdWidgetTag
 	{
 		struct State
@@ -40,6 +110,19 @@ namespace
 		void OnLayout(SdLayoutContext& context)
 		{
 			context.SetDesiredSize({ 24.0f, 12.0f });
+		}
+	};
+
+	struct ModelWidget final : SdWidgetTag
+	{
+		struct Model
+		{
+			float value = 0.0f;
+		};
+
+		void OnLayout(SdLayoutContext& context)
+		{
+			context.SetDesiredSize({ 32.0f, 16.0f });
 		}
 	};
 
@@ -78,7 +161,7 @@ namespace
 	{
 		SdInstance instance;
 		instance.BeginFrame({ 640.0f, 480.0f });
-		instance.ui.Declare<SdButton>("Run");
+		instance.ui.Declare<TestDrawWidget>("Run");
 		PumpFrame(instance);
 
 		const SdFrameDiagnostics& diagnostics = instance.GetDiagnostics();
@@ -91,17 +174,17 @@ namespace
 	{
 		SdInstance instance;
 		instance.BeginFrame({ 640.0f, 480.0f });
-		instance.ui.Declare<SdText>("anonymous");
+		instance.ui.Declare<TestDrawWidget>("anonymous");
 		PumpFrame(instance);
 		const SdWidgetId anonymousId = FirstWidgetId(instance);
 
 		instance.BeginFrame({ 640.0f, 480.0f });
-		instance.ui.Declare<SdText>("anonymous changed");
+		instance.ui.Declare<TestDrawWidget>("anonymous changed");
 		PumpFrame(instance);
 		Check(FirstWidgetId(instance) == anonymousId, "anonymous id stays stable for same parent/type/ordinal");
 
 		instance.BeginFrame({ 640.0f, 480.0f });
-		instance.ui.DeclareKeyed<SdButton>("stable_button", "Label A");
+		instance.ui.DeclareKeyed<TestDrawWidget>("stable_button", "Label A");
 		PumpFrame(instance);
 		SdWidgetId keyedId = 0;
 		SdResolvedKey resolvedKey = 0;
@@ -115,7 +198,7 @@ namespace
 		}
 
 		instance.BeginFrame({ 640.0f, 480.0f });
-		instance.ui.DeclareKeyed<SdButton>("stable_button", "Label B");
+		instance.ui.DeclareKeyed<TestDrawWidget>("stable_button", "Label B");
 		PumpFrame(instance);
 		const SdWidgetId remappedId = instance.GetStateStorage().FindWidgetIdByResolvedKey(resolvedKey);
 		Check(keyedId != 0 && remappedId == keyedId, "keyed id is independent from label text");
@@ -138,11 +221,11 @@ namespace
 		Check(record != nullptr, "stateful widget reused");
 		Check(record && record->userStates.size() == 1, "typed state is stored on widget record");
 
-		auto& model = instance.ui.Model<SdScrollView>("scroll_view");
-		model.scrollY = 42.0f;
+		auto& model = instance.ui.Model<ModelWidget>("stable_model");
+		model.value = 42.0f;
 		instance.BeginFrame({ 640.0f, 480.0f });
 		PumpFrame(instance);
-		Check(instance.ui.Model<SdScrollView>("scroll_view").scrollY == 42.0f, "keyed model persists without widget record");
+		Check(instance.ui.Model<ModelWidget>("stable_model").value == 42.0f, "keyed model persists without widget record");
 
 		std::this_thread::sleep_for(std::chrono::milliseconds(220));
 		instance.BeginFrame({ 640.0f, 480.0f });
@@ -154,16 +237,15 @@ namespace
 	void TestLayoutAnimationAndStyle()
 	{
 		SdInstance instance;
-		float sliderValue = 0.5f;
 		instance.BeginFrame({ 640.0f, 480.0f });
-		instance.ui.DeclareKeyed<SdWindow>("window", "Window", [&sliderValue](SdUi& ui)
+		instance.ui.DeclareKeyed<TestContainer>("container", [](SdUi& ui)
 		{
-			ui.Declare<SdPanel>();
-			ui.Declare<SdSliderFloat>(sliderValue, 0.0f, 1.0f);
+			ui.Declare<TestDrawWidget>("one");
+			ui.Declare<TestDrawWidget>("two");
 		});
 		PumpFrame(instance);
 
-		Check(instance.GetDiagnostics().submittedWidgetCount == 3, "nested declaration submits window children");
+		Check(instance.GetDiagnostics().submittedWidgetCount == 3, "nested declaration submits container children");
 		Check(instance.GetLayoutSystem().GetNodes().size() == 3, "layout node exists for each declared widget");
 		Check(instance.GetDiagnostics().layoutNodeCount == 3, "diagnostics expose layout node count");
 		Check(instance.GetDiagnostics().activeAnimationChannelCount > 0, "enter animation channels are active");
@@ -238,7 +320,7 @@ namespace
 		CountingRenderer renderer;
 		instance.SetRendererBackend(&renderer);
 		instance.BeginFrame({ 320.0f, 240.0f });
-		instance.ui.Declare<SdButton>("Submit");
+		instance.ui.Declare<TestDrawWidget>("Submit");
 		PumpFrame(instance);
 		instance.Render();
 
@@ -247,35 +329,17 @@ namespace
 		Check(renderer.lastDisplaySize.x == 320.0f && renderer.lastDisplaySize.y == 240.0f, "SdInstance::Render submits frame display size");
 	}
 
-	void TestInputLayerAndBuiltIns()
+	void TestInputLayerAndCustomWidgets()
 	{
 		SdInstance instance;
 		bool clicked = false;
-		bool popupOpen = true;
-		float value = 0.0f;
-		SdUtf8String textValue = "A";
 
 		instance.BeginFrame({ 640.0f, 480.0f });
-		instance.ui.Declare<SdButton>("Click", clicked);
-		instance.ui.Declare<SdSliderFloat>(value, 0.0f, 1.0f);
-		instance.ui.Declare<SdTextInput>(textValue);
-		instance.ui.DeclareKeyed<SdScrollView>("scroll", [] (SdUi& ui)
-		{
-			ui.Declare<SdText>("inside");
-		});
-		instance.ui.Declare<SdPopup>(popupOpen, [] (SdUi& ui)
-		{
-			ui.Declare<SdText>("popup");
-		});
-		instance.ui.Declare<SdContextMenu>(popupOpen, SdPopupOptions{}, [] (SdUi& ui)
-		{
-			ui.Declare<SdText>("menu");
-		});
-		instance.ui.Declare<SdTooltip>(true, "tip");
+		instance.ui.Declare<TestDrawWidget>("Click", clicked);
 		PumpFrame(instance);
 
 		Check(instance.GetLayerSystem().GetHitTestRecords().size() > 0, "layer system stores hit-test records");
-		Check(instance.GetDiagnostics().drawCommandCount > 0, "built-in widgets emit draw commands");
+		Check(instance.GetDiagnostics().drawCommandCount > 0, "custom widgets emit draw commands");
 
 		instance.GetInputSystem().PushEvent(SdInputEvent{
 			SdInputEventType::MouseMove,
@@ -293,68 +357,35 @@ namespace
 			SdMouseButtonEvent{ SdMouseButton::Left, false }
 		});
 		instance.BeginFrame({ 640.0f, 480.0f });
-		instance.ui.Declare<SdButton>("Click", clicked);
+		instance.ui.Declare<TestDrawWidget>("Click", clicked);
 		PumpFrame(instance);
-		Check(clicked, "button click uses unified interaction state");
+		Check(clicked, "custom widget click uses unified interaction state");
 	}
 
-	void TestTextInputEditing()
+	void TestInputSystemTextState()
 	{
-		SdInstance instance;
-		SdUtf8String value = "abc";
-
-		instance.BeginFrame({ 640.0f, 480.0f });
-		instance.ui.Declare<SdTextInput>(value);
-		PumpFrame(instance);
-
-		instance.GetInputSystem().PushEvent(SdInputEvent{
-			SdInputEventType::MouseMove,
-			SdInputDevice::Mouse,
-			SdMouseMoveEvent{ { 20.0f, 20.0f } }
-		});
-		instance.GetInputSystem().PushEvent(SdInputEvent{
-			SdInputEventType::MouseButton,
-			SdInputDevice::Mouse,
-			SdMouseButtonEvent{ SdMouseButton::Left, true }
-		});
-		instance.GetInputSystem().PushEvent(SdInputEvent{
-			SdInputEventType::MouseButton,
-			SdInputDevice::Mouse,
-			SdMouseButtonEvent{ SdMouseButton::Left, false }
-		});
-		instance.BeginFrame({ 640.0f, 480.0f });
-		instance.ui.Declare<SdTextInput>(value);
-		PumpFrame(instance);
-
-		instance.GetInputSystem().PushEvent(SdInputEvent{
+		SdInputSystem input;
+		input.BeginFrame(1);
+		input.PushEvent(SdInputEvent{
 			SdInputEventType::TextCommit,
 			SdInputDevice::Text,
 			SdTextCommitEvent{ "Z" }
 		});
-		instance.BeginFrame({ 640.0f, 480.0f });
-		instance.ui.Declare<SdTextInput>(value);
-		PumpFrame(instance);
-		Check(value == "Zabc", "text input inserts committed text at caret");
-
-		instance.GetInputSystem().PushEvent(SdInputEvent{
-			SdInputEventType::Key,
-			SdInputDevice::Keyboard,
-			SdKeyEvent{ SdKeyCode::LeftCtrl, true, false }
-		});
-		instance.GetInputSystem().PushEvent(SdInputEvent{
-			SdInputEventType::Key,
-			SdInputDevice::Keyboard,
-			SdKeyEvent{ SdKeyCode::A, true, false }
-		});
-		instance.GetInputSystem().PushEvent(SdInputEvent{
-			SdInputEventType::TextCommit,
+		input.PushEvent(SdInputEvent{
+			SdInputEventType::TextCompositionUpdate,
 			SdInputDevice::Text,
-			SdTextCommitEvent{ "Q" }
+			SdTextCompositionEvent{ "ime", 0, true }
 		});
-		instance.BeginFrame({ 640.0f, 480.0f });
-		instance.ui.Declare<SdTextInput>(value);
-		PumpFrame(instance);
-		Check(value == "Q", "text input replaces selected text");
+		input.FinalizeFrame();
+		Check(input.GetCommittedText() == "Z", "input system stores committed text");
+		Check(input.GetCompositionText() == "ime", "input system stores composition text");
+
+		input.SetTextInputTarget(7, { 10.0f, 12.0f, 11.0f, 28.0f }, 16.0f);
+		input.ActivateTextInput(7);
+		const SdTextInputTarget* target = input.GetActiveTextInputTarget();
+		Check(target && target->id == 7 && target->lineHeight == 16.0f, "input system tracks active text target");
+		input.DeactivateTextInput(7);
+		Check(input.GetActiveTextInputTarget() == nullptr, "input system clears active text target");
 	}
 
 	void TestLayoutSystemDirect()
@@ -482,8 +513,8 @@ int main()
 	TestLayoutAnimationAndStyle();
 	TestIdStackAndStyleLayerSelectors();
 	TestContextOwnershipAndRenderSubmission();
-	TestInputLayerAndBuiltIns();
-	TestTextInputEditing();
+	TestInputLayerAndCustomWidgets();
+	TestInputSystemTextState();
 	TestLayoutSystemDirect();
 	TestAnimationSystemDirect();
 	TestLayerSystemDirect();
