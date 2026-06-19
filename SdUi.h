@@ -1,11 +1,10 @@
 #pragma once
 
+#include "SdIdStack.h"
 #include "SdRuntimeStorage.h"
 
 #include <functional>
 #include <string_view>
-#include <unordered_map>
-#include <vector>
 
 namespace Sodium
 {
@@ -15,13 +14,7 @@ namespace Sodium
 		friend class SdInstance;
 
 		SdInstance& instance;
-		std::vector<SdWidgetId> parentStack = {};
-		std::unordered_map<SdWidgetId, SdUInt32> nextOrdinalByParent = {};
-
-		SdWidgetId ResolveWidgetId(SdUInt64 typeHash);
-		SdWidgetId ResolveKeyedWidgetId(SdUInt64 typeHash, SdUtf8StringView key, SdResolvedKey& resolvedKey);
-		SdResolvedKey ResolveModelKey(SdUInt64 typeHash, SdUtf8StringView key) const;
-		SdWidgetId CurrentParentId() const noexcept;
+		SdIdStack idStack = {};
 		void BeginDeclarationFrame();
 
 	public:

@@ -21,6 +21,7 @@ namespace Sodium
 		SdUInt32 leavingWidgetCount = 0;
 		SdUInt32 deadWidgetCount = 0;
 		SdUInt32 removedWidgetCount = 0;
+		SdUInt32 layoutNodeCount = 0;
 		SdUInt32 hitTestRecordCount = 0;
 		SdUInt32 layerDrawChannelCount = 0;
 		SdUInt32 activeAnimationChannelCount = 0;
@@ -41,6 +42,7 @@ namespace Sodium
 			leavingWidgetCount = 0;
 			deadWidgetCount = 0;
 			removedWidgetCount = 0;
+			layoutNodeCount = 0;
 			hitTestRecordCount = 0;
 			layerDrawChannelCount = 0;
 			activeAnimationChannelCount = 0;
@@ -65,14 +67,6 @@ namespace Sodium
 	struct SdContext final
 	{
 		SdFrameState frame = {};
-		ISdPlatformBackend* platform = nullptr;
-		ISdRendererBackend* renderer = nullptr;
-		ISdFontBackend* fontBackend = nullptr;
-	};
-
-	class SdInstance final
-	{
-	private:
 		SdStateStorage stateStorage = {};
 		std::vector<SdWidgetId> frameOrder = {};
 		SdInputSystem input{ 512 };
@@ -81,21 +75,34 @@ namespace Sodium
 		SdLayoutSystem layoutSystem = {};
 		SdLayerSystem layerSystem = {};
 		SdInteractionSystem interactionSystem = {};
+		SdRenderSystem renderSystem = {};
 		SdRenderSharedData renderSharedData = {};
 		SdRenderStats renderStats = {};
+		SdThemeView theme = {};
+		ISdPlatformBackend* platform = nullptr;
+		ISdRendererBackend* renderer = nullptr;
+		ISdFontBackend* fontBackend = nullptr;
+		SdUInt32 nextOrder = 0;
+	};
+
+	class SdInstance final
+	{
+	private:
+		SdContext context = {};
 		SdRenderList renderList;
 		SdUi uiObject;
-		SdContext context = {};
-		SdThemeView theme = {};
 		SdTimePoint lastFrameTime = {};
-		SdUInt32 nextOrder = 0;
 
 		SdWidgetRecord& GetOrCreateWidgetRecord(SdWidgetId id);
 		void MarkSubmitted(SdWidgetRecord& record, SdWidgetId id, SdWidgetId parentId, SdResolvedKey resolvedKey, SdUtf8StringView debugKey);
 		void FinishWidgetFrame();
+		void EndDeclarationStage();
+		void RunLifecycleAnimationStage();
+		void RunLayoutAndPaintStage();
+		void RunSweepStage();
 		SdTransition GetDefaultTransition() const noexcept;
 		void UpdateWidgetAnimation(SdWidgetRecord& record);
-		void ResolveWidgetStyle(SdWidgetRecord& record, SdStyleInteractionState interactionState);
+		void ResolveWidgetStyle(SdWidgetRecord& record, SdStyleInteractionState interactionState, SdLayerPriority layerPriority);
 		void SolveLayoutAndPaint();
 		SdUInt32 RemoveDeadWidgets();
 		void RefreshDiagnostics();
@@ -129,7 +136,7 @@ namespace Sodium
 			if constexpr (std::derived_from<TPlatform, ISdPlatformBackend>)
 				SetPlatformBackend(&platform);
 			BeginInputFrame();
-			platform.StartFrame(input);
+			platform.StartFrame(context.input);
 			FinishInputAndBeginUiFrame(newDisplaySize);
 		}
 
@@ -140,25 +147,28 @@ namespace Sodium
 		void SetRendererBackend(ISdRendererBackend* renderer) noexcept;
 		void SetFontBackend(ISdFontBackend* fontBackend) noexcept;
 
-		SdInputSystem& GetInputSystem() noexcept { return input; }
-		const SdInputSnapshot& GetInput() const noexcept { return input.GetSnapshot(); }
+		SdInputSystem& GetInputSystem() noexcept { return context.input; }
+		const SdInputSnapshot& GetInput() const noexcept { return context.input.GetSnapshot(); }
 		SdRenderList& GetRenderList() noexcept { return renderList; }
-		SdRenderSharedData& GetRenderSharedData() noexcept { return renderSharedData; }
-		const SdRenderSharedData& GetRenderSharedData() const noexcept { return renderSharedData; }
-		const SdInteractionSystem& GetInteractionSystem() const noexcept { return interactionSystem; }
-		const SdLayoutSystem& GetLayoutSystem() const noexcept { return layoutSystem; }
-		const SdLayerSystem& GetLayerSystem() const noexcept { return layerSystem; }
-		const SdAnimationSystem& GetAnimationSystem() const noexcept { return animationSystem; }
-		const SdStateStorage& GetStateStorage() const noexcept { return stateStorage; }
-		const SdStyleSystem& GetStyleSystem() const noexcept { return styleSystem; }
+		SdRenderSharedData& GetRenderSharedData() noexcept { return context.renderSharedData; }
+		const SdRenderSharedData& GetRenderSharedData() const noexcept { return context.renderSharedData; }
+		const SdInteractionSystem& GetInteractionSystem() const noexcept { return context.interactionSystem; }
+		const SdLayoutSystem& GetLayoutSystem() const noexcept { return context.layoutSystem; }
+		const SdLayerSystem& GetLayerSystem() const noexcept { return context.layerSystem; }
+		const SdAnimationSystem& GetAnimationSystem() const noexcept { return context.animationSystem; }
+		const SdStateStorage& GetStateStorage() const noexcept { return context.stateStorage; }
+		const SdStyleSystem& GetStyleSystem() const noexcept { return context.styleSystem; }
+		const SdRenderSystem& GetRenderSystem() const noexcept { return context.renderSystem; }
 		const SdDrawData& GetRenderData() const noexcept { return renderList.GetDrawData(); }
 		SdDrawPacket GetDrawPacket() const noexcept { return renderList.BuildPacket(static_cast<SdUInt32>(context.frame.frameIndex)); }
 		SdFrameIndex GetFrameIndex() const noexcept { return context.frame.frameIndex; }
 		SdDuration GetDeltaTime() const noexcept { return context.frame.deltaTime; }
 		SdVec2 GetDisplaySize() const noexcept { return context.frame.displaySize; }
-		SdRenderStats& GetRenderStats() noexcept { return renderStats; }
-		const SdRenderStats& GetRenderStats() const noexcept { return renderStats; }
+		SdRenderStats& GetRenderStats() noexcept { return context.renderStats; }
+		const SdRenderStats& GetRenderStats() const noexcept { return context.renderStats; }
 		const SdFrameDiagnostics& GetDiagnostics() const noexcept { return context.frame.diagnostics; }
+		SdContext& GetContext() noexcept { return context; }
+		const SdContext& GetContext() const noexcept { return context; }
 		ISdPlatformBackend* GetPlatformBackend() const noexcept { return context.platform; }
 		ISdRendererBackend* GetRendererBackend() const noexcept { return context.renderer; }
 		ISdFontBackend* GetFontBackend() const noexcept { return context.fontBackend; }

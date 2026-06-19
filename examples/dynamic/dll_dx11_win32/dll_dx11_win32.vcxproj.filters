@@ -116,6 +116,9 @@
     <ClInclude Include="..\..\..\SdRuntimeStorage.h">
       <Filter>SodiumGUI\UI</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\SdIdStack.h">
+      <Filter>SodiumGUI\UI</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\..\SdUi.h">
       <Filter>SodiumGUI\UI</Filter>
     </ClInclude>

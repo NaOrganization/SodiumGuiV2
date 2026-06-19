@@ -53,10 +53,15 @@ namespace Sodium
 		ColorButtonHovered,
 		ColorButtonPressed,
 		ColorAccent,
+		ColorBorder,
+		ColorBorderStrong,
+		ColorDanger,
+		ColorSelection,
 		SpacingSmall,
 		SpacingMedium,
 		RadiusSmall,
-		DurationFast
+		DurationFast,
+		Count
 	};
 
 	enum class SdStyleWidgetClass : SdUInt16

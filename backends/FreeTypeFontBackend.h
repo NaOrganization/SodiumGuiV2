@@ -81,14 +81,28 @@ namespace Sodium::Backends
 			std::vector<SdUInt32> pixels = {};
 		};
 
+		struct ParagraphCacheEntry final
+		{
+			SdUtf8String text = {};
+			SdTextStyle style = {};
+			float maxWidth = 0.0f;
+			SdColor color = SdColorWhite;
+			SdParagraphLayout layout{ std::pmr::get_default_resource() };
+			SdUInt64 lastUsed = 0;
+		};
+
+		static constexpr SdSize kMaxParagraphCacheEntries = 128;
+
 		FT_Library library = nullptr;
 		SdFreeTypeFontBackendConfig config = {};
 		SdUInt32 nextFontIndex = 1;
 		SdUInt32 nextFamilyIndex = 1;
+		SdUInt64 paragraphCacheClock = 0;
 		SdFontHandle fallbackFont = {};
 		std::vector<FontFace> faces = {};
 		std::vector<FontFamily> families = {};
 		std::unordered_map<GlyphKey, GlyphInfo, GlyphKeyHash> glyphCache = {};
+		std::vector<ParagraphCacheEntry> paragraphCache = {};
 		Atlas atlas = {};
 
 		FontFace* TryGetFace(SdFontHandle handle) noexcept;
@@ -107,6 +121,16 @@ namespace Sodium::Backends
 		const GlyphInfo* EnsureGlyph(SdFontHandle font, SdUInt32 codepoint, float pixelSize);
 		float ResolveLineHeight(SdFontHandle font, const SdTextStyle& style);
 		float ResolveAscender(SdFontHandle font, float pixelSize);
+		SdParagraphLayout BuildParagraphLayoutUncached(
+			SdUtf8StringView text,
+			const SdTextStyle& style,
+			float maxWidth,
+			const SdColor& color,
+			std::pmr::memory_resource* resource);
+		ParagraphCacheEntry* FindParagraphCacheEntry(SdUtf8StringView text, const SdTextStyle& style, float maxWidth, const SdColor& color);
+		ParagraphCacheEntry& StoreParagraphCacheEntry(SdUtf8StringView text, const SdTextStyle& style, float maxWidth, const SdColor& color, SdParagraphLayout&& layout);
+		static bool MatchesStyle(const SdTextStyle& left, const SdTextStyle& right);
+		static SdParagraphLayout CopyParagraphLayout(const SdParagraphLayout& layout, std::pmr::memory_resource* resource);
 
 	public:
 		using Config = SdFreeTypeFontBackendConfig;

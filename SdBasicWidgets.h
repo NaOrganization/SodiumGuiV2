@@ -62,7 +62,7 @@ namespace Sodium
 		void OnPaint(SdPaintContext& context)
 		{
 			context.renderList.AddRectFilled(context.animatedRect, SdApplyOpacity(context.style.background, context.opacity), context.clipRect, context.style.radius);
-			context.renderList.AddRect(context.animatedRect, SdApplyOpacity({ 86, 101, 124, 255 }, context.opacity), context.clipRect, 1.0f);
+			context.renderList.AddRect(context.animatedRect, SdApplyOpacity(context.style.border, context.opacity), context.clipRect, 1.0f);
 		}
 	};
 
@@ -110,7 +110,7 @@ namespace Sodium
 		{
 			const State& state = context.State<State>();
 			context.renderList.AddRectFilled(context.animatedRect, SdApplyOpacity(context.style.background, context.opacity), context.clipRect);
-			context.renderList.AddRect(context.animatedRect, SdApplyOpacity({ 128, 154, 180, 255 }, context.opacity), context.clipRect, 1.0f);
+			context.renderList.AddRect(context.animatedRect, SdApplyOpacity(context.style.border, context.opacity), context.clipRect, 1.0f);
 			context.renderList.AddText(state.text, { context.animatedRect.min.x + 16.0f, context.animatedRect.min.y + 9.0f }, SdApplyOpacity(context.style.color, context.opacity), context.clipRect);
 		}
 
@@ -151,7 +151,7 @@ namespace Sodium
 				context.animatedRect.min.y + 26.0f
 			};
 			context.renderList.AddRectFilled(box, SdApplyOpacity(context.style.background, context.opacity), context.clipRect, context.style.radius);
-			context.renderList.AddRect(box, SdApplyOpacity({ 130, 146, 164, 255 }, context.opacity), context.clipRect, 1.0f);
+			context.renderList.AddRect(box, SdApplyOpacity(context.style.border, context.opacity), context.clipRect, 1.0f);
 			if (state.checked)
 			{
 				const SdRect mark = { box.min.x + 5.0f, box.min.y + 5.0f, box.max.x - 5.0f, box.max.y - 5.0f };
@@ -221,7 +221,7 @@ namespace Sodium
 			context.renderList.AddRectFilled(track, SdApplyOpacity(context.style.background, context.opacity), context.clipRect, context.style.radius);
 			context.renderList.AddRectFilled(fill, SdApplyOpacity(theme.GetColor(SdStyleToken::ColorAccent), context.opacity), context.clipRect, context.style.radius);
 			context.renderList.AddRectFilled(knob, SdApplyOpacity(context.style.color, context.opacity), context.clipRect, 4.0f);
-			context.renderList.AddRect(knob, SdApplyOpacity({ 43, 55, 68, 255 }, context.opacity), context.clipRect, 1.0f, 4.0f);
+			context.renderList.AddRect(knob, SdApplyOpacity(context.style.border, context.opacity), context.clipRect, 1.0f, 4.0f);
 		}
 	};
 
@@ -240,6 +240,7 @@ namespace Sodium
 			SdSize caretByteOffset = 0;
 			SdSize selectionStart = 0;
 			SdSize selectionEnd = 0;
+			SdSize selectionAnchor = 0;
 			bool focused = false;
 		};
 
@@ -247,30 +248,65 @@ namespace Sodium
 		{
 			State& state = context.State<State>();
 			context.widgetState.styleClass = SdStyleWidgetClass::TextInput;
+			NormalizeSelection(state, value);
 
 			if (context.WasPressed())
+			{
 				context.instance.GetInputSystem().ActivateTextInput(static_cast<SdTextInputTargetId>(context.id));
+				const SdRect rect = context.widgetState.lastRect.Width() > 0.0f
+					? context.widgetState.lastRect
+					: context.widgetState.targetRect;
+				state.caretByteOffset = ByteOffsetFromPoint(value, rect, context.input.GetMousePosition().x);
+				state.selectionAnchor = state.caretByteOffset;
+				ClearSelection(state);
+			}
 
 			state.focused = context.IsFocused();
 			if (state.focused)
 			{
+				const bool extendSelection = (context.input.GetModifierMask() & SdModifierMask::Shift) == SdModifierMask::Shift;
+				if (context.input.IsChordPressed(SdModifierMask::Ctrl, SdKeyCode::A))
+				{
+					state.selectionAnchor = 0;
+					state.caretByteOffset = value.size();
+					UpdateSelectionFromAnchor(state);
+				}
+				else
+				{
+					if (context.input.IsKeyDown(SdKeyCode::LeftArrow))
+						MoveCaret(value, state, PreviousCodepointOffset(value, state.caretByteOffset), extendSelection);
+					if (context.input.IsKeyDown(SdKeyCode::RightArrow))
+						MoveCaret(value, state, NextCodepointOffset(value, state.caretByteOffset), extendSelection);
+					if (context.input.IsKeyDown(SdKeyCode::Home))
+						MoveCaret(value, state, 0, extendSelection);
+					if (context.input.IsKeyDown(SdKeyCode::End))
+						MoveCaret(value, state, value.size(), extendSelection);
+				}
+
 				if (context.input.IsKeyDown(SdKeyCode::Backspace) && !value.empty())
-					ErasePreviousCodepoint(value);
+				{
+					if (!DeleteSelection(value, state))
+						ErasePreviousCodepoint(value, state);
+				}
+				if (context.input.IsKeyDown(SdKeyCode::Delete) && !value.empty())
+				{
+					if (!DeleteSelection(value, state))
+						EraseNextCodepoint(value, state);
+				}
+
 				const SdUtf8StringView committed = context.input.GetCommittedText();
 				if (!committed.empty() && Utf8::IsValid(committed))
-					value.append(committed.data(), committed.size());
+					InsertText(value, state, committed);
 			}
 
 			state.text = value;
 			state.composition = state.focused ? SdUtf8String(context.input.GetCompositionText()) : SdUtf8String{};
-			state.caretByteOffset = value.size();
-			state.selectionStart = state.caretByteOffset;
-			state.selectionEnd = state.caretByteOffset;
+			NormalizeSelection(state, value);
 
 			const SdRect rect = context.widgetState.lastRect.Width() > 0.0f
 				? context.widgetState.lastRect
 				: context.widgetState.targetRect;
-			const SdRect caret = BuildCaretRect(rect, state.text);
+			const SdRect caret = BuildCaretRect(rect, state.text, state.caretByteOffset);
 			context.instance.GetInputSystem().SetTextInputTarget(static_cast<SdTextInputTargetId>(context.id), caret, std::max(18.0f, rect.Height()));
 		}
 
@@ -290,33 +326,174 @@ namespace Sodium
 		{
 			const State& state = context.State<State>();
 			const SdRect rect = context.animatedRect;
+			const SdTheme& theme = context.instance.GetStyleSystem().GetTheme();
 			context.renderList.AddRectFilled(rect, SdApplyOpacity(context.style.background, context.opacity), context.clipRect, context.style.radius);
-			context.renderList.AddRect(rect, SdApplyOpacity(state.focused ? context.instance.GetStyleSystem().GetTheme().GetColor(SdStyleToken::ColorAccent) : SdColor{ 91, 109, 128, 255 }, context.opacity), context.clipRect, 1.0f, context.style.radius);
+			context.renderList.AddRect(rect, SdApplyOpacity(state.focused ? theme.GetColor(SdStyleToken::ColorAccent) : context.style.border, context.opacity), context.clipRect, 1.0f, context.style.radius);
+			if (state.focused && HasSelection(state))
+			{
+				const SdRect selection = BuildSelectionRect(rect, state.text, state.selectionStart, state.selectionEnd);
+				context.renderList.AddRectFilled(selection, SdApplyOpacity(theme.GetColor(SdStyleToken::ColorSelection), context.opacity), context.clipRect, 1.0f);
+			}
 			context.renderList.AddText(state.text, { rect.min.x + 9.0f, rect.min.y + 8.0f }, SdApplyOpacity(context.style.color, context.opacity), context.clipRect);
 			if (!state.composition.empty())
-				context.renderList.AddText(state.composition, { rect.min.x + 9.0f, rect.min.y + 23.0f }, SdApplyOpacity({ 143, 196, 255, 255 }, context.opacity), context.clipRect);
+				context.renderList.AddText(state.composition, { rect.min.x + 9.0f, rect.min.y + 23.0f }, SdApplyOpacity(theme.GetColor(SdStyleToken::ColorAccent), context.opacity), context.clipRect);
 			if (state.focused)
 			{
-				const SdRect caret = BuildCaretRect(rect, state.text);
+				const SdRect caret = BuildCaretRect(rect, state.text, state.caretByteOffset);
 				context.renderList.AddLine(caret.min, { caret.min.x, caret.max.y }, SdApplyOpacity(context.style.color, context.opacity), context.clipRect, 1.0f);
 			}
 		}
 
 	private:
-		static void ErasePreviousCodepoint(SdUtf8String& text)
+		static bool HasSelection(const State& state) noexcept
 		{
-			if (text.empty())
-				return;
-			SdSize offset = text.size() - 1;
-			while (offset > 0 && (static_cast<unsigned char>(text[offset]) & 0xC0u) == 0x80u)
-				--offset;
-			text.erase(offset);
+			return state.selectionStart != state.selectionEnd;
 		}
 
-		static SdRect BuildCaretRect(const SdRect& rect, SdUtf8StringView text)
+		static SdSize ClampToCodepointBoundary(SdUtf8StringView text, SdSize offset)
 		{
-			const float x = rect.min.x + 9.0f + static_cast<float>(Utf8::DecodeToCodepoints(text).size()) * 7.5f;
+			offset = std::min(offset, text.size());
+			while (offset > 0 && offset < text.size() && (static_cast<unsigned char>(text[offset]) & 0xC0u) == 0x80u)
+				--offset;
+			return offset;
+		}
+
+		static SdSize PreviousCodepointOffset(SdUtf8StringView text, SdSize offset)
+		{
+			offset = ClampToCodepointBoundary(text, offset);
+			if (offset == 0)
+				return 0;
+			--offset;
+			while (offset > 0 && (static_cast<unsigned char>(text[offset]) & 0xC0u) == 0x80u)
+				--offset;
+			return offset;
+		}
+
+		static SdSize NextCodepointOffset(SdUtf8StringView text, SdSize offset)
+		{
+			offset = ClampToCodepointBoundary(text, offset);
+			if (offset >= text.size())
+				return text.size();
+			SdUInt32 codepoint = 0;
+			SdSize next = offset;
+			Utf8::TryReadCodepoint(text, next, codepoint);
+			return std::min(next, text.size());
+		}
+
+		static SdSize CountCodepointsBefore(SdUtf8StringView text, SdSize byteOffset)
+		{
+			const SdSize clampedOffset = ClampToCodepointBoundary(text, byteOffset);
+			SdSize offset = 0;
+			SdSize count = 0;
+			while (offset < clampedOffset)
+			{
+				SdUInt32 codepoint = 0;
+				Utf8::TryReadCodepoint(text, offset, codepoint);
+				++count;
+			}
+			return count;
+		}
+
+		static SdSize ByteOffsetFromPoint(SdUtf8StringView text, const SdRect& rect, float x)
+		{
+			const float local = std::max(0.0f, x - rect.min.x - 9.0f);
+			const SdSize targetCodepoint = static_cast<SdSize>(std::floor((local / 7.5f) + 0.5f));
+			SdSize offset = 0;
+			for (SdSize index = 0; index < targetCodepoint && offset < text.size(); ++index)
+			{
+				SdUInt32 codepoint = 0;
+				Utf8::TryReadCodepoint(text, offset, codepoint);
+			}
+			return offset;
+		}
+
+		static void NormalizeSelection(State& state, SdUtf8StringView text)
+		{
+			state.caretByteOffset = ClampToCodepointBoundary(text, state.caretByteOffset);
+			state.selectionAnchor = ClampToCodepointBoundary(text, state.selectionAnchor);
+			state.selectionStart = ClampToCodepointBoundary(text, std::min(state.selectionStart, text.size()));
+			state.selectionEnd = ClampToCodepointBoundary(text, std::min(state.selectionEnd, text.size()));
+			if (state.selectionStart > state.selectionEnd)
+				std::swap(state.selectionStart, state.selectionEnd);
+		}
+
+		static void ClearSelection(State& state)
+		{
+			state.selectionStart = state.caretByteOffset;
+			state.selectionEnd = state.caretByteOffset;
+			state.selectionAnchor = state.caretByteOffset;
+		}
+
+		static void UpdateSelectionFromAnchor(State& state)
+		{
+			state.selectionStart = std::min(state.selectionAnchor, state.caretByteOffset);
+			state.selectionEnd = std::max(state.selectionAnchor, state.caretByteOffset);
+		}
+
+		static void MoveCaret(SdUtf8StringView text, State& state, SdSize byteOffset, bool extendSelection)
+		{
+			state.caretByteOffset = ClampToCodepointBoundary(text, byteOffset);
+			if (extendSelection)
+			{
+				UpdateSelectionFromAnchor(state);
+				return;
+			}
+			ClearSelection(state);
+		}
+
+		static bool DeleteSelection(SdUtf8String& text, State& state)
+		{
+			if (!HasSelection(state))
+				return false;
+			text.erase(state.selectionStart, state.selectionEnd - state.selectionStart);
+			state.caretByteOffset = state.selectionStart;
+			ClearSelection(state);
+			return true;
+		}
+
+		static void InsertText(SdUtf8String& text, State& state, SdUtf8StringView insertText)
+		{
+			DeleteSelection(text, state);
+			text.insert(state.caretByteOffset, insertText.data(), insertText.size());
+			state.caretByteOffset += insertText.size();
+			ClearSelection(state);
+		}
+
+		static void ErasePreviousCodepoint(SdUtf8String& text, State& state)
+		{
+			if (text.empty() || state.caretByteOffset == 0)
+				return;
+			const SdSize previous = PreviousCodepointOffset(text, state.caretByteOffset);
+			text.erase(previous, state.caretByteOffset - previous);
+			state.caretByteOffset = previous;
+			ClearSelection(state);
+		}
+
+		static void EraseNextCodepoint(SdUtf8String& text, State& state)
+		{
+			if (text.empty() || state.caretByteOffset >= text.size())
+				return;
+			const SdSize next = NextCodepointOffset(text, state.caretByteOffset);
+			text.erase(state.caretByteOffset, next - state.caretByteOffset);
+			ClearSelection(state);
+		}
+
+		static SdRect BuildCaretRect(const SdRect& rect, SdUtf8StringView text, SdSize byteOffset)
+		{
+			const float x = rect.min.x + 9.0f + static_cast<float>(CountCodepointsBefore(text, byteOffset)) * 7.5f;
 			return { x, rect.min.y + 7.0f, x + 1.0f, rect.max.y - 7.0f };
+		}
+
+		static SdRect BuildSelectionRect(const SdRect& rect, SdUtf8StringView text, SdSize start, SdSize end)
+		{
+			const SdRect startCaret = BuildCaretRect(rect, text, start);
+			const SdRect endCaret = BuildCaretRect(rect, text, end);
+			return {
+				startCaret.min.x,
+				rect.min.y + 6.0f,
+				std::max(startCaret.min.x, endCaret.min.x),
+				rect.max.y - 6.0f
+			};
 		}
 	};
 
@@ -385,7 +562,7 @@ namespace Sodium
 			const State& state = context.State<State>();
 			const SdRect rect = context.animatedRect;
 			context.renderList.AddRectFilled(rect, SdApplyOpacity(context.style.background, context.opacity), context.clipRect, context.style.radius);
-			context.renderList.AddRect(rect, SdApplyOpacity({ 78, 94, 112, 255 }, context.opacity), context.clipRect, 1.0f, context.style.radius);
+			context.renderList.AddRect(rect, SdApplyOpacity(context.style.border, context.opacity), context.clipRect, 1.0f, context.style.radius);
 			const float thumbHeight = std::max(18.0f, rect.Height() * 0.35f);
 			const float thumbTop = rect.min.y + 5.0f + std::fmod(std::max(0.0f, state.scrollY), std::max(1.0f, rect.Height() - thumbHeight - 10.0f));
 			const SdRect thumb = { rect.max.x - 8.0f, thumbTop, rect.max.x - 4.0f, thumbTop + thumbHeight };
@@ -472,7 +649,7 @@ namespace Sodium
 			if (!state.open)
 				return;
 			context.renderList.AddRectFilled(context.animatedRect, SdApplyOpacity(context.style.background, context.opacity), context.clipRect, context.style.radius);
-			context.renderList.AddRect(context.animatedRect, SdApplyOpacity({ 91, 112, 135, 255 }, context.opacity), context.clipRect, 1.0f, context.style.radius);
+			context.renderList.AddRect(context.animatedRect, SdApplyOpacity(context.style.border, context.opacity), context.clipRect, 1.0f, context.style.radius);
 		}
 
 	protected:
@@ -531,7 +708,7 @@ namespace Sodium
 			if (!context.State<State>().open)
 				return;
 			context.renderList.AddRectFilled(context.animatedRect, SdApplyOpacity(context.style.background, context.opacity), context.clipRect, context.style.radius);
-			context.renderList.AddRect(context.animatedRect, SdApplyOpacity({ 91, 112, 135, 255 }, context.opacity), context.clipRect, 1.0f, context.style.radius);
+			context.renderList.AddRect(context.animatedRect, SdApplyOpacity(context.style.border, context.opacity), context.clipRect, 1.0f, context.style.radius);
 		}
 
 	private:
@@ -585,7 +762,7 @@ namespace Sodium
 			if (!state.visible)
 				return;
 			context.renderList.AddRectFilled(context.animatedRect, SdApplyOpacity(context.style.background, context.opacity), context.clipRect, context.style.radius);
-			context.renderList.AddRect(context.animatedRect, SdApplyOpacity({ 91, 112, 135, 255 }, context.opacity), context.clipRect, 1.0f, context.style.radius);
+			context.renderList.AddRect(context.animatedRect, SdApplyOpacity(context.style.border, context.opacity), context.clipRect, 1.0f, context.style.radius);
 			context.renderList.AddText(state.text, { context.animatedRect.min.x + 9.0f, context.animatedRect.min.y + 7.0f }, SdApplyOpacity(context.style.color, context.opacity), context.clipRect);
 		}
 	};

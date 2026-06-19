@@ -13,7 +13,9 @@ namespace Sodium
 		LayoutWeight,
 		Opacity,
 		RectPosition,
-		RectSize
+		RectSize,
+		StyleColor,
+		ScrollOffset
 	};
 
 	using SdAnimationChannelId = SdUInt32;
@@ -39,6 +41,11 @@ namespace Sodium
 		SdAnimationChannelId rectY = 0;
 		SdAnimationChannelId rectWidth = 0;
 		SdAnimationChannelId rectHeight = 0;
+		SdAnimationChannelId styleColorR = 0;
+		SdAnimationChannelId styleColorG = 0;
+		SdAnimationChannelId styleColorB = 0;
+		SdAnimationChannelId styleColorA = 0;
+		SdAnimationChannelId scrollOffset = 0;
 	};
 
 	class SdAnimationSystem final
@@ -88,7 +95,9 @@ namespace Sodium
 			bool updateLayoutWeight,
 			bool updateOpacity,
 			bool updateRectPosition,
-			bool updateRectSize) noexcept
+			bool updateRectSize,
+			bool updateStyleColor,
+			bool updateScrollOffset) noexcept
 		{
 			switch (kind)
 			{
@@ -100,6 +109,10 @@ namespace Sodium
 				return updateRectPosition;
 			case SdAnimationChannelKind::RectSize:
 				return updateRectSize;
+			case SdAnimationChannelKind::StyleColor:
+				return updateStyleColor;
+			case SdAnimationChannelKind::ScrollOffset:
+				return updateScrollOffset;
 			default:
 				return false;
 			}
@@ -155,7 +168,9 @@ namespace Sodium
 			bool updateLayoutWeight = true,
 			bool updateOpacity = true,
 			bool updateRectPosition = true,
-			bool updateRectSize = true)
+			bool updateRectSize = true,
+			bool updateStyleColor = true,
+			bool updateScrollOffset = true)
 		{
 			const float seconds = std::max(0.001f, static_cast<float>(deltaTime.count()) / 1000000000.0f);
 			for (SdSize i = 0; i < activeChannels.size();)
@@ -167,7 +182,7 @@ namespace Sodium
 					activeChannels.pop_back();
 					continue;
 				}
-				if (!ShouldUpdateKind(channel->kind, updateLayoutWeight, updateOpacity, updateRectPosition, updateRectSize))
+				if (!ShouldUpdateKind(channel->kind, updateLayoutWeight, updateOpacity, updateRectPosition, updateRectSize, updateStyleColor, updateScrollOffset))
 				{
 					++i;
 					continue;

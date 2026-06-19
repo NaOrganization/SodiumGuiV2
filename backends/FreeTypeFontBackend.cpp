@@ -63,6 +63,8 @@ namespace Sodium::Backends
 		faces.clear();
 		families.clear();
 		glyphCache.clear();
+		paragraphCache.clear();
+		paragraphCacheClock = 0;
 		atlas = {};
 		fallbackFont = {};
 		if (library)
@@ -563,6 +565,7 @@ namespace Sodium::Backends
 		}
 
 		auto [it, inserted] = glyphCache.emplace(key, info);
+		paragraphCache.clear();
 		return &it->second;
 	}
 
@@ -598,7 +601,92 @@ namespace Sodium::Backends
 		sharedData.bakedLineUvs = atlas.bakedLineUvs;
 	}
 
+	bool SdFreeTypeFontBackend::MatchesStyle(const SdTextStyle& left, const SdTextStyle& right)
+	{
+		return left.pixelSize == right.pixelSize
+			&& left.lineHeight == right.lineHeight
+			&& left.align == right.align
+			&& left.wrap == right.wrap
+			&& left.fontStack.fonts == right.fontStack.fonts;
+	}
+
+	SdParagraphLayout SdFreeTypeFontBackend::CopyParagraphLayout(const SdParagraphLayout& layout, std::pmr::memory_resource* resource)
+	{
+		SdParagraphLayout copy(resource);
+		copy.glyphs.assign(layout.glyphs.begin(), layout.glyphs.end());
+		copy.lines.assign(layout.lines.begin(), layout.lines.end());
+		copy.size = layout.size;
+		return copy;
+	}
+
+	SdFreeTypeFontBackend::ParagraphCacheEntry* SdFreeTypeFontBackend::FindParagraphCacheEntry(
+		SdUtf8StringView text,
+		const SdTextStyle& style,
+		float maxWidth,
+		const SdColor& color)
+	{
+		for (ParagraphCacheEntry& entry : paragraphCache)
+		{
+			if (entry.text == text
+				&& MatchesStyle(entry.style, style)
+				&& entry.maxWidth == maxWidth
+				&& entry.color == color)
+			{
+				entry.lastUsed = ++paragraphCacheClock;
+				return &entry;
+			}
+		}
+		return nullptr;
+	}
+
+	SdFreeTypeFontBackend::ParagraphCacheEntry& SdFreeTypeFontBackend::StoreParagraphCacheEntry(
+		SdUtf8StringView text,
+		const SdTextStyle& style,
+		float maxWidth,
+		const SdColor& color,
+		SdParagraphLayout&& layout)
+	{
+		ParagraphCacheEntry* entry = nullptr;
+		if (paragraphCache.size() < kMaxParagraphCacheEntries)
+		{
+			entry = &paragraphCache.emplace_back();
+		}
+		else
+		{
+			auto oldest = std::min_element(paragraphCache.begin(), paragraphCache.end(), [](const ParagraphCacheEntry& left, const ParagraphCacheEntry& right)
+			{
+				return left.lastUsed < right.lastUsed;
+			});
+			entry = &*oldest;
+		}
+
+		entry->text.assign(text.data(), text.size());
+		entry->style = style;
+		entry->maxWidth = maxWidth;
+		entry->color = color;
+		entry->layout.glyphs.assign(layout.glyphs.begin(), layout.glyphs.end());
+		entry->layout.lines.assign(layout.lines.begin(), layout.lines.end());
+		entry->layout.size = layout.size;
+		entry->lastUsed = ++paragraphCacheClock;
+		return *entry;
+	}
+
 	SdParagraphLayout SdFreeTypeFontBackend::BuildParagraphLayout(
+		SdUtf8StringView text,
+		const SdTextStyle& style,
+		float maxWidth,
+		const SdColor& color,
+		std::pmr::memory_resource* resource)
+	{
+		if (ParagraphCacheEntry* entry = FindParagraphCacheEntry(text, style, maxWidth, color))
+			return CopyParagraphLayout(entry->layout, resource);
+
+		SdParagraphLayout layout = BuildParagraphLayoutUncached(text, style, maxWidth, color, std::pmr::get_default_resource());
+		ParagraphCacheEntry& entry = StoreParagraphCacheEntry(text, style, maxWidth, color, std::move(layout));
+		return CopyParagraphLayout(entry.layout, resource);
+	}
+
+	SdParagraphLayout SdFreeTypeFontBackend::BuildParagraphLayoutUncached(
 		SdUtf8StringView text,
 		const SdTextStyle& style,
 		float maxWidth,

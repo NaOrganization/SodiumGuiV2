@@ -9,8 +9,8 @@ namespace Sodium
 {
 	struct SdTheme final
 	{
-		std::array<SdColor, 16> colors = {};
-		std::array<float, 16> metrics = {};
+		std::array<SdColor, static_cast<SdSize>(SdStyleToken::Count)> colors = {};
+		std::array<float, static_cast<SdSize>(SdStyleToken::Count)> metrics = {};
 
 		SdTheme()
 		{
@@ -21,6 +21,10 @@ namespace Sodium
 			colors[static_cast<SdSize>(SdStyleToken::ColorButtonHovered)] = { 62, 100, 138, 255 };
 			colors[static_cast<SdSize>(SdStyleToken::ColorButtonPressed)] = { 68, 118, 160, 255 };
 			colors[static_cast<SdSize>(SdStyleToken::ColorAccent)] = { 82, 170, 128, 255 };
+			colors[static_cast<SdSize>(SdStyleToken::ColorBorder)] = { 91, 109, 128, 255 };
+			colors[static_cast<SdSize>(SdStyleToken::ColorBorderStrong)] = { 128, 154, 180, 255 };
+			colors[static_cast<SdSize>(SdStyleToken::ColorDanger)] = { 164, 66, 66, 255 };
+			colors[static_cast<SdSize>(SdStyleToken::ColorSelection)] = { 82, 170, 128, 96 };
 			colors[static_cast<SdSize>(SdStyleToken::ColorBackground)] = { 24, 30, 39, 242 };
 			metrics[static_cast<SdSize>(SdStyleToken::SpacingSmall)] = 6.0f;
 			metrics[static_cast<SdSize>(SdStyleToken::SpacingMedium)] = 10.0f;
@@ -43,12 +47,14 @@ namespace Sodium
 	{
 		SdStyleWidgetClass widgetClass = SdStyleWidgetClass::Default;
 		SdStyleInteractionState interactionState = SdStyleInteractionState::Normal;
+		SdLayerPriority layerPriority = SdLayerPriority::Content;
 		SdStyleToken backgroundToken = SdStyleToken::ColorBackground;
 		SdStyleToken colorToken = SdStyleToken::ColorText;
 		SdStyleToken radiusToken = SdStyleToken::RadiusSmall;
 		bool hasBackground = false;
 		bool hasColor = false;
 		bool hasRadius = false;
+		bool matchLayer = false;
 	};
 
 	class SdStyleSystem final
@@ -60,24 +66,24 @@ namespace Sodium
 	public:
 		SdStyleSystem()
 		{
-			AddRule({ SdStyleWidgetClass::Default, SdStyleInteractionState::Normal, SdStyleToken::ColorBackground, SdStyleToken::ColorText, SdStyleToken::RadiusSmall, true, true, true });
-			AddRule({ SdStyleWidgetClass::Panel, SdStyleInteractionState::Normal, SdStyleToken::ColorPanelBg, SdStyleToken::ColorText, SdStyleToken::RadiusSmall, true, true, true });
-			AddRule({ SdStyleWidgetClass::Button, SdStyleInteractionState::Normal, SdStyleToken::ColorButton, SdStyleToken::ColorText, SdStyleToken::RadiusSmall, true, true, true });
-			AddRule({ SdStyleWidgetClass::Button, SdStyleInteractionState::Hovered, SdStyleToken::ColorButtonHovered, SdStyleToken::ColorText, SdStyleToken::RadiusSmall, true, true, true });
-			AddRule({ SdStyleWidgetClass::Button, SdStyleInteractionState::Pressed, SdStyleToken::ColorButtonPressed, SdStyleToken::ColorText, SdStyleToken::RadiusSmall, true, true, true });
-			AddRule({ SdStyleWidgetClass::CheckBox, SdStyleInteractionState::Normal, SdStyleToken::ColorPanelBg, SdStyleToken::ColorText, SdStyleToken::RadiusSmall, true, true, true });
-			AddRule({ SdStyleWidgetClass::CheckBox, SdStyleInteractionState::Hovered, SdStyleToken::ColorButtonHovered, SdStyleToken::ColorText, SdStyleToken::RadiusSmall, true, true, true });
-			AddRule({ SdStyleWidgetClass::Window, SdStyleInteractionState::Normal, SdStyleToken::ColorWindowBg, SdStyleToken::ColorText, SdStyleToken::RadiusSmall, true, true, true });
-			AddRule({ SdStyleWidgetClass::ImageViewer, SdStyleInteractionState::Normal, SdStyleToken::ColorPanelBg, SdStyleToken::ColorText, SdStyleToken::RadiusSmall, true, true, true });
-			AddRule({ SdStyleWidgetClass::Slider, SdStyleInteractionState::Normal, SdStyleToken::ColorPanelBg, SdStyleToken::ColorText, SdStyleToken::RadiusSmall, true, true, true });
-			AddRule({ SdStyleWidgetClass::Slider, SdStyleInteractionState::Hovered, SdStyleToken::ColorButtonHovered, SdStyleToken::ColorText, SdStyleToken::RadiusSmall, true, true, true });
-			AddRule({ SdStyleWidgetClass::Slider, SdStyleInteractionState::Pressed, SdStyleToken::ColorButtonPressed, SdStyleToken::ColorText, SdStyleToken::RadiusSmall, true, true, true });
-			AddRule({ SdStyleWidgetClass::TextInput, SdStyleInteractionState::Normal, SdStyleToken::ColorPanelBg, SdStyleToken::ColorText, SdStyleToken::RadiusSmall, true, true, true });
-			AddRule({ SdStyleWidgetClass::TextInput, SdStyleInteractionState::Focused, SdStyleToken::ColorButton, SdStyleToken::ColorText, SdStyleToken::RadiusSmall, true, true, true });
-			AddRule({ SdStyleWidgetClass::ScrollView, SdStyleInteractionState::Normal, SdStyleToken::ColorPanelBg, SdStyleToken::ColorText, SdStyleToken::RadiusSmall, true, true, true });
-			AddRule({ SdStyleWidgetClass::Popup, SdStyleInteractionState::Normal, SdStyleToken::ColorWindowBg, SdStyleToken::ColorText, SdStyleToken::RadiusSmall, true, true, true });
-			AddRule({ SdStyleWidgetClass::ContextMenu, SdStyleInteractionState::Normal, SdStyleToken::ColorWindowBg, SdStyleToken::ColorText, SdStyleToken::RadiusSmall, true, true, true });
-			AddRule({ SdStyleWidgetClass::Tooltip, SdStyleInteractionState::Normal, SdStyleToken::ColorPanelBg, SdStyleToken::ColorText, SdStyleToken::RadiusSmall, true, true, true });
+			AddRule({ SdStyleWidgetClass::Default, SdStyleInteractionState::Normal, SdLayerPriority::Content, SdStyleToken::ColorBackground, SdStyleToken::ColorText, SdStyleToken::RadiusSmall, true, true, true });
+			AddRule({ SdStyleWidgetClass::Panel, SdStyleInteractionState::Normal, SdLayerPriority::Content, SdStyleToken::ColorPanelBg, SdStyleToken::ColorText, SdStyleToken::RadiusSmall, true, true, true });
+			AddRule({ SdStyleWidgetClass::Button, SdStyleInteractionState::Normal, SdLayerPriority::Content, SdStyleToken::ColorButton, SdStyleToken::ColorText, SdStyleToken::RadiusSmall, true, true, true });
+			AddRule({ SdStyleWidgetClass::Button, SdStyleInteractionState::Hovered, SdLayerPriority::Content, SdStyleToken::ColorButtonHovered, SdStyleToken::ColorText, SdStyleToken::RadiusSmall, true, true, true });
+			AddRule({ SdStyleWidgetClass::Button, SdStyleInteractionState::Pressed, SdLayerPriority::Content, SdStyleToken::ColorButtonPressed, SdStyleToken::ColorText, SdStyleToken::RadiusSmall, true, true, true });
+			AddRule({ SdStyleWidgetClass::CheckBox, SdStyleInteractionState::Normal, SdLayerPriority::Content, SdStyleToken::ColorPanelBg, SdStyleToken::ColorText, SdStyleToken::RadiusSmall, true, true, true });
+			AddRule({ SdStyleWidgetClass::CheckBox, SdStyleInteractionState::Hovered, SdLayerPriority::Content, SdStyleToken::ColorButtonHovered, SdStyleToken::ColorText, SdStyleToken::RadiusSmall, true, true, true });
+			AddRule({ SdStyleWidgetClass::Window, SdStyleInteractionState::Normal, SdLayerPriority::Floating, SdStyleToken::ColorWindowBg, SdStyleToken::ColorText, SdStyleToken::RadiusSmall, true, true, true, true });
+			AddRule({ SdStyleWidgetClass::ImageViewer, SdStyleInteractionState::Normal, SdLayerPriority::Content, SdStyleToken::ColorPanelBg, SdStyleToken::ColorText, SdStyleToken::RadiusSmall, true, true, true });
+			AddRule({ SdStyleWidgetClass::Slider, SdStyleInteractionState::Normal, SdLayerPriority::Content, SdStyleToken::ColorPanelBg, SdStyleToken::ColorText, SdStyleToken::RadiusSmall, true, true, true });
+			AddRule({ SdStyleWidgetClass::Slider, SdStyleInteractionState::Hovered, SdLayerPriority::Content, SdStyleToken::ColorButtonHovered, SdStyleToken::ColorText, SdStyleToken::RadiusSmall, true, true, true });
+			AddRule({ SdStyleWidgetClass::Slider, SdStyleInteractionState::Pressed, SdLayerPriority::Content, SdStyleToken::ColorButtonPressed, SdStyleToken::ColorText, SdStyleToken::RadiusSmall, true, true, true });
+			AddRule({ SdStyleWidgetClass::TextInput, SdStyleInteractionState::Normal, SdLayerPriority::Content, SdStyleToken::ColorPanelBg, SdStyleToken::ColorText, SdStyleToken::RadiusSmall, true, true, true });
+			AddRule({ SdStyleWidgetClass::TextInput, SdStyleInteractionState::Focused, SdLayerPriority::Content, SdStyleToken::ColorButton, SdStyleToken::ColorText, SdStyleToken::RadiusSmall, true, true, true });
+			AddRule({ SdStyleWidgetClass::ScrollView, SdStyleInteractionState::Normal, SdLayerPriority::Content, SdStyleToken::ColorPanelBg, SdStyleToken::ColorText, SdStyleToken::RadiusSmall, true, true, true });
+			AddRule({ SdStyleWidgetClass::Popup, SdStyleInteractionState::Normal, SdLayerPriority::Popup, SdStyleToken::ColorWindowBg, SdStyleToken::ColorText, SdStyleToken::RadiusSmall, true, true, true, true });
+			AddRule({ SdStyleWidgetClass::ContextMenu, SdStyleInteractionState::Normal, SdLayerPriority::Popup, SdStyleToken::ColorWindowBg, SdStyleToken::ColorText, SdStyleToken::RadiusSmall, true, true, true, true });
+			AddRule({ SdStyleWidgetClass::Tooltip, SdStyleInteractionState::Normal, SdLayerPriority::Overlay, SdStyleToken::ColorPanelBg, SdStyleToken::ColorText, SdStyleToken::RadiusSmall, true, true, true, true });
 		}
 
 		const SdTheme& GetTheme() const noexcept
@@ -90,11 +96,15 @@ namespace Sodium
 			rules.push_back(rule);
 		}
 
-		SdComputedStyle Resolve(SdStyleWidgetClass widgetClass, SdStyleInteractionState interactionState) const
+		SdComputedStyle Resolve(
+			SdStyleWidgetClass widgetClass,
+			SdStyleInteractionState interactionState,
+			SdLayerPriority layerPriority = SdLayerPriority::Content) const
 		{
 			SdComputedStyle result = {};
 			result.color = theme.GetColor(SdStyleToken::ColorText);
 			result.background = theme.GetColor(SdStyleToken::ColorBackground);
+			result.border = theme.GetColor(SdStyleToken::ColorBorder);
 			result.radius = theme.GetMetric(SdStyleToken::RadiusSmall);
 
 			for (const SdStyleRule& rule : rules)
@@ -102,6 +112,8 @@ namespace Sodium
 				if (rule.widgetClass != SdStyleWidgetClass::Default && rule.widgetClass != widgetClass)
 					continue;
 				if (rule.interactionState != SdStyleInteractionState::Normal && rule.interactionState != interactionState)
+					continue;
+				if (rule.matchLayer && rule.layerPriority != layerPriority)
 					continue;
 				if (rule.hasBackground)
 					result.background = theme.GetColor(rule.backgroundToken);

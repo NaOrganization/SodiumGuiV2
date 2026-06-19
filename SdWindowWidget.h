@@ -147,7 +147,7 @@ namespace Sodium
 
 			context.renderList.AddRectFilled(rect, SdApplyOpacity(context.style.background, context.opacity), context.clipRect, state.options.radius);
 			context.renderList.AddRectFilled(titleRect, SdApplyOpacity(titleFill, context.opacity), context.clipRect, state.options.radius);
-			context.renderList.AddRect(rect, SdApplyOpacity({ 102, 119, 140, 255 }, context.opacity), context.clipRect, 1.0f, state.options.radius);
+			context.renderList.AddRect(rect, SdApplyOpacity(context.style.border, context.opacity), context.clipRect, 1.0f, state.options.radius);
 			context.renderList.AddText(state.title, { rect.min.x + 12.0f, rect.min.y + 8.0f }, SdApplyOpacity(context.style.color, context.opacity), context.clipRect);
 
 			if (state.options.collapsible)
@@ -299,7 +299,8 @@ namespace Sodium
 
 		static void DrawCloseButton(SdPaintContext& context, const SdRect& rect, const State& state)
 		{
-			const SdColor fill = state.closeHovered ? SdColor{ 164, 66, 66, 255 } : SdColor{ 65, 77, 94, 255 };
+			const SdTheme& theme = context.instance.GetStyleSystem().GetTheme();
+			const SdColor fill = state.closeHovered ? theme.GetColor(SdStyleToken::ColorDanger) : theme.GetColor(SdStyleToken::ColorButton);
 			context.renderList.AddRectFilled(rect, SdApplyOpacity(fill, context.opacity), context.clipRect, 3.0f);
 			context.renderList.AddLine({ rect.min.x + 6.0f, rect.min.y + 6.0f }, { rect.max.x - 6.0f, rect.max.y - 6.0f }, SdApplyOpacity(SdColorWhite, context.opacity), context.clipRect, 1.5f);
 			context.renderList.AddLine({ rect.max.x - 6.0f, rect.min.y + 6.0f }, { rect.min.x + 6.0f, rect.max.y - 6.0f }, SdApplyOpacity(SdColorWhite, context.opacity), context.clipRect, 1.5f);
@@ -307,7 +308,8 @@ namespace Sodium
 
 		static void DrawCollapseButton(SdPaintContext& context, const SdRect& rect, const State& state)
 		{
-			const SdColor fill = state.collapseHovered ? SdColor{ 82, 110, 140, 255 } : SdColor{ 65, 77, 94, 255 };
+			const SdTheme& theme = context.instance.GetStyleSystem().GetTheme();
+			const SdColor fill = state.collapseHovered ? theme.GetColor(SdStyleToken::ColorButtonHovered) : theme.GetColor(SdStyleToken::ColorButton);
 			context.renderList.AddRectFilled(rect, SdApplyOpacity(fill, context.opacity), context.clipRect, 3.0f);
 			const SdVec2 center = { (rect.min.x + rect.max.x) * 0.5f, (rect.min.y + rect.max.y) * 0.5f };
 			if (state.collapsed)
@@ -331,7 +333,10 @@ namespace Sodium
 
 		static void DrawResizeGrip(SdPaintContext& context, const SdRect& rect, const State& state)
 		{
-			const SdColor color = state.resizeHovered || state.resizing ? SdColor{ 118, 196, 255, 255 } : SdColor{ 110, 126, 145, 210 };
+			const SdTheme& theme = context.instance.GetStyleSystem().GetTheme();
+			const SdColor color = state.resizeHovered || state.resizing
+				? theme.GetColor(SdStyleToken::ColorAccent)
+				: context.style.border;
 			const SdColor tinted = SdApplyOpacity(color, context.opacity);
 			context.renderList.AddLine({ rect.max.x - 14.0f, rect.max.y - 5.0f }, { rect.max.x - 5.0f, rect.max.y - 14.0f }, tinted, context.clipRect, 1.0f);
 			context.renderList.AddLine({ rect.max.x - 10.0f, rect.max.y - 5.0f }, { rect.max.x - 5.0f, rect.max.y - 10.0f }, tinted, context.clipRect, 1.0f);

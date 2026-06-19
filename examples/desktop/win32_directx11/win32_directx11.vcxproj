@@ -195,6 +195,7 @@
     <ClInclude Include="..\..\..\SdRenderCore.h" />
     <ClInclude Include="..\..\..\SdWidgetContext.h" />
     <ClInclude Include="..\..\..\SdRuntimeStorage.h" />
+    <ClInclude Include="..\..\..\SdIdStack.h" />
     <ClInclude Include="..\..\..\SdUi.h" />
     <ClInclude Include="..\..\..\SdInstance.h" />
     <ClInclude Include="..\..\..\SdRuntime.inl" />

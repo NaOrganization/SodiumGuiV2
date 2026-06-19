@@ -11,11 +11,6 @@
 
 namespace Sodium::Detail
 {
-	inline SdUInt64 SdHashCombine(SdUInt64 seed, SdUInt64 value) noexcept
-	{
-		return seed ^ (value + 0x9E3779B97F4A7C15ull + (seed << 6) + (seed >> 2));
-	}
-
 	template<class T>
 	SdUInt64 SdTypeHash() noexcept
 	{
@@ -92,10 +87,29 @@ namespace Sodium::Detail
 
 namespace Sodium
 {
+	struct SdLayoutCache final
+	{
+		SdVec2 measuredSize = {};
+		SdRect targetRect = {};
+		SdRect animatedRect = {};
+		SdRect clipRect = {};
+	};
+
+	struct SdStyleCache final
+	{
+		SdComputedStyle computed = {};
+		SdStyleWidgetClass widgetClass = SdStyleWidgetClass::Default;
+		SdStyleInteractionState interactionState = SdStyleInteractionState::Normal;
+		SdLayerPriority layerPriority = SdLayerPriority::Content;
+		bool valid = false;
+	};
+
 	struct SdWidgetRecord final
 	{
 		SdWidgetState state = {};
 		SdComputedStyle style = {};
+		SdLayoutCache layoutCache = {};
+		SdStyleCache styleCache = {};
 		SdAnimationWidgetState animation = {};
 		Detail::SdAnyObject widgetObject = {};
 		std::unordered_map<std::type_index, Detail::SdAnyObject> userStates = {};
@@ -104,9 +118,6 @@ namespace Sodium
 		SdUInt32 order = 0;
 		SdResolvedKey resolvedKey = 0;
 		SdUtf8String debugKey = {};
-		SdStyleWidgetClass cachedStyleClass = SdStyleWidgetClass::Default;
-		SdStyleInteractionState cachedStyleInteraction = SdStyleInteractionState::Normal;
-		bool hasCachedStyle = false;
 		void(*layoutCallback)(void*, SdLayoutContext&) = nullptr;
 		void(*paintCallback)(void*, SdPaintContext&) = nullptr;
 

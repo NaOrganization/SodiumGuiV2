@@ -97,7 +97,7 @@ namespace Sodium
 			if (state.texture.IsValid())
 				context.renderList.AddImage(state.texture, imageRect, state.options.uvRect, SdApplyOpacity(SdColorWhite, context.opacity), context.clipRect);
 
-			context.renderList.AddRect(context.animatedRect, SdApplyOpacity({ 95, 115, 138, 255 }, context.opacity), context.clipRect, 1.0f, 4.0f);
+			context.renderList.AddRect(context.animatedRect, SdApplyOpacity(context.style.border, context.opacity), context.clipRect, 1.0f, 4.0f);
 
 			if (!state.hovered)
 				return;
