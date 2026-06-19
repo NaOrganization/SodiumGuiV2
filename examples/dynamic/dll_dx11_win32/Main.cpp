@@ -210,7 +210,7 @@ namespace SodiumDynamicExample
 				Sodium::SdWindowOptions windowOptions = {};
 				windowOptions.initialPosition = { 52.0f, 48.0f };
 				windowOptions.initialSize = { 380.0f, 260.0f };
-				context.ui.Declare<Sodium::SdWindow>("SodiumGUI Overlay", windowOpen, windowOptions, [&](Sodium::SdUi& ui)
+				context.ui.DeclareKeyed<Sodium::SdWindow>("overlay_window", "SodiumGUI Overlay", windowOpen, windowOptions, [&](Sodium::SdUi& ui)
 				{
 					ui.Declare<Sodium::SdPanel>();
 					ui.Declare<Sodium::SdText>("SodiumGUI dynamic DX11 sample");
@@ -219,8 +219,9 @@ namespace SodiumDynamicExample
 					std::snprintf(frameText, sizeof(frameText), "Frame: %llu  HOME: unload", static_cast<unsigned long long>(frameCount));
 					ui.Declare<Sodium::SdText>(frameText);
 
-					Sodium::SdButton& button = ui.Declare<Sodium::SdButton>("Increment");
-					if (button.WasClicked())
+					bool incrementClicked = false;
+					ui.Declare<Sodium::SdButton>("Increment", incrementClicked);
+					if (incrementClicked)
 						++clickCount;
 
 					ui.Declare<Sodium::SdCheckBox>(enabled);

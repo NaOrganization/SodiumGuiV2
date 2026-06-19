@@ -190,15 +190,16 @@ namespace
 				Sodium::SdWindowOptions windowOptions = {};
 				windowOptions.initialPosition = { 48.0f, 42.0f };
 				windowOptions.initialSize = { 420.0f, 560.0f };
-				context.ui.Declare<Sodium::SdWindow>("SodiumGUI Demo", windowOpen, windowOptions, [&](Sodium::SdUi& ui)
+				context.ui.DeclareKeyed<Sodium::SdWindow>("main_window", "SodiumGUI Demo", windowOpen, windowOptions, [&](Sodium::SdUi& ui)
 				{
 					ui.Declare<Sodium::SdPanel>();
 					ui.Declare<Sodium::SdText>("SodiumGUI typed declaration MVP");
 					char frameBuffer[96] = {};
 					std::snprintf(frameBuffer, sizeof(frameBuffer), "Frame: %llu  FPS: %.2f", static_cast<unsigned long long>(frameCount), liveFps);
 					ui.Declare<Sodium::SdText>(frameBuffer);
-					Sodium::SdButton& button = ui.Declare<Sodium::SdButton>("Increment");
-					if (button.WasClicked())
+					bool incrementClicked = false;
+					ui.Declare<Sodium::SdButton>("Increment", incrementClicked);
+					if (incrementClicked)
 						++clickCount;
 					ui.Declare<Sodium::SdCheckBox>(optionEnabled);
 					ui.Declare<Sodium::SdText>(optionEnabled ? "Checkbox: enabled" : "Checkbox: disabled");

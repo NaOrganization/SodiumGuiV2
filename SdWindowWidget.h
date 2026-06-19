@@ -158,13 +158,7 @@ namespace Sodium
 				DrawResizeGrip(context, rect, state);
 		}
 
-		bool IsCollapsed() const noexcept { return collapsed; }
-		bool WasCloseRequested() const noexcept { return closeRequested; }
-
 	private:
-		bool collapsed = false;
-		bool closeRequested = false;
-
 		bool UpdateWindow(SdUpdateContext& context, SdUtf8StringView title, bool* open, SdWindowOptions options)
 		{
 			State& state = context.State<State>();
@@ -173,7 +167,6 @@ namespace Sodium
 			{
 				state.position = options.initialPosition;
 				state.size = options.initialSize;
-				state.collapsed = collapsed;
 				state.initialized = true;
 			}
 
@@ -189,8 +182,6 @@ namespace Sodium
 
 			if (!state.visible)
 			{
-				collapsed = state.collapsed;
-				closeRequested = false;
 				return false;
 			}
 
@@ -252,8 +243,6 @@ namespace Sodium
 				state.resizing = false;
 			}
 
-			collapsed = state.collapsed;
-			closeRequested = state.closeRequested;
 			return state.visible && !state.collapsed;
 		}
 

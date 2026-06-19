@@ -59,6 +59,25 @@ namespace Sodium
 		DurationFast
 	};
 
+	enum class SdStyleWidgetClass : SdUInt16
+	{
+		Default,
+		Text,
+		Panel,
+		Button,
+		CheckBox,
+		Window,
+		ImageViewer
+	};
+
+	enum class SdStyleInteractionState : SdUInt8
+	{
+		Normal,
+		Hovered,
+		Pressed,
+		Focused
+	};
+
 	struct SdSpacing final
 	{
 		float left = 0.0f;

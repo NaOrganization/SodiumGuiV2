@@ -63,10 +63,15 @@ namespace Sodium
 		SdWidgetState& widgetState;
 		SdComputedStyle& style;
 		SdThemeView theme = {};
+		SdResolvedKey resolvedKey = 0;
 
 		template<class T>
 		T& State();
 
+		template<class T>
+		T& Model();
+
+		bool HasModelKey() const noexcept;
 		bool IsHovered() const noexcept;
 		bool IsPressed() const noexcept;
 		bool WasClicked() const noexcept;

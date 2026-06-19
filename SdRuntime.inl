@@ -34,6 +34,38 @@ namespace Sodium
 		return seed == 0 ? 1 : seed;
 	}
 
+	inline SdWidgetId SdUi::ResolveKeyedWidgetId(SdUInt64 typeHash, SdUtf8StringView key, SdResolvedKey& resolvedKey)
+	{
+		const SdWidgetId parentId = CurrentParentId();
+		SdUInt64 keyHash = std::hash<SdUtf8StringView>{}(key);
+		if (keyHash == 0)
+			keyHash = 1;
+
+		SdUInt64 keySeed = 1469598103934665603ull;
+		keySeed = Detail::SdHashCombine(keySeed, parentId);
+		keySeed = Detail::SdHashCombine(keySeed, keyHash);
+		resolvedKey = keySeed == 0 ? 1 : keySeed;
+
+		SdUInt64 seed = 1469598103934665603ull;
+		seed = Detail::SdHashCombine(seed, parentId);
+		seed = Detail::SdHashCombine(seed, typeHash);
+		seed = Detail::SdHashCombine(seed, keyHash);
+		return seed == 0 ? 1 : seed;
+	}
+
+	inline SdResolvedKey SdUi::ResolveModelKey(SdUInt64 typeHash, SdUtf8StringView key) const
+	{
+		(void)typeHash;
+		SdUInt64 keyHash = std::hash<SdUtf8StringView>{}(key);
+		if (keyHash == 0)
+			keyHash = 1;
+
+		SdUInt64 keySeed = 1469598103934665603ull;
+		keySeed = Detail::SdHashCombine(keySeed, CurrentParentId());
+		keySeed = Detail::SdHashCombine(keySeed, keyHash);
+		return keySeed == 0 ? 1 : keySeed;
+	}
+
 	inline SdInstance::SdInstance()
 		: renderList(&renderStats, &renderSharedData), uiObject(*this), ui(uiObject)
 	{
@@ -61,6 +93,7 @@ namespace Sodium
 		layerSystem.BeginFrame();
 		frameOrder.clear();
 		nextOrder = 0;
+		stateStorage.BeginFrame();
 		context.frame.diagnostics.ResetFrameTransient();
 		uiObject.BeginDeclarationFrame();
 	}
@@ -85,7 +118,7 @@ namespace Sodium
 
 	inline void SdInstance::Shutdown()
 	{
-		widgets.clear();
+		stateStorage.Clear();
 		frameOrder.clear();
 		renderList.Reset();
 	}
@@ -108,9 +141,9 @@ namespace Sodium
 			fontBackend->ConfigureRenderSharedData(renderSharedData);
 	}
 
-	inline SdInstance::SdWidgetRecord& SdInstance::GetOrCreateWidgetRecord(SdWidgetId id)
+	inline SdWidgetRecord& SdInstance::GetOrCreateWidgetRecord(SdWidgetId id)
 	{
-		SdWidgetRecord& record = widgets[id];
+		SdWidgetRecord& record = stateStorage.GetOrCreateWidgetRecord(id);
 		if (record.state.id == 0)
 		{
 			record.state.id = id;
@@ -127,10 +160,12 @@ namespace Sodium
 		return record;
 	}
 
-	inline void SdInstance::MarkSubmitted(SdWidgetRecord& record, SdWidgetId id, SdWidgetId parentId)
+	inline void SdInstance::MarkSubmitted(SdWidgetRecord& record, SdWidgetId id, SdWidgetId parentId, SdResolvedKey resolvedKey, SdUtf8StringView debugKey)
 	{
 		record.parentId = parentId;
 		record.order = nextOrder++;
+		record.resolvedKey = resolvedKey;
+		record.debugKey.assign(debugKey.data(), debugKey.size());
 		record.state.id = id;
 		record.state.submittedThisFrame = true;
 		record.state.lastSubmittedFrame = context.frame.frameIndex;
@@ -146,25 +181,27 @@ namespace Sodium
 		record.state.childSpacing = 0.0f;
 		if (record.state.lifePhase == SdWidgetLifePhase::Leaving || record.state.lifePhase == SdWidgetLifePhase::Dead)
 			record.state.lifePhase = SdWidgetLifePhase::Entering;
+		stateStorage.RegisterResolvedKey(resolvedKey, id);
 		UpdateWidgetAnimation(record);
 		frameOrder.push_back(id);
 	}
 
 	inline void SdInstance::FinishWidgetFrame()
 	{
-		for (auto& [id, record] : widgets)
+		for (auto& [id, record] : stateStorage.GetWidgetRecords())
 		{
 			if (!record.state.submittedThisFrame && record.state.lifePhase != SdWidgetLifePhase::Dead)
 			{
 				record.state.lifePhase = SdWidgetLifePhase::Leaving;
 				record.state.inputEnabled = false;
+				++stateStorage.GetStats().leavingWidgetCount;
 			}
 			if (record.state.lifePhase == SdWidgetLifePhase::Leaving)
 				UpdateWidgetAnimation(record);
 		}
 
 		animationSystem.Update(context.frame.deltaTime, true, true, false, false);
-		for (auto& [id, record] : widgets)
+		for (auto& [id, record] : stateStorage.GetWidgetRecords())
 		{
 			record.state.layoutWeight = animationSystem.GetValue(record.animation.layoutWeight, record.state.layoutWeight);
 			record.state.opacity = animationSystem.GetValue(record.animation.opacity, record.state.opacity);
@@ -182,7 +219,7 @@ namespace Sodium
 		context.frame.diagnostics.removedWidgetCount = RemoveDeadWidgets();
 		RefreshDiagnostics();
 
-		for (auto& [id, record] : widgets)
+		for (auto& [id, record] : stateStorage.GetWidgetRecords())
 			record.state.submittedThisFrame = false;
 	}
 
@@ -198,6 +235,7 @@ namespace Sodium
 	inline void SdInstance::SolveLayoutAndPaint()
 	{
 		std::vector<SdWidgetId> liveIds;
+		auto& widgets = stateStorage.GetWidgetRecords();
 		liveIds.reserve(widgets.size());
 		for (const auto& [id, record] : widgets)
 		{
@@ -205,7 +243,7 @@ namespace Sodium
 				liveIds.push_back(id);
 		}
 
-		std::sort(liveIds.begin(), liveIds.end(), [this](SdWidgetId left, SdWidgetId right)
+		std::sort(liveIds.begin(), liveIds.end(), [&widgets](SdWidgetId left, SdWidgetId right)
 		{
 			return widgets[left].order < widgets[right].order;
 		});
@@ -284,6 +322,7 @@ namespace Sodium
 				record.state,
 				record.style,
 				theme,
+				record.resolvedKey,
 				constraints,
 				result
 			};
@@ -332,7 +371,7 @@ namespace Sodium
 			applyAnimatedRect(widgets[id]);
 
 		std::vector<SdWidgetId> paintIds = liveIds;
-		std::sort(paintIds.begin(), paintIds.end(), [this](SdWidgetId left, SdWidgetId right)
+		std::sort(paintIds.begin(), paintIds.end(), [&widgets](SdWidgetId left, SdWidgetId right)
 		{
 			const SdWidgetRecord& leftRecord = widgets[left];
 			const SdWidgetRecord& rightRecord = widgets[right];
@@ -370,6 +409,7 @@ namespace Sodium
 				record.state,
 				record.style,
 				theme,
+				record.resolvedKey,
 				renderList,
 				record.state.targetRect,
 				record.state.animatedRect,
@@ -391,24 +431,16 @@ namespace Sodium
 
 	inline SdUInt32 SdInstance::RemoveDeadWidgets()
 	{
-		SdUInt32 removedCount = 0;
-		for (auto it = widgets.begin(); it != widgets.end();)
+		return stateStorage.RemoveDeadWidgets([this](SdWidgetId widgetId)
 		{
-			if (it->second.state.lifePhase == SdWidgetLifePhase::Dead)
-			{
-				animationSystem.RemoveWidget(it->first);
-				it = widgets.erase(it);
-				++removedCount;
-			}
-			else
-				++it;
-		}
-		return removedCount;
+			animationSystem.RemoveWidget(widgetId);
+		});
 	}
 
 	inline void SdInstance::RefreshDiagnostics()
 	{
 		SdFrameDiagnostics& diagnostics = context.frame.diagnostics;
+		const auto& widgets = stateStorage.GetWidgetRecords();
 		diagnostics.submittedWidgetCount = static_cast<SdUInt32>(frameOrder.size());
 		diagnostics.liveWidgetCount = 0;
 		diagnostics.enteringWidgetCount = 0;
@@ -447,24 +479,39 @@ namespace Sodium
 		diagnostics.drawIndexCount = static_cast<SdUInt32>(drawData.indices.size());
 		diagnostics.drawBatchCount = static_cast<SdUInt32>(drawData.batches.size());
 		diagnostics.resourceUploadCount = static_cast<SdUInt32>(drawData.uploads.size());
+		diagnostics.createdWidgetCount = stateStorage.GetStats().createdWidgetCount;
+		diagnostics.reusedWidgetCount = stateStorage.GetStats().reusedWidgetCount;
+		diagnostics.modelCount = stateStorage.GetStats().modelCount;
 	}
 
 	template<class T>
 	T& SdInstance::GetOrCreateUserState(SdWidgetId widgetId)
 	{
-		SdWidgetRecord& record = GetOrCreateWidgetRecord(widgetId);
-		Detail::SdAnyObject& object = record.userStates[std::type_index(typeid(T))];
-		if (!object.value)
-			return object.Create<T>();
-		if (T* state = object.Get<T>())
-			return *state;
-		return object.Create<T>();
+		return stateStorage.GetOrCreateUserState<T>(widgetId);
+	}
+
+	template<class T>
+	T& SdInstance::GetOrCreateModel(SdResolvedKey resolvedKey)
+	{
+		return stateStorage.GetOrCreateModel<T>(resolvedKey);
 	}
 
 	template<class T>
 	T& SdWidgetContextBase::State()
 	{
 		return instance.GetOrCreateUserState<T>(id);
+	}
+
+	template<class T>
+	T& SdWidgetContextBase::Model()
+	{
+		assert(resolvedKey != 0);
+		return instance.GetOrCreateModel<T>(resolvedKey);
+	}
+
+	inline bool SdWidgetContextBase::HasModelKey() const noexcept
+	{
+		return resolvedKey != 0;
 	}
 
 	inline bool SdWidgetContextBase::IsHovered() const noexcept
@@ -492,7 +539,7 @@ namespace Sodium
 	{
 		const SdWidgetId parentId = CurrentParentId();
 		const SdWidgetId id = ResolveWidgetId(Detail::SdTypeHash<T>());
-		SdInstance::SdWidgetRecord& record = instance.GetOrCreateWidgetRecord(id);
+		SdWidgetRecord& record = instance.GetOrCreateWidgetRecord(id);
 		const bool created = record.widgetType != std::type_index(typeid(T)) || !record.widgetObject.value;
 
 		if (created)
@@ -503,7 +550,7 @@ namespace Sodium
 			record.paintCallback = &SdInstance::PaintThunk<T>;
 		}
 
-		instance.MarkSubmitted(record, id, parentId);
+		instance.MarkSubmitted(record, id, parentId, 0, {});
 		T& widget = *record.widgetObject.Get<T>();
 
 		SdCreateContext createContext{
@@ -513,7 +560,8 @@ namespace Sodium
 			parentId,
 			record.state,
 			record.style,
-			instance.theme
+			instance.theme,
+			record.resolvedKey
 		};
 		if (created)
 		{
@@ -531,6 +579,7 @@ namespace Sodium
 			record.state,
 			record.style,
 			instance.theme,
+			record.resolvedKey,
 			instance.input.GetSnapshot(),
 			instance.context.frame.deltaTime,
 			instance.context.frame.frameIndex
@@ -544,5 +593,81 @@ namespace Sodium
 		parentStack.pop_back();
 
 		return widget;
+	}
+
+	template<SdDeclarableWidget T, class... TArgs>
+	T& SdUi::DeclareKeyed(SdUtf8StringView key, TArgs&&... args)
+	{
+		const SdWidgetId parentId = CurrentParentId();
+		SdResolvedKey resolvedKey = 0;
+		const SdWidgetId id = ResolveKeyedWidgetId(Detail::SdTypeHash<T>(), key, resolvedKey);
+		SdWidgetRecord& record = instance.GetOrCreateWidgetRecord(id);
+		const bool created = record.widgetType != std::type_index(typeid(T)) || !record.widgetObject.value;
+
+		if (created)
+		{
+			record.widgetType = std::type_index(typeid(T));
+			record.widgetObject.Create<T>();
+			record.layoutCallback = &SdInstance::LayoutThunk<T>;
+			record.paintCallback = &SdInstance::PaintThunk<T>;
+		}
+
+		instance.MarkSubmitted(record, id, parentId, resolvedKey, key);
+		T& widget = *record.widgetObject.Get<T>();
+
+		SdCreateContext createContext{
+			instance,
+			*this,
+			id,
+			parentId,
+			record.state,
+			record.style,
+			instance.theme,
+			record.resolvedKey
+		};
+		if (created)
+		{
+			if constexpr (requires(T& value, SdCreateContext& context, TArgs&&... values) { value.OnCreate(context, std::forward<TArgs>(values)...); })
+				widget.OnCreate(createContext, std::forward<TArgs>(args)...);
+			else if constexpr (requires(T& value, SdCreateContext& context) { value.OnCreate(context); })
+				widget.OnCreate(createContext);
+		}
+
+		SdUpdateContext updateContext{
+			instance,
+			*this,
+			id,
+			parentId,
+			record.state,
+			record.style,
+			instance.theme,
+			record.resolvedKey,
+			instance.input.GetSnapshot(),
+			instance.context.frame.deltaTime,
+			instance.context.frame.frameIndex
+		};
+
+		parentStack.push_back(id);
+		if constexpr (requires(T& value, SdUpdateContext& context, TArgs&&... values) { value.OnUpdate(context, std::forward<TArgs>(values)...); })
+			widget.OnUpdate(updateContext, std::forward<TArgs>(args)...);
+		else if constexpr (requires(T& value, SdUpdateContext& context) { value.OnUpdate(context); })
+			widget.OnUpdate(updateContext);
+		parentStack.pop_back();
+
+		return widget;
+	}
+
+	template<SdDeclarableWidget TWidget, class TModel>
+	TModel& SdUi::Model(SdUtf8StringView key)
+	{
+		const SdResolvedKey resolvedKey = ResolveModelKey(Detail::SdTypeHash<TWidget>(), key);
+		return instance.GetOrCreateModel<TModel>(resolvedKey);
+	}
+
+	template<SdDeclarableWidget TWidget, class TConfigure, class TModel>
+	void SdUi::ConfigureModel(SdUtf8StringView key, TConfigure&& configure)
+	{
+		TModel& model = Model<TWidget, TModel>(key);
+		std::forward<TConfigure>(configure)(model);
 	}
 }

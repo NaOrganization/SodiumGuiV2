@@ -43,7 +43,7 @@ namespace Sodium
 		void OnPaint(SdPaintContext& context)
 		{
 			const State& state = context.State<State>();
-			context.renderList.AddText(state.text, context.animatedRect.min, SdApplyOpacity(SdColorWhite, context.opacity), context.clipRect);
+			context.renderList.AddText(state.text, context.animatedRect.min, SdApplyOpacity(context.style.color, context.opacity), context.clipRect);
 		}
 	};
 
@@ -58,7 +58,7 @@ namespace Sodium
 
 		void OnPaint(SdPaintContext& context)
 		{
-			context.renderList.AddRectFilled(context.animatedRect, SdApplyOpacity(context.style.background, context.opacity), context.clipRect, 5.f);
+			context.renderList.AddRectFilled(context.animatedRect, SdApplyOpacity(context.style.background, context.opacity), context.clipRect, context.style.radius);
 			context.renderList.AddRect(context.animatedRect, SdApplyOpacity({ 86, 101, 124, 255 }, context.opacity), context.clipRect, 1.0f);
 		}
 	};
@@ -82,7 +82,12 @@ namespace Sodium
 			state.hovered = context.widgetState.inputEnabled && context.IsHovered();
 			state.pressed = context.IsPressed();
 			state.clicked = context.WasClicked();
-			clicked = state.clicked;
+		}
+
+		void OnUpdate(SdUpdateContext& context, SdUtf8StringView text, bool& clicked)
+		{
+			OnUpdate(context, text);
+			clicked = context.State<State>().clicked;
 		}
 
 		void OnLayout(SdLayoutContext& context)
@@ -106,23 +111,26 @@ namespace Sodium
 			context.renderList.AddText(state.text, { context.animatedRect.min.x + 16.0f, context.animatedRect.min.y + 9.0f }, SdApplyOpacity(context.style.color, context.opacity), context.clipRect);
 		}
 
-		bool WasClicked() const noexcept { return clicked; }
-
-	private:
-		bool clicked = false;
 	};
 
 	class SdCheckBox final : public SdWidgetTag
 	{
 	public:
+		struct State
+		{
+			bool checked = false;
+			bool hovered = false;
+		};
+
 		void OnUpdate(SdUpdateContext& context, bool& value)
 		{
+			State& state = context.State<State>();
 			const bool hovered = context.widgetState.inputEnabled && context.IsHovered();
 			context.widgetState.styleClass = SdStyleWidgetClass::CheckBox;
 			if (context.WasClicked())
 				value = !value;
-			checked = value;
-			isHovered = hovered;
+			state.checked = value;
+			state.hovered = hovered;
 		}
 
 		void OnLayout(SdLayoutContext& context)
@@ -132,23 +140,20 @@ namespace Sodium
 
 		void OnPaint(SdPaintContext& context)
 		{
+			const State& state = context.State<State>();
 			const SdRect box = {
 				context.animatedRect.min.x,
 				context.animatedRect.min.y + 2.0f,
 				context.animatedRect.min.x + 24.0f,
 				context.animatedRect.min.y + 26.0f
 			};
-			context.renderList.AddRectFilled(box, SdApplyOpacity(isHovered ? SdColor{ 62, 86, 108, 255 } : SdColor{ 36, 46, 58, 255 }, context.opacity), context.clipRect);
+			context.renderList.AddRectFilled(box, SdApplyOpacity(state.hovered ? SdColor{ 62, 86, 108, 255 } : context.style.background, context.opacity), context.clipRect);
 			context.renderList.AddRect(box, SdApplyOpacity({ 130, 146, 164, 255 }, context.opacity), context.clipRect, 1.0f);
-			if (checked)
+			if (state.checked)
 			{
 				const SdRect mark = { box.min.x + 5.0f, box.min.y + 5.0f, box.max.x - 5.0f, box.max.y - 5.0f };
 				context.renderList.AddRectFilled(mark, SdApplyOpacity(context.instance.GetStyleSystem().GetTheme().GetColor(SdStyleToken::ColorAccent), context.opacity), context.clipRect);
 			}
 		}
-
-	private:
-		bool checked = false;
-		bool isHovered = false;
 	};
 }

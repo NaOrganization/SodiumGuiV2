@@ -40,6 +40,7 @@ namespace Sodium
 	using SdDuration = std::chrono::nanoseconds;
 	using SdTimePoint = std::chrono::time_point<std::chrono::system_clock, SdDuration>;
 	using SdWidgetId = std::uint64_t;
+	using SdResolvedKey = std::uint64_t;
 	using SdLayerId = std::uint32_t;
 	using SdFrameIndex = std::uint64_t;
 

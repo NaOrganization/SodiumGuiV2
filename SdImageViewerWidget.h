@@ -77,7 +77,6 @@ namespace Sodium
 
 			state.localUv = BuildLocalUv(context.widgetState.lastRect, state.mousePosition);
 			state.zoomUvRect = BuildZoomUvRect(state.options.uvRect, state.localUv, state.zoom);
-			zoom = state.zoom;
 		}
 
 		void OnLayout(SdLayoutContext& context)
@@ -111,11 +110,7 @@ namespace Sodium
 			context.renderList.AddRect(previewRect, SdApplyOpacity({ 118, 196, 255, 255 }, context.opacity), context.clipRect, 1.0f, 5.0f);
 		}
 
-		float GetZoom() const noexcept { return zoom; }
-
 	private:
-		float zoom = 3.0f;
-
 		static SdImageViewerOptions NormalizeOptions(SdImageViewerOptions options)
 		{
 			options.thumbnailSize.x = std::max(1.0f, options.thumbnailSize.x);

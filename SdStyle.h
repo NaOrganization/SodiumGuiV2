@@ -7,25 +7,6 @@
 
 namespace Sodium
 {
-	enum class SdStyleWidgetClass : SdUInt16
-	{
-		Default,
-		Text,
-		Panel,
-		Button,
-		CheckBox,
-		Window,
-		ImageViewer
-	};
-
-	enum class SdStyleInteractionState : SdUInt8
-	{
-		Normal,
-		Hovered,
-		Pressed,
-		Focused
-	};
-
 	struct SdTheme final
 	{
 		std::array<SdColor, 16> colors = {};
@@ -84,7 +65,10 @@ namespace Sodium
 			AddRule({ SdStyleWidgetClass::Button, SdStyleInteractionState::Normal, SdStyleToken::ColorButton, SdStyleToken::ColorText, SdStyleToken::RadiusSmall, true, true, true });
 			AddRule({ SdStyleWidgetClass::Button, SdStyleInteractionState::Hovered, SdStyleToken::ColorButtonHovered, SdStyleToken::ColorText, SdStyleToken::RadiusSmall, true, true, true });
 			AddRule({ SdStyleWidgetClass::Button, SdStyleInteractionState::Pressed, SdStyleToken::ColorButtonPressed, SdStyleToken::ColorText, SdStyleToken::RadiusSmall, true, true, true });
+			AddRule({ SdStyleWidgetClass::CheckBox, SdStyleInteractionState::Normal, SdStyleToken::ColorPanelBg, SdStyleToken::ColorText, SdStyleToken::RadiusSmall, true, true, true });
+			AddRule({ SdStyleWidgetClass::CheckBox, SdStyleInteractionState::Hovered, SdStyleToken::ColorButtonHovered, SdStyleToken::ColorText, SdStyleToken::RadiusSmall, true, true, true });
 			AddRule({ SdStyleWidgetClass::Window, SdStyleInteractionState::Normal, SdStyleToken::ColorWindowBg, SdStyleToken::ColorText, SdStyleToken::RadiusSmall, true, true, true });
+			AddRule({ SdStyleWidgetClass::ImageViewer, SdStyleInteractionState::Normal, SdStyleToken::ColorPanelBg, SdStyleToken::ColorText, SdStyleToken::RadiusSmall, true, true, true });
 		}
 
 		const SdTheme& GetTheme() const noexcept

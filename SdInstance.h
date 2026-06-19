@@ -5,11 +5,10 @@
 #include "SdLayer.h"
 #include "SdLayout.h"
 #include "SdRenderCore.h"
+#include "SdRuntimeStorage.h"
 #include "SdStyle.h"
 #include "SdUi.h"
 
-#include <typeindex>
-#include <unordered_map>
 #include <vector>
 
 namespace Sodium
@@ -29,6 +28,9 @@ namespace Sodium
 		SdUInt32 drawIndexCount = 0;
 		SdUInt32 drawBatchCount = 0;
 		SdUInt32 resourceUploadCount = 0;
+		SdUInt32 createdWidgetCount = 0;
+		SdUInt32 reusedWidgetCount = 0;
+		SdUInt32 modelCount = 0;
 
 		void ResetFrameTransient() noexcept
 		{
@@ -45,6 +47,8 @@ namespace Sodium
 			drawIndexCount = 0;
 			drawBatchCount = 0;
 			resourceUploadCount = 0;
+			createdWidgetCount = 0;
+			reusedWidgetCount = 0;
 		}
 	};
 
@@ -67,21 +71,7 @@ namespace Sodium
 	class SdInstance final
 	{
 	private:
-		struct SdWidgetRecord final
-		{
-			SdWidgetState state = {};
-			SdComputedStyle style = {};
-			SdAnimationWidgetState animation = {};
-			Detail::SdAnyObject widgetObject = {};
-			std::unordered_map<std::type_index, Detail::SdAnyObject> userStates = {};
-			std::type_index widgetType = std::type_index(typeid(void));
-			SdWidgetId parentId = 0;
-			SdUInt32 order = 0;
-			void(*layoutCallback)(void*, SdLayoutContext&) = nullptr;
-			void(*paintCallback)(void*, SdPaintContext&) = nullptr;
-		};
-
-		std::unordered_map<SdWidgetId, SdWidgetRecord> widgets = {};
+		SdStateStorage stateStorage = {};
 		std::vector<SdWidgetId> frameOrder = {};
 		SdInputSystem input{ 512 };
 		SdAnimationSystem animationSystem = {};
@@ -99,7 +89,7 @@ namespace Sodium
 		SdUInt32 nextOrder = 0;
 
 		SdWidgetRecord& GetOrCreateWidgetRecord(SdWidgetId id);
-		void MarkSubmitted(SdWidgetRecord& record, SdWidgetId id, SdWidgetId parentId);
+		void MarkSubmitted(SdWidgetRecord& record, SdWidgetId id, SdWidgetId parentId, SdResolvedKey resolvedKey, SdUtf8StringView debugKey);
 		void FinishWidgetFrame();
 		void UpdateWidgetAnimation(SdWidgetRecord& record);
 		void SolveLayoutAndPaint();
@@ -155,6 +145,7 @@ namespace Sodium
 		const SdLayoutSystem& GetLayoutSystem() const noexcept { return layoutSystem; }
 		const SdLayerSystem& GetLayerSystem() const noexcept { return layerSystem; }
 		const SdAnimationSystem& GetAnimationSystem() const noexcept { return animationSystem; }
+		const SdStateStorage& GetStateStorage() const noexcept { return stateStorage; }
 		const SdStyleSystem& GetStyleSystem() const noexcept { return styleSystem; }
 		const SdDrawData& GetRenderData() const noexcept { return renderList.GetDrawData(); }
 		SdDrawPacket GetDrawPacket() const noexcept { return renderList.BuildPacket(static_cast<SdUInt32>(context.frame.frameIndex)); }
@@ -170,6 +161,9 @@ namespace Sodium
 
 		template<class T>
 		T& GetOrCreateUserState(SdWidgetId widgetId);
+
+		template<class T>
+		T& GetOrCreateModel(SdResolvedKey resolvedKey);
 
 	private:
 		void BeginInputFrame();
