@@ -60,9 +60,13 @@ namespace Sodium::Backends
 		SdTextureHandle CreateTexture(SdUInt32 width, SdUInt32 height, const void* rgbaPixels);
 		SdTextureHandle CreateTexture(const SdTextureDesc& desc) override;
 		void DestroyTexture(SdTextureHandle texture) override;
+
+		// Legacy compatibility helpers. New callers should use Render(frameInfo, packet)
+		// or SdInstance::Render so renderer submission stays a single call.
 		void BeginFrame(const SdRendererFrameInfo& frameInfo);
 		void Submit(const SdDrawPacket& packet);
 		void EndFrame();
+
 		void Render(const SdRendererFrameInfo& frameInfo, const SdDrawPacket& packet) override;
 		void Render(const SdDrawData& data, SdVec2 displaySize);
 	};

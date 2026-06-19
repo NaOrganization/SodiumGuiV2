@@ -59,11 +59,16 @@ namespace Sodium
 		std::vector<std::byte> pixels = {};
 	};
 
+	// Resource updates are frame-local commands carried to the renderer.
+	// The renderer may copy/upload the pixel payload during Render; the CPU
+	// storage belongs to the draw packet and is not valid after the frame.
 	struct SdResourceUpdate final
 	{
 		SdUploadRequest upload = {};
 	};
 
+	// SdDrawPacket is a borrowed frame view over SdDrawData. Backends must
+	// consume it synchronously inside Render and not retain its spans.
 	struct SdDrawPacket final
 	{
 		std::span<const SdDrawCommand> commands = {};
@@ -80,6 +85,8 @@ namespace Sodium
 		SdVec2 displaySize = {};
 	};
 
+	// Source description for creating a backend-owned texture. A valid
+	// SdTextureHandle is only meaningful for the renderer that created it.
 	struct SdTextureDesc final
 	{
 		SdUInt32 width = 0;

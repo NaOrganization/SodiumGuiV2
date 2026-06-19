@@ -105,15 +105,28 @@ namespace Sodium
 	{
 	public:
 		virtual ~ISdFontBackend() = default;
+
+		// Returns the font used when a text style does not resolve a face.
 		virtual SdFontHandle GetFallbackFont() const noexcept = 0;
+
+		// Fast measurement path used during layout. Implementations may cache
+		// glyph metrics but must not require renderer access.
 		virtual SdVec2 MeasureText(SdUtf8StringView text, const SdTextStyle& style) = 0;
+
+		// Builds positioned glyphs for paint. Any atlas resource changes must
+		// be reported later through DrainPendingUploads.
 		virtual SdParagraphLayout BuildParagraphLayout(
 			SdUtf8StringView text,
 			const SdTextStyle& style,
 			float maxWidth,
 			const SdColor& color,
 			std::pmr::memory_resource* resource = std::pmr::get_default_resource()) = 0;
+
+		// Publishes shared atlas handles/UVs used by SdRenderList.
 		virtual void ConfigureRenderSharedData(SdRenderSharedData& sharedData) const = 0;
+
+		// Moves pending atlas uploads into the frame draw packet. The renderer
+		// consumes these updates during ISdRendererBackend::Render.
 		virtual void DrainPendingUploads(std::vector<SdUploadRequest>& uploads) = 0;
 	};
 }
