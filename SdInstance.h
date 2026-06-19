@@ -103,6 +103,8 @@ namespace Sodium
 		SdTransition GetDefaultTransition() const noexcept;
 		void UpdateWidgetAnimation(SdWidgetRecord& record);
 		void ResolveWidgetStyle(SdWidgetRecord& record, SdStyleInteractionState interactionState, SdLayerPriority layerPriority);
+		void SetWidgetStyleAnimationTarget(SdWidgetRecord& record, const SdComputedStyle& style, bool immediate);
+		void ApplyWidgetStyleAnimation(SdWidgetRecord& record);
 		void SolveLayoutAndPaint();
 		SdUInt32 RemoveDeadWidgets();
 		void RefreshDiagnostics();

@@ -252,6 +252,8 @@ namespace
 		bool hasLayoutCache = false;
 		bool hasStyleCache = false;
 		bool hasExtendedAnimationChannels = false;
+		bool hasStyleAnimationTarget = false;
+		const SdComputedStyle buttonStyle = instance.GetStyleSystem().Resolve(SdStyleWidgetClass::Button, SdStyleInteractionState::Normal);
 		for (const auto& [id, record] : instance.GetStateStorage().GetWidgetRecords())
 		{
 			(void)id;
@@ -259,10 +261,20 @@ namespace
 			hasStyleCache = hasStyleCache || record.styleCache.valid;
 			hasExtendedAnimationChannels = hasExtendedAnimationChannels
 				|| (record.animation.styleColorR != 0 && record.animation.scrollOffset != 0);
+			if (record.state.styleClass == SdStyleWidgetClass::Button)
+			{
+				const SdAnimationChannel& red = instance.GetContext().animationSystem.GetChannel(record.animation.styleColorR);
+				const SdAnimationChannel& green = instance.GetContext().animationSystem.GetChannel(record.animation.styleColorG);
+				const SdAnimationChannel& blue = instance.GetContext().animationSystem.GetChannel(record.animation.styleColorB);
+				hasStyleAnimationTarget = red.target == static_cast<float>(buttonStyle.background.r)
+					&& green.target == static_cast<float>(buttonStyle.background.g)
+					&& blue.target == static_cast<float>(buttonStyle.background.b);
+			}
 		}
 		Check(hasLayoutCache, "state storage owns layout cache");
 		Check(hasStyleCache, "state storage owns computed style cache");
 		Check(hasExtendedAnimationChannels, "widget records own extended animation channel references");
+		Check(hasStyleAnimationTarget, "style color animation targets computed background");
 
 		const SdComputedStyle normal = instance.GetStyleSystem().Resolve(SdStyleWidgetClass::Button, SdStyleInteractionState::Normal);
 		const SdComputedStyle hovered = instance.GetStyleSystem().Resolve(SdStyleWidgetClass::Button, SdStyleInteractionState::Hovered);
@@ -284,6 +296,8 @@ namespace
 		SdResolvedKey resolvedKey = 0;
 		const SdWidgetId keyedId = idStack.ResolveKeyedWidgetId(2002, "stable", resolvedKey);
 		Check(keyedId != 0 && resolvedKey != 0 && keyedId != resolvedKey, "id stack separates keyed widget id and resolved key");
+		Check(idStack.ResolveModelKey(2002, "stable") == resolvedKey, "model key matches keyed declaration resolved key");
+		Check(idStack.ResolveModelKey(3003, "stable") != resolvedKey, "model key includes widget type");
 
 		idStack.PushParent(keyedId);
 		SdResolvedKey childResolvedKey = 0;

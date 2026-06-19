@@ -68,12 +68,15 @@ namespace Sodium
 
 		SdWidgetId ResolveKeyedWidgetId(SdUInt64 typeHash, SdUtf8StringView key, SdResolvedKey& resolvedKey) const
 		{
+			static constexpr SdUInt64 ResolvedKeySalt = 0xA0761D6478BD642Full;
 			const SdWidgetId parentId = CurrentParentId();
 			SdUInt64 keyHash = std::hash<SdUtf8StringView>{}(key);
 			keyHash = NormalizeHash(keyHash);
 
 			SdUInt64 keySeed = 1469598103934665603ull;
+			keySeed = HashCombine(keySeed, ResolvedKeySalt);
 			keySeed = HashCombine(keySeed, parentId);
+			keySeed = HashCombine(keySeed, typeHash);
 			keySeed = HashCombine(keySeed, keyHash);
 			resolvedKey = NormalizeHash(keySeed);
 
@@ -86,12 +89,14 @@ namespace Sodium
 
 		SdResolvedKey ResolveModelKey(SdUInt64 typeHash, SdUtf8StringView key) const
 		{
-			(void)typeHash;
+			static constexpr SdUInt64 ResolvedKeySalt = 0xA0761D6478BD642Full;
 			SdUInt64 keyHash = std::hash<SdUtf8StringView>{}(key);
 			keyHash = NormalizeHash(keyHash);
 
 			SdUInt64 keySeed = 1469598103934665603ull;
+			keySeed = HashCombine(keySeed, ResolvedKeySalt);
 			keySeed = HashCombine(keySeed, CurrentParentId());
+			keySeed = HashCombine(keySeed, typeHash);
 			keySeed = HashCombine(keySeed, keyHash);
 			return NormalizeHash(keySeed);
 		}

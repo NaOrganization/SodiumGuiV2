@@ -222,9 +222,11 @@ namespace Sodium
 			&& record.styleCache.layerPriority == layerPriority)
 		{
 			record.style = record.styleCache.computed;
+			ApplyWidgetStyleAnimation(record);
 			return;
 		}
 
+		const bool firstStyle = !record.styleCache.valid;
 		record.style = context.styleSystem.Resolve(record.state.styleClass, interactionState, layerPriority);
 		record.styleCache.computed = record.style;
 		record.styleCache.widgetClass = record.state.styleClass;
@@ -232,6 +234,47 @@ namespace Sodium
 		record.styleCache.layerPriority = layerPriority;
 		record.styleCache.valid = true;
 		record.state.styleDirty = false;
+		SetWidgetStyleAnimationTarget(record, record.styleCache.computed, firstStyle);
+		ApplyWidgetStyleAnimation(record);
+	}
+
+	inline void SdInstance::SetWidgetStyleAnimationTarget(SdWidgetRecord& record, const SdComputedStyle& style, bool immediate)
+	{
+		const auto setChannel = [this, immediate](SdAnimationChannelId channelId, float target)
+		{
+			if (immediate)
+			{
+				context.animationSystem.SetImmediate(channelId, target);
+				return;
+			}
+			context.animationSystem.SetTarget(channelId, target, GetDefaultTransition());
+		};
+
+		setChannel(record.animation.styleColorR, static_cast<float>(style.background.r));
+		setChannel(record.animation.styleColorG, static_cast<float>(style.background.g));
+		setChannel(record.animation.styleColorB, static_cast<float>(style.background.b));
+		setChannel(record.animation.styleColorA, static_cast<float>(style.background.a));
+	}
+
+	inline void SdInstance::ApplyWidgetStyleAnimation(SdWidgetRecord& record)
+	{
+		const auto toByte = [](float value) noexcept
+		{
+			return static_cast<SdUInt8>(std::clamp(value, 0.0f, 255.0f));
+		};
+
+		record.style.background = {
+			toByte(context.animationSystem.GetValue(record.animation.styleColorR, static_cast<float>(record.style.background.r))),
+			toByte(context.animationSystem.GetValue(record.animation.styleColorG, static_cast<float>(record.style.background.g))),
+			toByte(context.animationSystem.GetValue(record.animation.styleColorB, static_cast<float>(record.style.background.b))),
+			toByte(context.animationSystem.GetValue(record.animation.styleColorA, static_cast<float>(record.style.background.a)))
+		};
+
+		record.state.animationActive = record.state.animationActive
+			|| context.animationSystem.IsActive(record.animation.styleColorR)
+			|| context.animationSystem.IsActive(record.animation.styleColorG)
+			|| context.animationSystem.IsActive(record.animation.styleColorB)
+			|| context.animationSystem.IsActive(record.animation.styleColorA);
 	}
 
 	inline void SdInstance::SolveLayoutAndPaint()
@@ -383,7 +426,10 @@ namespace Sodium
 
 		context.animationSystem.Update(context.frame.deltaTime, false, false, true, true);
 		for (SdWidgetId id : liveIds)
+		{
 			applyAnimatedRect(widgets[id]);
+			ApplyWidgetStyleAnimation(widgets[id]);
+		}
 
 		std::vector<SdWidgetId> paintIds = liveIds;
 		std::sort(paintIds.begin(), paintIds.end(), [&widgets](SdWidgetId left, SdWidgetId right)
