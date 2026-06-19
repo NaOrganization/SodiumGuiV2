@@ -1,7 +1,10 @@
 SodiumGUI performance summary
-Frames: 10227
-Elapsed: 2.148 s
-Average FPS: 4761.73
-Average frame: 0.198 ms
-Min frame: 0.028 ms
-Max frame: 14.378 ms
+Frames: 199763
+Elapsed: 28.228 s
+Average FPS: 7076.82
+Average frame: 0.141 ms
+Min frame: 0.014 ms
+Max frame: 27.270 ms
+Widgets: submitted=11 live=11 entering=0 leaving=0 removed=0
+Draw: commands=2 batches=2 vertices=782 indices=1797 uploads=0
+Runtime: hitTests=11 activeAnimations=1 renderListGrows=298 aaScratchGrows=3

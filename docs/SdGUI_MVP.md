@@ -50,9 +50,7 @@ The Win32 DirectX 11 example now runs this frame flow:
 gui.BeginFrame(platform, displaySize);
 gui.ui.Declare<DemoWindow>(optionEnabled, clickCount);
 gui.EndFrame();
-renderer.BeginFrame(Sodium::SdRendererFrameInfo{ displaySize });
-renderer.Submit(gui.GetDrawPacket());
-renderer.EndFrame();
+gui.Render();
 ```
 
 `DemoWindow` is a normal type derived from `SdWidgetTag`. It declares a panel, real rendered text, a button, and a checkbox through the same typed API.

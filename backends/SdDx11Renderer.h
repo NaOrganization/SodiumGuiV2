@@ -14,7 +14,7 @@ namespace Sodium::Backends
 		ID3D11DeviceContext* deviceContext = nullptr;
 	};
 
-	class SdDx11Renderer final
+	class SdDx11Renderer final : public ISdRendererBackend
 	{
 	private:
 		struct TextureEntry final
@@ -58,11 +58,12 @@ namespace Sodium::Backends
 		bool Initialize(const Config& config);
 		void Shutdown();
 		SdTextureHandle CreateTexture(SdUInt32 width, SdUInt32 height, const void* rgbaPixels);
-		SdTextureHandle CreateTexture(const SdTextureDesc& desc);
-		void DestroyTexture(SdTextureHandle texture);
+		SdTextureHandle CreateTexture(const SdTextureDesc& desc) override;
+		void DestroyTexture(SdTextureHandle texture) override;
 		void BeginFrame(const SdRendererFrameInfo& frameInfo);
 		void Submit(const SdDrawPacket& packet);
 		void EndFrame();
+		void Render(const SdRendererFrameInfo& frameInfo, const SdDrawPacket& packet) override;
 		void Render(const SdDrawData& data, SdVec2 displaySize);
 	};
 

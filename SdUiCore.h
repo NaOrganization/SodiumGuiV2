@@ -47,6 +47,11 @@ namespace Sodium
 	{
 		ColorText,
 		ColorBackground,
+		ColorWindowBg,
+		ColorPanelBg,
+		ColorButton,
+		ColorButtonHovered,
+		ColorButtonPressed,
 		ColorAccent,
 		SpacingSmall,
 		SpacingMedium,

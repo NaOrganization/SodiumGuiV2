@@ -17,7 +17,7 @@ namespace Sodium::Backends
 		explicit SdWin32PlatformConfig(HWND hwnd) : windowHandle(hwnd) {}
 	};
 
-	class SdWin32Platform final
+	class SdWin32Platform final : public ISdPlatformBackend
 	{
 	public:
 		using Config = SdWin32PlatformConfig;
@@ -43,7 +43,7 @@ namespace Sodium::Backends
 		SdUtf8String RequestClipboardText();
 		void SetClipboardText(SdUtf8StringView text);
 		bool HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, Sodium::SdInputSystem& targetInputSystem);
-		void StartFrame(Sodium::SdInputSystem& targetInputSystem);
+		void StartFrame(Sodium::SdInputSystem& targetInputSystem) override;
 
 		bool IsRunning() const noexcept { return running && windowHandle && ::IsWindow(windowHandle); }
 		HWND GetWindowHandle() const noexcept { return windowHandle; }

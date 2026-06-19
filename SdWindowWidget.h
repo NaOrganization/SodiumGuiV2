@@ -140,7 +140,7 @@ namespace Sodium
 			const float titleBarHeight = std::max(22.0f, state.options.titleBarHeight);
 			const SdRect rect = context.animatedRect;
 			const SdRect titleRect = { rect.min.x, rect.min.y, rect.max.x, rect.min.y + titleBarHeight };
-			const SdColor bodyFill = state.hovered ? SdColor{ 28, 35, 45, 245 } : SdColor{ 24, 30, 39, 242 };
+			const SdColor bodyFill = state.hovered ? SdColor{ 28, 35, 45, 245 } : context.style.background;
 			const SdColor titleFill = state.dragging ? SdColor{ 62, 100, 138, 255 }
 				: state.titleHovered ? SdColor{ 46, 68, 91, 255 }
 				: SdColor{ 38, 49, 64, 255 };
@@ -185,6 +185,7 @@ namespace Sodium
 			state.size.x = std::max(options.minSize.x, state.size.x);
 			state.size.y = std::max(options.minSize.y, state.size.y);
 			context.widgetState.layerPriority = SdLayerPriority::Floating;
+			context.widgetState.styleClass = SdStyleWidgetClass::Window;
 
 			if (!state.visible)
 			{
@@ -202,11 +203,12 @@ namespace Sodium
 			const SdRect collapseRect = BuildCollapseRect(windowRect, titleBarHeight);
 			const SdRect resizeRect = BuildResizeRect(windowRect);
 
-			state.hovered = context.widgetState.inputEnabled && windowRect.Contains(mousePosition);
-			state.titleHovered = context.widgetState.inputEnabled && titleRect.Contains(mousePosition);
-			state.closeHovered = options.closable && open && closeRect.Contains(mousePosition);
-			state.collapseHovered = options.collapsible && collapseRect.Contains(mousePosition);
-			state.resizeHovered = options.resizable && !state.collapsed && resizeRect.Contains(mousePosition);
+			const bool windowHovered = context.widgetState.inputEnabled && context.IsHovered();
+			state.hovered = windowHovered;
+			state.titleHovered = windowHovered && titleRect.Contains(mousePosition);
+			state.closeHovered = windowHovered && options.closable && open && closeRect.Contains(mousePosition);
+			state.collapseHovered = windowHovered && options.collapsible && collapseRect.Contains(mousePosition);
+			state.resizeHovered = windowHovered && options.resizable && !state.collapsed && resizeRect.Contains(mousePosition);
 
 			if (context.input.IsMouseButtonDown(SdMouseButton::Left))
 			{
@@ -220,7 +222,7 @@ namespace Sodium
 				}
 			}
 
-			if (!context.input.IsMouseButtonHeld(SdMouseButton::Left))
+			if (!context.IsPressed())
 			{
 				state.dragging = false;
 				state.resizing = false;

@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "SdDrawList.h"
 #include "SdInput.h"
@@ -31,6 +31,7 @@ namespace Sodium
 		SdWidgetId id = 0;
 		SdWidgetLifePhase lifePhase = SdWidgetLifePhase::Entering;
 		SdLayerPriority layerPriority = SdLayerPriority::Content;
+		SdStyleWidgetClass styleClass = SdStyleWidgetClass::Default;
 		bool submittedThisFrame = false;
 		bool inputEnabled = true;
 		bool manualLayout = false;
@@ -65,6 +66,11 @@ namespace Sodium
 
 		template<class T>
 		T& State();
+
+		bool IsHovered() const noexcept;
+		bool IsPressed() const noexcept;
+		bool WasClicked() const noexcept;
+		bool IsFocused() const noexcept;
 	};
 
 	struct SdCreateContext : SdWidgetContextBase

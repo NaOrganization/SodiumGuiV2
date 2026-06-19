@@ -50,9 +50,10 @@ namespace Sodium
 			State& state = context.State<State>();
 			const bool textureChanged = state.texture != texture;
 			state.options = NormalizeOptions(options);
+			context.widgetState.styleClass = SdStyleWidgetClass::ImageViewer;
 			state.mousePosition = context.input.GetMousePosition();
 			state.hovered = context.widgetState.inputEnabled
-				&& context.widgetState.lastRect.Contains(state.mousePosition)
+				&& context.IsHovered()
 				&& texture.IsValid();
 			context.widgetState.layerPriority = state.hovered ? SdLayerPriority::Floating : SdLayerPriority::Content;
 

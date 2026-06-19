@@ -246,6 +246,7 @@ namespace SodiumDynamicExample
 			if (!fontBackend.Initialize())
 				return false;
 
+			gui.SetRendererBackend(&renderer);
 			gui.SetFontBackend(&fontBackend);
 			initialized = true;
 			return true;
@@ -264,9 +265,7 @@ namespace SodiumDynamicExample
 
 			ID3D11RenderTargetView* target = dx.renderTargetView.Get();
 			dx.deviceContext->OMSetRenderTargets(1, &target, nullptr);
-			renderer.BeginFrame(Sodium::SdRendererFrameInfo{ dx.displaySize });
-			renderer.Submit(gui.GetDrawPacket());
-			renderer.EndFrame();
+			gui.Render();
 			++frameCount;
 		}
 

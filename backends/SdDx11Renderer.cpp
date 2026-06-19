@@ -540,13 +540,18 @@ namespace Sodium::Backends
 
 	void SdDx11Renderer::Submit(const SdDrawPacket& packet)
 	{
-		SdDrawData data = {};
-		data.AssignPacket(packet);
-		Render(data, currentFrameInfo.displaySize);
+		Render(currentFrameInfo, packet);
 	}
 
 	void SdDx11Renderer::EndFrame()
 	{
+	}
+
+	void SdDx11Renderer::Render(const SdRendererFrameInfo& frameInfo, const SdDrawPacket& packet)
+	{
+		SdDrawData data = {};
+		data.AssignPacket(packet);
+		Render(data, frameInfo.displaySize);
 	}
 
 	void SdDx11Renderer::Render(const SdDrawData& data, SdVec2 displaySize)

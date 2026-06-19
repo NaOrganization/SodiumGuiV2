@@ -303,6 +303,60 @@ sd.ui.Declare<SdCheckBox>(enableCache);
 sd.ui.Declare<SdSliderFloat>(radius, 0.f, 100.f);
 ```
 
+### 8.1 匿名声明与 keyed 声明
+
+`SdUi::Declare<T>()` 默认不要求传入 key。不是所有组件都需要被外部访问，匿名声明应保持低成本和低样板。
+
+```cpp
+ui.Declare<SdPanel>();
+ui.Declare<SdButton>("Increment");
+ui.Declare<SdText>(frameText);
+```
+
+匿名 widget 的身份由当前声明上下文、widget 类型和 sibling ordinal 解析。它适合纯显示、局部交互和不需要外部寻址的控件。匿名 ID 对声明顺序敏感，动态列表、可重排内容和需要外部访问的组件不应依赖匿名 ID。
+
+需要稳定外部寻址时使用 keyed 声明。key 是框架层参数，只用于身份解析、调试和可选 model 寻址，不传给 widget 的 `OnCreate` / `OnUpdate`。
+
+```cpp
+ui.DeclareKeyed<SdButton>("increment_button", "Increment");
+ui.DeclareKeyed<SdWindow>("main_window", "SodiumGUI Demo", open, options, content);
+ui.DeclareKeyed<SdMultiCombo>("weapon_filter", "Weapons");
+```
+
+在上例中，`"weapon_filter"` 是框架 key，`"Weapons"` 才是 `SdMultiCombo` 控件收到的 label。key 与 label/title/text 必须保持概念分离：
+
+```text
+key              -> 框架层稳定身份和外部寻址。
+label/title/text -> 控件层显示或业务参数。
+```
+
+不应把 `Declare<T>()` 的第一位普通控件参数隐式解释为 key；否则 `ui.Declare<SdButton>("Increment")` 无法清楚表达 `"Increment"` 是 label 还是身份。keyed 组件必须通过明确 API 声明，例如 `DeclareKeyed<T>()` 或等价命名。
+
+### 8.2 SdWidgetId 生成规则
+
+匿名声明：
+
+```text
+widgetId = Hash(parent_scope, type_hash, ordinal)
+```
+
+keyed 声明：
+
+```text
+widgetId = Hash(parent_scope, type_hash, key_hash)
+```
+
+`SdWidgetId` 是内部运行时 ID，用于索引 widget record、生命周期、布局、动画和输入状态。用户代码不应长期保存或手工构造 `SdWidgetId`。
+
+keyed 声明还应记录一个可调试、可查找的 resolved key：
+
+```text
+resolvedKey = Hash(key_scope, key_hash)
+resolvedKey -> SdWidgetId
+```
+
+resolved key 的具体形式可以是 hash，也可以在 debug build 中保留原始 key path。它的用途是外部配置、诊断和可选 model 寻址，而不是取代 `SdWidgetId` 的内部 record 索引职责。
+
 ## 9. Widget 生命周期
 
 SdGUI 不引入独立的 presence 系统。结构出现和消失是 `SdWidgetState` 的一部分。
@@ -412,6 +466,7 @@ namespace Sodium
 StateStorage
 - SdWidgetState
 - 用户 widget 状态
+- Optional keyed component model
 - Layout cache
 - Style cache
 - Animation channels
@@ -465,6 +520,106 @@ public:
 ```
 
 实现可以从 `std::unordered_map<SdWidgetId, SdWidgetState>` 开始，但 typed user state 应逐步迁移到按类型密集存储的 pool 或 slot-map 存储，以避免帧关键路径上的 per-widget 堆分配。
+
+### 11.1 State 与 Model 的边界
+
+SdGUI 的持久数据分为三层：
+
+```text
+WidgetRecord
+- 框架固定拥有。
+- 绑定 SdWidgetId。
+- 保存生命周期、widget object、布局、动画、输入、paint/update 回调。
+
+State<T>
+- 组件实例的 typed user state。
+- 绑定 WidgetRecord / SdWidgetId。
+- 跟随 widget 生命周期清理。
+- 用于 hover、pressed、opened、layout cache 等当前 UI 实例状态。
+
+Model<T>
+- 可选的 keyed component model。
+- 绑定 resolved key。
+- 只在组件需要跨显示周期、跨位置外部配置或业务数据持久化时使用。
+- 不随 widget record 离场自动删除。
+```
+
+`context.State<T>()` 和 `context.Model<T>()` 的语义必须不同：
+
+```cpp
+State& state = context.State<State>();
+Model& model = context.Model<Model>();
+```
+
+`State<T>()` 面向当前 widget 实例。widget 进入 `Dead` 并被 sweep 后，相关 typed state 可以被释放。
+
+`Model<T>()` 面向 stable key。它只对 keyed widget 有意义，匿名 widget 调用 model API 应在 debug build 中 assert 或进入明确的错误路径。model 的创建与使用由组件内部自行决定，框架只提供 keyed model storage，不强制所有 keyed widget 都创建 model。
+
+例如 `SdButton` 可以只使用 state：
+
+```cpp
+class SdButton final : public SdWidgetTag
+{
+public:
+    struct State
+    {
+        bool hovered = false;
+        bool pressed = false;
+        bool clicked = false;
+    };
+
+    void OnUpdate(SdUpdateContext& context, SdUtf8StringView label)
+    {
+        State& state = context.State<State>();
+        // update interaction state
+    }
+};
+```
+
+`SdMultiCombo` 这类需要外部追加选项的控件可以选择使用 model：
+
+```cpp
+class SdMultiCombo final : public SdWidgetTag
+{
+public:
+    struct Model
+    {
+        std::vector<Option> options = {};
+        std::vector<SdUtf8String> selectedIds = {};
+    };
+
+    struct State
+    {
+        bool opened = false;
+        bool hovered = false;
+    };
+
+    void OnUpdate(SdUpdateContext& context, SdUtf8StringView label)
+    {
+        Model& model = context.Model<Model>();
+        State& state = context.State<State>();
+        // render and update view state using persistent model data
+    }
+};
+```
+
+外部访问不应直接操作当前 widget object。需要配置持久数据时应访问 keyed model：
+
+```cpp
+ui.Model<SdMultiCombo>("weapon_filter").AddOption("ak47", "AK-47");
+ui.Model<SdMultiCombo>("weapon_filter").AddOption("m4a1", "M4A1");
+```
+
+或使用 callback 风格：
+
+```cpp
+ui.ConfigureModel<SdMultiCombo>("weapon_filter", [](auto& model)
+{
+    model.AddOption("ak47", "AK-47");
+});
+```
+
+这样 keyed widget 暂时不被声明、离场并最终移除 widget record 后，外部配置的 model 仍然可以保留。是否清理 model 应由组件或用户通过明确 API 决定，例如 `ClearModel` / `RemoveModel`，而不是由 widget 离场隐式触发。
 
 ## 12. Layout
 
@@ -939,12 +1094,14 @@ BeginFrame
 5. 清空帧级 layout 和 render 数据。
 
 Declaration stage
-1. `SdUi::Declare<T>()` 根据 parent stack、explicit key、type identity 和 callsite information 解析稳定 SdWidgetId。
-2. 查找或创建内部 widget record 和 typed widget object。
-3. 将 SdWidgetState 标记为 submittedThisFrame = true。
-4. 对新创建的 widget 调用 OnCreate。
-5. 对已提交的 widget 调用 OnUpdate，并允许嵌套 `context.ui.Declare<U>()`。
-6. 记录 parent-child declaration relationship。
+1. `SdUi::Declare<T>()` 根据 parent stack、type identity 和 ordinal 解析匿名 SdWidgetId。
+2. `SdUi::DeclareKeyed<T>()` 根据 parent/key scope、type identity 和 explicit key 解析稳定 SdWidgetId，并登记 resolved key。
+3. 查找或创建内部 widget record 和 typed widget object。
+4. 将 SdWidgetState 标记为 submittedThisFrame = true。
+5. 对新创建的 widget 调用 OnCreate。
+6. 对已提交的 widget 调用 OnUpdate，并允许嵌套 `context.ui.Declare<U>()`。
+7. keyed widget 可按组件需要访问 resolved key 绑定的 optional model。
+8. 记录 parent-child declaration relationship。
 
 EndFrame
 1. 本帧未提交的 widget 若仍存活，则进入 Leaving。
@@ -954,6 +1111,7 @@ EndFrame
 5. Paint 在可用时调用 OnPaint，并写入帧级 RenderList 数据。
 6. RenderContext 构建最终 RenderData。
 7. Dead widget 和 typed user state 从 StateStorage 中移除。
+8. keyed model 不因 widget record 离场自动删除，只通过明确 API 或组件策略清理。
 
 Renderer submission
 1. 上传 dirty texture 和 font atlas。
@@ -985,21 +1143,22 @@ Renderer submission
 ```text
 1. Core Context 和 frame loop
 2. IdStack 和 SdWidgetId generation
-3. StateStorage 和 SdWidgetState lifecycle
-4. InputManager
-5. SdWidgetTag 和 `SdUi::Declare<T>()`
-6. Typed widget object storage
-7. SdCreateContext / SdUpdateContext / SdLayoutContext / SdPaintContext
-8. 支持 declared widget boundary 的 SdLayoutContext
-9. 带 active channel update 的 AnimationContext
-10. 基础 StyleToken 和 ComputedStyle
-11. RenderData 和 DrawList
-12. FontAtlas 和 UTF-8 decoding
-13. LayerManager
-14. 基础 tagged widgets：Text、Button、Checkbox、Slider、Panel、Window
-15. Win32 platform backend
-16. 第一个 renderer backend
-17. 示例应用
+3. Anonymous/keyed declaration 和 resolved key registry
+4. StateStorage、optional keyed model 和 SdWidgetState lifecycle
+5. InputManager
+6. SdWidgetTag 和 `SdUi::Declare<T>()` / `DeclareKeyed<T>()`
+7. Typed widget object storage
+8. SdCreateContext / SdUpdateContext / SdLayoutContext / SdPaintContext
+9. 支持 declared widget boundary 的 SdLayoutContext
+10. 带 active channel update 的 AnimationContext
+11. 基础 StyleToken 和 ComputedStyle
+12. RenderData 和 DrawList
+13. FontAtlas 和 UTF-8 decoding
+14. LayerManager
+15. 基础 tagged widgets：Text、Button、Checkbox、Slider、Panel、Window
+16. Win32 platform backend
+17. 第一个 renderer backend
+18. 示例应用
 ```
 
 ## 24. 最终模型总结
@@ -1018,7 +1177,7 @@ SdGUI 的中心规则是：
 Entering / Alive / Leaving / Dead
 ```
 
-用户通过 `SdUi::Declare<T>()` 声明 widget。`T` 是继承自零状态 `SdWidgetTag` 的普通 C++ 类型，并且可以实现可选的 `OnCreate`、`OnUpdate`、`OnLayout` 和 `OnPaint` 回调。Widget 通过 `StateStorage` 和阶段专用 context 访问持久数据。`RenderList` 只通过 `SdPaintContext` 传入，并保持帧级生命周期。
+用户通过 `SdUi::Declare<T>()` 声明匿名 widget，通过 `SdUi::DeclareKeyed<T>()` 声明需要稳定外部寻址的 widget。`T` 是继承自零状态 `SdWidgetTag` 的普通 C++ 类型，并且可以实现可选的 `OnCreate`、`OnUpdate`、`OnLayout` 和 `OnPaint` 回调。Widget 通过 `StateStorage` 和阶段专用 context 访问持久数据。`State<T>()` 绑定当前 widget record，`Model<T>()` 绑定 stable key 且由组件选择是否使用。`RenderList` 只通过 `SdPaintContext` 传入，并保持帧级生命周期。
 
 Layout 使用 `layoutWeight` 实现连续结构变化。Animation 更新数值 transition。Layer 控制绘制和输入顺序。RenderList 每帧线性重建，而 GPU buffer 和 atlas texture 保持持久。
 

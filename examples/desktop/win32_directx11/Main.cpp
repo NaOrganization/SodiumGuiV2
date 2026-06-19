@@ -233,6 +233,7 @@ namespace
 				return false;
 			if (!fontBackend.Initialize())
 				return false;
+			gui.SetRendererBackend(&renderer);
 			gui.SetFontBackend(&fontBackend);
 			return true;
 		}
@@ -265,9 +266,7 @@ namespace
 				gui.BeginFrame(platform, displaySize);
 				gui.ui.Declare<DemoWindow>(demoWindowOpen, optionEnabled, clickCount, frameCount, liveFps, fontBackend.GetAtlasTexture());
 				gui.EndFrame();
-				renderer.BeginFrame(Sodium::SdRendererFrameInfo{ displaySize });
-				renderer.Submit(gui.GetDrawPacket());
-				renderer.EndFrame();
+				gui.Render();
 				dx.Present();
 
 				const auto frameEnd = std::chrono::steady_clock::now();
@@ -331,7 +330,10 @@ namespace
 			if (frameCount == 0)
 				minFrameSeconds = 0.0;
 
-			char message[512] = {};
+			const Sodium::SdFrameDiagnostics& diagnostics = gui.GetDiagnostics();
+			const Sodium::SdRenderStats& renderStats = gui.GetRenderStats();
+
+			char message[1024] = {};
 			std::snprintf(
 				message,
 				sizeof(message),
@@ -341,13 +343,30 @@ namespace
 				"Average FPS: %.2f\n"
 				"Average frame: %.3f ms\n"
 				"Min frame: %.3f ms\n"
-				"Max frame: %.3f ms\n",
+				"Max frame: %.3f ms\n"
+				"Widgets: submitted=%u live=%u entering=%u leaving=%u removed=%u\n"
+				"Draw: commands=%u batches=%u vertices=%u indices=%u uploads=%u\n"
+				"Runtime: hitTests=%u activeAnimations=%u renderListGrows=%u aaScratchGrows=%u\n",
 				static_cast<unsigned long long>(frameCount),
 				totalSeconds,
 				averageFps,
 				averageFrameSeconds * 1000.0,
 				minFrameSeconds * 1000.0,
-				maxFrameSeconds * 1000.0);
+				maxFrameSeconds * 1000.0,
+				diagnostics.submittedWidgetCount,
+				diagnostics.liveWidgetCount,
+				diagnostics.enteringWidgetCount,
+				diagnostics.leavingWidgetCount,
+				diagnostics.removedWidgetCount,
+				diagnostics.drawCommandCount,
+				diagnostics.drawBatchCount,
+				diagnostics.drawVertexCount,
+				diagnostics.drawIndexCount,
+				diagnostics.resourceUploadCount,
+				diagnostics.hitTestRecordCount,
+				diagnostics.activeAnimationChannelCount,
+				renderStats.renderListGrowCount,
+				renderStats.aaScratchGrowCount);
 
 			::OutputDebugStringA(message);
 			{

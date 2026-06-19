@@ -23,6 +23,7 @@ namespace Sodium
 
 		void OnUpdate(SdUpdateContext& context, SdUtf8StringView text)
 		{
+			context.widgetState.styleClass = SdStyleWidgetClass::Text;
 			context.State<State>().text.assign(text.data(), text.size());
 		}
 
@@ -51,12 +52,13 @@ namespace Sodium
 	public:
 		void OnLayout(SdLayoutContext& context)
 		{
+			context.widgetState.styleClass = SdStyleWidgetClass::Panel;
 			context.SetDesiredSize({ 280.0f, 132.0f });
 		}
 
 		void OnPaint(SdPaintContext& context)
 		{
-			context.renderList.AddRectFilled(context.animatedRect, SdApplyOpacity({ 35, 42, 52, 235 }, context.opacity), context.clipRect, 5.f);
+			context.renderList.AddRectFilled(context.animatedRect, SdApplyOpacity(context.style.background, context.opacity), context.clipRect, 5.f);
 			context.renderList.AddRect(context.animatedRect, SdApplyOpacity({ 86, 101, 124, 255 }, context.opacity), context.clipRect, 1.0f);
 		}
 	};
@@ -75,11 +77,11 @@ namespace Sodium
 		void OnUpdate(SdUpdateContext& context, SdUtf8StringView text)
 		{
 			State& state = context.State<State>();
+			context.widgetState.styleClass = SdStyleWidgetClass::Button;
 			state.text.assign(text.data(), text.size());
-			state.hovered = context.widgetState.inputEnabled
-				&& context.widgetState.lastRect.Contains(context.input.GetMousePosition());
-			state.pressed = state.hovered && context.input.IsMouseButtonHeld(SdMouseButton::Left);
-			state.clicked = state.hovered && context.input.IsMouseButtonUp(SdMouseButton::Left);
+			state.hovered = context.widgetState.inputEnabled && context.IsHovered();
+			state.pressed = context.IsPressed();
+			state.clicked = context.WasClicked();
 			clicked = state.clicked;
 		}
 
@@ -99,12 +101,9 @@ namespace Sodium
 		void OnPaint(SdPaintContext& context)
 		{
 			const State& state = context.State<State>();
-			const SdColor fill = state.pressed ? SdColor{ 68, 118, 160, 255 }
-				: state.hovered ? SdColor{ 62, 100, 138, 255 }
-				: SdColor{ 48, 72, 96, 255 };
-			context.renderList.AddRectFilled(context.animatedRect, SdApplyOpacity(fill, context.opacity), context.clipRect);
+			context.renderList.AddRectFilled(context.animatedRect, SdApplyOpacity(context.style.background, context.opacity), context.clipRect);
 			context.renderList.AddRect(context.animatedRect, SdApplyOpacity({ 128, 154, 180, 255 }, context.opacity), context.clipRect, 1.0f);
-			context.renderList.AddText(state.text, { context.animatedRect.min.x + 16.0f, context.animatedRect.min.y + 9.0f }, SdApplyOpacity(SdColorWhite, context.opacity), context.clipRect);
+			context.renderList.AddText(state.text, { context.animatedRect.min.x + 16.0f, context.animatedRect.min.y + 9.0f }, SdApplyOpacity(context.style.color, context.opacity), context.clipRect);
 		}
 
 		bool WasClicked() const noexcept { return clicked; }
@@ -118,10 +117,9 @@ namespace Sodium
 	public:
 		void OnUpdate(SdUpdateContext& context, bool& value)
 		{
-			SdRect box = context.widgetState.lastRect;
-			box.max.x = box.min.x + 24.0f;
-			const bool hovered = context.widgetState.inputEnabled && box.Contains(context.input.GetMousePosition());
-			if (hovered && context.input.IsMouseButtonUp(SdMouseButton::Left))
+			const bool hovered = context.widgetState.inputEnabled && context.IsHovered();
+			context.widgetState.styleClass = SdStyleWidgetClass::CheckBox;
+			if (context.WasClicked())
 				value = !value;
 			checked = value;
 			isHovered = hovered;
@@ -145,7 +143,7 @@ namespace Sodium
 			if (checked)
 			{
 				const SdRect mark = { box.min.x + 5.0f, box.min.y + 5.0f, box.max.x - 5.0f, box.max.y - 5.0f };
-				context.renderList.AddRectFilled(mark, SdApplyOpacity({ 82, 170, 128, 255 }, context.opacity), context.clipRect);
+				context.renderList.AddRectFilled(mark, SdApplyOpacity(context.instance.GetStyleSystem().GetTheme().GetColor(SdStyleToken::ColorAccent), context.opacity), context.clipRect);
 			}
 		}
 

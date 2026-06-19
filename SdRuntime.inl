@@ -35,25 +35,33 @@ namespace Sodium
 	}
 
 	inline SdInstance::SdInstance()
-		: renderList(nullptr, &renderSharedData), uiObject(*this), ui(uiObject)
+		: renderList(&renderStats, &renderSharedData), uiObject(*this), ui(uiObject)
 	{
 	}
 
 	inline void SdInstance::BeginInputFrame()
 	{
-		++frameIndex;
-		input.BeginFrame(frameIndex);
+		++context.frame.frameIndex;
+		const SdTimePoint now = std::chrono::time_point_cast<SdDuration>(std::chrono::system_clock::now());
+		if (lastFrameTime.time_since_epoch().count() != 0)
+			context.frame.deltaTime = now - lastFrameTime;
+		lastFrameTime = now;
+		input.BeginFrame(context.frame.frameIndex);
 	}
 
 	inline void SdInstance::FinishInputAndBeginUiFrame(SdVec2 newDisplaySize)
 	{
 		if (newDisplaySize.x > 0.0f && newDisplaySize.y > 0.0f)
-			displaySize = newDisplaySize;
+			context.frame.displaySize = newDisplaySize;
 		input.FinalizeFrame();
+		interactionSystem.Update(layerSystem, input.GetSnapshot());
 		renderList.SetSharedData(&renderSharedData);
+		renderList.SetStats(&renderStats);
 		renderList.Reset();
+		layerSystem.BeginFrame();
 		frameOrder.clear();
 		nextOrder = 0;
+		context.frame.diagnostics.ResetFrameTransient();
 		uiObject.BeginDeclarationFrame();
 	}
 
@@ -68,6 +76,13 @@ namespace Sodium
 		FinishWidgetFrame();
 	}
 
+	inline void SdInstance::Render()
+	{
+		if (!context.renderer)
+			return;
+		context.renderer->Render(SdRendererFrameInfo{ context.frame.displaySize }, GetDrawPacket());
+	}
+
 	inline void SdInstance::Shutdown()
 	{
 		widgets.clear();
@@ -75,8 +90,19 @@ namespace Sodium
 		renderList.Reset();
 	}
 
+	inline void SdInstance::SetPlatformBackend(ISdPlatformBackend* platform) noexcept
+	{
+		context.platform = platform;
+	}
+
+	inline void SdInstance::SetRendererBackend(ISdRendererBackend* renderer) noexcept
+	{
+		context.renderer = renderer;
+	}
+
 	inline void SdInstance::SetFontBackend(ISdFontBackend* fontBackend) noexcept
 	{
+		context.fontBackend = fontBackend;
 		renderSharedData.fontBackend = fontBackend;
 		if (fontBackend)
 			fontBackend->ConfigureRenderSharedData(renderSharedData);
@@ -91,6 +117,12 @@ namespace Sodium
 			record.state.lifePhase = SdWidgetLifePhase::Entering;
 			record.state.layoutWeight = 0.0f;
 			record.state.opacity = 0.0f;
+			record.animation.layoutWeight = animationSystem.EnsureChannel(id, SdAnimationChannelKind::LayoutWeight, 0.0f);
+			record.animation.opacity = animationSystem.EnsureChannel(id, SdAnimationChannelKind::Opacity, 0.0f);
+			record.animation.rectX = animationSystem.EnsureChannel(id, SdAnimationChannelKind::RectPosition, 0.0f);
+			record.animation.rectY = animationSystem.EnsureChannel(id, SdAnimationChannelKind::RectPosition, 0.0f);
+			record.animation.rectWidth = animationSystem.EnsureChannel(id, SdAnimationChannelKind::RectSize, 0.0f);
+			record.animation.rectHeight = animationSystem.EnsureChannel(id, SdAnimationChannelKind::RectSize, 0.0f);
 		}
 		return record;
 	}
@@ -101,8 +133,9 @@ namespace Sodium
 		record.order = nextOrder++;
 		record.state.id = id;
 		record.state.submittedThisFrame = true;
-		record.state.lastSubmittedFrame = frameIndex;
+		record.state.lastSubmittedFrame = context.frame.frameIndex;
 		record.state.inputEnabled = true;
+		record.state.styleClass = SdStyleWidgetClass::Default;
 		record.state.manualLayout = false;
 		record.state.arrangeChildren = false;
 		record.state.clipChildren = false;
@@ -113,6 +146,7 @@ namespace Sodium
 		record.state.childSpacing = 0.0f;
 		if (record.state.lifePhase == SdWidgetLifePhase::Leaving || record.state.lifePhase == SdWidgetLifePhase::Dead)
 			record.state.lifePhase = SdWidgetLifePhase::Entering;
+		UpdateWidgetAnimation(record);
 		frameOrder.push_back(id);
 	}
 
@@ -125,11 +159,28 @@ namespace Sodium
 				record.state.lifePhase = SdWidgetLifePhase::Leaving;
 				record.state.inputEnabled = false;
 			}
-			UpdateWidgetAnimation(record);
+			if (record.state.lifePhase == SdWidgetLifePhase::Leaving)
+				UpdateWidgetAnimation(record);
+		}
+
+		animationSystem.Update(context.frame.deltaTime, true, true, false, false);
+		for (auto& [id, record] : widgets)
+		{
+			record.state.layoutWeight = animationSystem.GetValue(record.animation.layoutWeight, record.state.layoutWeight);
+			record.state.opacity = animationSystem.GetValue(record.animation.opacity, record.state.opacity);
+			record.state.animationActive = animationSystem.GetChannel(record.animation.layoutWeight).active
+				|| animationSystem.GetChannel(record.animation.opacity).active;
+
+			const bool leaving = record.state.lifePhase == SdWidgetLifePhase::Leaving;
+			if (!leaving && record.state.layoutWeight >= 1.0f && record.state.opacity >= 1.0f)
+				record.state.lifePhase = SdWidgetLifePhase::Alive;
+			if (leaving && record.state.layoutWeight <= 0.0f && record.state.opacity <= 0.0f)
+				record.state.lifePhase = SdWidgetLifePhase::Dead;
 		}
 
 		SolveLayoutAndPaint();
-		RemoveDeadWidgets();
+		context.frame.diagnostics.removedWidgetCount = RemoveDeadWidgets();
+		RefreshDiagnostics();
 
 		for (auto& [id, record] : widgets)
 			record.state.submittedThisFrame = false;
@@ -139,17 +190,9 @@ namespace Sodium
 	{
 		const bool leaving = record.state.lifePhase == SdWidgetLifePhase::Leaving;
 		const float target = leaving ? 0.0f : 1.0f;
-		const float seconds = std::max(0.001f, static_cast<float>(deltaTime.count()) / 1000000000.0f);
-		const float step = seconds / 0.16f;
-
-		record.state.layoutWeight = SdMoveToward(record.state.layoutWeight, target, step);
-		record.state.opacity = SdMoveToward(record.state.opacity, target, step);
+		animationSystem.SetTarget(record.animation.layoutWeight, target);
+		animationSystem.SetTarget(record.animation.opacity, target);
 		record.state.animationActive = record.state.layoutWeight != target || record.state.opacity != target;
-
-		if (!leaving && record.state.layoutWeight >= 1.0f && record.state.opacity >= 1.0f)
-			record.state.lifePhase = SdWidgetLifePhase::Alive;
-		if (leaving && record.state.layoutWeight <= 0.0f && record.state.opacity <= 0.0f)
-			record.state.lifePhase = SdWidgetLifePhase::Dead;
 	}
 
 	inline void SdInstance::SolveLayoutAndPaint()
@@ -167,6 +210,7 @@ namespace Sodium
 			return widgets[left].order < widgets[right].order;
 		});
 
+		const SdVec2 displaySize = context.frame.displaySize;
 		const SdRect clipRect = { 0.0f, 0.0f, displaySize.x, displaySize.y };
 
 		auto intersectRect = [](const SdRect& left, const SdRect& right) -> SdRect
@@ -195,10 +239,59 @@ namespace Sodium
 			return result;
 		};
 
+		auto setAnimatedRectTarget = [this](SdWidgetRecord& record, const SdRect& targetRect)
+		{
+			if (record.state.lastRect.Width() <= 0.0f || record.state.lastRect.Height() <= 0.0f)
+			{
+				animationSystem.SetImmediate(record.animation.rectX, targetRect.min.x);
+				animationSystem.SetImmediate(record.animation.rectY, targetRect.min.y);
+				animationSystem.SetImmediate(record.animation.rectWidth, targetRect.Width());
+				animationSystem.SetImmediate(record.animation.rectHeight, targetRect.Height());
+				record.state.animatedRect = targetRect;
+				record.state.lastRect = targetRect;
+				return;
+			}
+
+			if (interactionSystem.IsPressed(record.state.id))
+			{
+				animationSystem.SetImmediate(record.animation.rectX, targetRect.min.x);
+				animationSystem.SetImmediate(record.animation.rectY, targetRect.min.y);
+				animationSystem.SetImmediate(record.animation.rectWidth, targetRect.Width());
+				animationSystem.SetImmediate(record.animation.rectHeight, targetRect.Height());
+				return;
+			}
+
+			animationSystem.SetTarget(record.animation.rectX, targetRect.min.x);
+			animationSystem.SetTarget(record.animation.rectY, targetRect.min.y);
+			animationSystem.SetTarget(record.animation.rectWidth, targetRect.Width());
+			animationSystem.SetTarget(record.animation.rectHeight, targetRect.Height());
+		};
+
+		auto applyAnimatedRect = [this](SdWidgetRecord& record)
+		{
+			const float x = animationSystem.GetValue(record.animation.rectX, record.state.targetRect.min.x);
+			const float y = animationSystem.GetValue(record.animation.rectY, record.state.targetRect.min.y);
+			const float width = std::max(0.0f, animationSystem.GetValue(record.animation.rectWidth, record.state.targetRect.Width()));
+			const float height = std::max(0.0f, animationSystem.GetValue(record.animation.rectHeight, record.state.targetRect.Height()));
+			record.state.animatedRect = { x, y, x + width, y + height };
+			record.state.lastRect = record.state.animatedRect;
+			record.state.animationActive = record.state.animationActive
+				|| animationSystem.IsActive(record.animation.rectX)
+				|| animationSystem.IsActive(record.animation.rectY)
+				|| animationSystem.IsActive(record.animation.rectWidth)
+				|| animationSystem.IsActive(record.animation.rectHeight);
+		};
+
 		for (SdWidgetId id : liveIds)
 		{
 			SdWidgetRecord& record = widgets[id];
 			record.state.computedClipRect = clipRect;
+			SdStyleInteractionState styleInteraction = SdStyleInteractionState::Normal;
+			if (interactionSystem.IsPressed(id))
+				styleInteraction = SdStyleInteractionState::Pressed;
+			else if (interactionSystem.IsHovered(id))
+				styleInteraction = SdStyleInteractionState::Hovered;
+			record.style = styleSystem.Resolve(record.state.styleClass, styleInteraction);
 
 			SdLayoutResult result = {};
 			result.desiredSize = {
@@ -220,6 +313,7 @@ namespace Sodium
 			if (record.layoutCallback && record.widgetObject.value)
 				record.layoutCallback(record.widgetObject.value, layoutContext);
 
+			record.style = styleSystem.Resolve(record.state.styleClass, styleInteraction);
 			record.state.measuredSize = result.desiredSize;
 		}
 
@@ -262,8 +356,7 @@ namespace Sodium
 					childY += (childSize.y * childRecord.state.layoutWeight) + parentRecord.state.childSpacing;
 				}
 
-				childRecord.state.animatedRect = childRecord.state.targetRect;
-				childRecord.state.lastRect = childRecord.state.animatedRect;
+				setAnimatedRectTarget(childRecord, childRecord.state.targetRect);
 				childRecord.state.computedClipRect = childClipRect;
 				if (static_cast<SdUInt8>(childRecord.state.layerPriority) < static_cast<SdUInt8>(parentRecord.state.layerPriority))
 					childRecord.state.layerPriority = parentRecord.state.layerPriority;
@@ -294,12 +387,15 @@ namespace Sodium
 				};
 				y += (desiredSize.y * record.state.layoutWeight) + 8.0f;
 			}
-			record.state.animatedRect = record.state.targetRect;
-			record.state.lastRect = record.state.animatedRect;
+			setAnimatedRectTarget(record, record.state.targetRect);
 			record.state.computedClipRect = clipRect;
 			if (record.state.arrangeChildren)
 				arrangeChildren(arrangeChildren, id);
 		}
+
+		animationSystem.Update(context.frame.deltaTime, false, false, true, true);
+		for (SdWidgetId id : liveIds)
+			applyAnimatedRect(widgets[id]);
 
 		std::vector<SdWidgetId> paintIds = liveIds;
 		std::sort(paintIds.begin(), paintIds.end(), [this](SdWidgetId left, SdWidgetId right)
@@ -310,6 +406,21 @@ namespace Sodium
 				return static_cast<SdUInt8>(leftRecord.state.layerPriority) < static_cast<SdUInt8>(rightRecord.state.layerPriority);
 			return leftRecord.order < rightRecord.order;
 		});
+
+		SdUInt32 paintOrder = 0;
+		for (SdWidgetId id : paintIds)
+		{
+			SdWidgetRecord& record = widgets[id];
+			layerSystem.AddHitTestRecord({
+				id,
+				record.state.layerPriority,
+				record.state.animatedRect,
+				record.state.computedClipRect,
+				paintOrder++,
+				record.state.inputEnabled && record.state.lifePhase != SdWidgetLifePhase::Leaving
+			});
+		}
+		interactionSystem.Update(layerSystem, input.GetSnapshot());
 
 		for (SdWidgetId id : paintIds)
 		{
@@ -344,15 +455,64 @@ namespace Sodium
 		}
 	}
 
-	inline void SdInstance::RemoveDeadWidgets()
+	inline SdUInt32 SdInstance::RemoveDeadWidgets()
 	{
+		SdUInt32 removedCount = 0;
 		for (auto it = widgets.begin(); it != widgets.end();)
 		{
 			if (it->second.state.lifePhase == SdWidgetLifePhase::Dead)
+			{
+				animationSystem.RemoveWidget(it->first);
 				it = widgets.erase(it);
+				++removedCount;
+			}
 			else
 				++it;
 		}
+		return removedCount;
+	}
+
+	inline void SdInstance::RefreshDiagnostics()
+	{
+		SdFrameDiagnostics& diagnostics = context.frame.diagnostics;
+		diagnostics.submittedWidgetCount = static_cast<SdUInt32>(frameOrder.size());
+		diagnostics.liveWidgetCount = 0;
+		diagnostics.enteringWidgetCount = 0;
+		diagnostics.leavingWidgetCount = 0;
+		diagnostics.deadWidgetCount = 0;
+
+		for (const auto& [id, record] : widgets)
+		{
+			(void)id;
+			switch (record.state.lifePhase)
+			{
+			case SdWidgetLifePhase::Entering:
+				++diagnostics.enteringWidgetCount;
+				++diagnostics.liveWidgetCount;
+				break;
+			case SdWidgetLifePhase::Alive:
+				++diagnostics.liveWidgetCount;
+				break;
+			case SdWidgetLifePhase::Leaving:
+				++diagnostics.leavingWidgetCount;
+				++diagnostics.liveWidgetCount;
+				break;
+			case SdWidgetLifePhase::Dead:
+				++diagnostics.deadWidgetCount;
+				break;
+			default:
+				break;
+			}
+		}
+
+		const SdDrawData& drawData = renderList.GetDrawData();
+		diagnostics.hitTestRecordCount = static_cast<SdUInt32>(layerSystem.GetHitTestRecords().size());
+		diagnostics.activeAnimationChannelCount = static_cast<SdUInt32>(animationSystem.GetActiveChannelCount());
+		diagnostics.drawCommandCount = static_cast<SdUInt32>(drawData.commands.size());
+		diagnostics.drawVertexCount = static_cast<SdUInt32>(drawData.vertices.size());
+		diagnostics.drawIndexCount = static_cast<SdUInt32>(drawData.indices.size());
+		diagnostics.drawBatchCount = static_cast<SdUInt32>(drawData.batches.size());
+		diagnostics.resourceUploadCount = static_cast<SdUInt32>(drawData.uploads.size());
 	}
 
 	template<class T>
@@ -371,6 +531,26 @@ namespace Sodium
 	T& SdWidgetContextBase::State()
 	{
 		return instance.GetOrCreateUserState<T>(id);
+	}
+
+	inline bool SdWidgetContextBase::IsHovered() const noexcept
+	{
+		return instance.GetInteractionSystem().IsHovered(id);
+	}
+
+	inline bool SdWidgetContextBase::IsPressed() const noexcept
+	{
+		return instance.GetInteractionSystem().IsPressed(id);
+	}
+
+	inline bool SdWidgetContextBase::WasClicked() const noexcept
+	{
+		return instance.GetInteractionSystem().WasClicked(id);
+	}
+
+	inline bool SdWidgetContextBase::IsFocused() const noexcept
+	{
+		return instance.GetInteractionSystem().IsFocused(id);
 	}
 
 	template<SdDeclarableWidget T, class... TArgs>
@@ -418,8 +598,8 @@ namespace Sodium
 			record.style,
 			instance.theme,
 			instance.input.GetSnapshot(),
-			instance.deltaTime,
-			instance.frameIndex
+			instance.context.frame.deltaTime,
+			instance.context.frame.frameIndex
 		};
 
 		parentStack.push_back(id);
