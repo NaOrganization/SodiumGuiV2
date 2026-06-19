@@ -127,6 +127,9 @@ namespace Sodium
 		SdWidgetId activeWidget = 0;
 		SdWidgetId focusedWidget = 0;
 		SdWidgetId capturedWidget = 0;
+		SdWidgetId pressedWidget = 0;
+		SdWidgetId releasedWidget = 0;
+		SdWidgetId clickedWidget = 0;
 		SdMouseButton pressedButton = SdMouseButton::Left;
 		bool clicked = false;
 	};
@@ -140,6 +143,9 @@ namespace Sodium
 		void Update(const SdLayerSystem& layerSystem, const SdInputSnapshot& input)
 		{
 			state.clicked = false;
+			state.pressedWidget = 0;
+			state.releasedWidget = 0;
+			state.clickedWidget = 0;
 			const SdWidgetId hitWidget = layerSystem.HitTest(input.GetMousePosition());
 			state.hoveredWidget = state.capturedWidget != 0 ? state.capturedWidget : hitWidget;
 
@@ -148,12 +154,15 @@ namespace Sodium
 				state.activeWidget = hitWidget;
 				state.capturedWidget = hitWidget;
 				state.focusedWidget = hitWidget;
+				state.pressedWidget = hitWidget;
 				state.pressedButton = SdMouseButton::Left;
 			}
 
 			if (input.IsMouseButtonUp(SdMouseButton::Left))
 			{
-				state.clicked = state.activeWidget != 0 && state.activeWidget == hitWidget;
+				state.releasedWidget = state.activeWidget;
+				state.clickedWidget = state.activeWidget != 0 && state.activeWidget == hitWidget ? state.activeWidget : 0;
+				state.clicked = state.clickedWidget != 0;
 				state.capturedWidget = 0;
 				state.activeWidget = 0;
 			}
@@ -176,12 +185,27 @@ namespace Sodium
 
 		bool WasClicked(SdWidgetId widgetId) const noexcept
 		{
-			return state.clicked && state.hoveredWidget == widgetId;
+			return state.clickedWidget == widgetId;
 		}
 
 		bool IsFocused(SdWidgetId widgetId) const noexcept
 		{
 			return state.focusedWidget == widgetId;
+		}
+
+		bool WasPressed(SdWidgetId widgetId) const noexcept
+		{
+			return state.pressedWidget == widgetId;
+		}
+
+		bool WasReleased(SdWidgetId widgetId) const noexcept
+		{
+			return state.releasedWidget == widgetId;
+		}
+
+		bool IsCaptured(SdWidgetId widgetId) const noexcept
+		{
+			return state.capturedWidget == widgetId;
 		}
 	};
 }

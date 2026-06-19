@@ -201,7 +201,7 @@ namespace Sodium
 			state.collapseHovered = windowHovered && options.collapsible && collapseRect.Contains(mousePosition);
 			state.resizeHovered = windowHovered && options.resizable && !state.collapsed && resizeRect.Contains(mousePosition);
 
-			if (context.input.IsMouseButtonDown(SdMouseButton::Left))
+			if (context.WasPressed())
 			{
 				if (state.resizeHovered)
 				{
@@ -229,11 +229,11 @@ namespace Sodium
 
 			KeepTitleBarReachable(state, context.instance.GetDisplaySize());
 
-			if (context.input.IsMouseButtonUp(SdMouseButton::Left))
+			if (context.WasReleased())
 			{
-				if (state.collapseHovered)
+				if (context.WasClicked() && state.collapseHovered)
 					state.collapsed = !state.collapsed;
-				if (state.closeHovered && open)
+				if (context.WasClicked() && state.closeHovered && open)
 				{
 					*open = false;
 					state.closeRequested = true;

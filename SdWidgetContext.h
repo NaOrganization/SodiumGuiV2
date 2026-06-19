@@ -74,7 +74,10 @@ namespace Sodium
 		bool HasModelKey() const noexcept;
 		bool IsHovered() const noexcept;
 		bool IsPressed() const noexcept;
+		bool WasPressed() const noexcept;
+		bool WasReleased() const noexcept;
 		bool WasClicked() const noexcept;
+		bool IsCaptured() const noexcept;
 		bool IsFocused() const noexcept;
 	};
 

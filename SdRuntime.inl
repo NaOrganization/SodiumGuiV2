@@ -559,9 +559,24 @@ namespace Sodium
 		return instance.GetInteractionSystem().IsPressed(id);
 	}
 
+	inline bool SdWidgetContextBase::WasPressed() const noexcept
+	{
+		return instance.GetInteractionSystem().WasPressed(id);
+	}
+
+	inline bool SdWidgetContextBase::WasReleased() const noexcept
+	{
+		return instance.GetInteractionSystem().WasReleased(id);
+	}
+
 	inline bool SdWidgetContextBase::WasClicked() const noexcept
 	{
 		return instance.GetInteractionSystem().WasClicked(id);
+	}
+
+	inline bool SdWidgetContextBase::IsCaptured() const noexcept
+	{
+		return instance.GetInteractionSystem().IsCaptured(id);
 	}
 
 	inline bool SdWidgetContextBase::IsFocused() const noexcept
