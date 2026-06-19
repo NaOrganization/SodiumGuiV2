@@ -186,6 +186,19 @@ namespace SodiumDynamicExample
 		}
 	};
 
+	struct DemoControlsState final
+	{
+		bool optionEnabled = true;
+		bool mediaWindowOpen = true;
+		bool popupOpen = true;
+		bool contextMenuOpen = true;
+		bool tooltipVisible = true;
+		int clickCount = 0;
+		float sliderValue = 0.45f;
+		Sodium::SdUtf8String textInputValue = "Edit SodiumGUI text";
+		Sodium::SdVec2 contextMenuPosition = { 560.0f, 300.0f };
+	};
+
 	struct SodiumOverlay final
 	{
 		Dx11HostContext dx = {};
@@ -193,44 +206,189 @@ namespace SodiumDynamicExample
 		Sodium::Backends::SdWin32Platform platform = {};
 		Sodium::Backends::SdDx11Renderer renderer = {};
 		Sodium::Backends::SdFreeTypeFontBackend fontBackend = {};
-		bool enabled = true;
 		bool overlayWindowOpen = true;
 		bool initialized = false;
-		int clickCount = 0;
+		DemoControlsState controls = {};
 		Sodium::SdFrameIndex frameCount = 0;
+		double liveFps = 0.0;
+		std::chrono::steady_clock::time_point previousFrameTime = {};
 
 		class OverlayWindow final : public Sodium::SdWidgetTag
 		{
 		public:
-			void OnUpdate(Sodium::SdUpdateContext& context, bool& windowOpen, bool& enabled, int& clickCount, Sodium::SdFrameIndex frameCount)
+			void OnUpdate(Sodium::SdUpdateContext& context, bool& windowOpen, DemoControlsState& controls, Sodium::SdFrameIndex frameCount, double liveFps, Sodium::SdTextureHandle fontAtlasTexture)
 			{
 				if (!windowOpen)
+				{
+					controls.popupOpen = false;
+					controls.contextMenuOpen = false;
 					return;
+				}
+
+				if (context.input.IsKeyDown(Sodium::SdKeyCode::Esc))
+				{
+					controls.popupOpen = false;
+					controls.contextMenuOpen = false;
+				}
+
+				if (context.input.IsMouseButtonDown(Sodium::SdMouseButton::Right))
+				{
+					controls.contextMenuOpen = true;
+					controls.contextMenuPosition = context.input.GetMousePosition();
+				}
 
 				Sodium::SdWindowOptions windowOptions = {};
-				windowOptions.initialPosition = { 52.0f, 48.0f };
-				windowOptions.initialSize = { 380.0f, 260.0f };
-				context.ui.DeclareKeyed<Sodium::SdWindow>("overlay_window", "SodiumGUI Overlay", windowOpen, windowOptions, [&](Sodium::SdUi& ui)
+				windowOptions.initialPosition = { 48.0f, 42.0f };
+				windowOptions.initialSize = { 430.0f, 580.0f };
+				windowOptions.minSize = { 360.0f, 360.0f };
+				context.ui.DeclareKeyed<Sodium::SdWindow>("main_window", "SodiumGUI Demo", windowOpen, windowOptions, [&](Sodium::SdUi& ui)
 				{
-					ui.Declare<Sodium::SdPanel>();
-					ui.Declare<Sodium::SdText>("SodiumGUI dynamic DX11 sample");
-
-					char frameText[96] = {};
-					std::snprintf(frameText, sizeof(frameText), "Frame: %llu  HOME: unload", static_cast<unsigned long long>(frameCount));
-					ui.Declare<Sodium::SdText>(frameText);
-
+					ui.Declare<Sodium::SdText>("SodiumGUI component showcase");
+					ui.Declare<Sodium::SdText>("中文字体测试：微软雅黑 / 黑体 / 宋体");
+					char frameBuffer[96] = {};
+					std::snprintf(frameBuffer, sizeof(frameBuffer), "Frame: %llu  FPS: %.2f", static_cast<unsigned long long>(frameCount), liveFps);
+					ui.Declare<Sodium::SdText>(frameBuffer);
 					bool incrementClicked = false;
 					ui.Declare<Sodium::SdButton>("Increment", incrementClicked);
 					if (incrementClicked)
-						++clickCount;
+						++controls.clickCount;
 
-					ui.Declare<Sodium::SdCheckBox>(enabled);
-					ui.Declare<Sodium::SdText>(enabled ? "Checkbox: enabled" : "Checkbox: disabled");
+					ui.Declare<Sodium::SdCheckBox>(controls.optionEnabled);
+					ui.Declare<Sodium::SdText>(controls.optionEnabled ? "CheckBox: enabled" : "CheckBox: disabled");
 
-					char clickText[64] = {};
-					std::snprintf(clickText, sizeof(clickText), "Button clicks: %d", clickCount);
-					ui.Declare<Sodium::SdText>(clickText);
+					char clickBuffer[64] = {};
+					std::snprintf(clickBuffer, sizeof(clickBuffer), "Button clicks: %d", controls.clickCount);
+					ui.Declare<Sodium::SdText>(clickBuffer);
+
+					ui.DeclareKeyed<Sodium::SdSliderFloat>("demo_slider", controls.sliderValue, 0.0f, 1.0f);
+					char sliderBuffer[64] = {};
+					std::snprintf(sliderBuffer, sizeof(sliderBuffer), "SliderFloat: %.2f", controls.sliderValue);
+					ui.Declare<Sodium::SdText>(sliderBuffer);
+
+					ui.DeclareKeyed<Sodium::SdTextInput>("demo_text_input", controls.textInputValue);
+
+					Sodium::SdScrollViewOptions scrollOptions = {};
+					scrollOptions.size = { 380.0f, 150.0f };
+					scrollOptions.wheelStep = 28.0f;
+					ui.Declare<Sodium::SdText>("ScrollView");
+					ui.DeclareKeyed<Sodium::SdScrollView>("demo_scroll_view", scrollOptions, [&](Sodium::SdUi& scrollUi)
+					{
+						scrollUi.Declare<Sodium::SdText>("Scroll row 01");
+						scrollUi.Declare<Sodium::SdText>("Scroll row 02");
+						scrollUi.Declare<Sodium::SdText>("Scroll row 03");
+						scrollUi.Declare<Sodium::SdText>("Scroll row 04");
+						scrollUi.Declare<Sodium::SdText>("Scroll row 05");
+						scrollUi.Declare<Sodium::SdText>("Scroll row 06");
+						scrollUi.Declare<Sodium::SdText>("Scroll row 07");
+						scrollUi.Declare<Sodium::SdText>("Scroll row 08");
+					});
 				});
+
+				context.ui.DeclareKeyed<Sodium::SdWindow>("main_window1", "SodiumGUI Demo", windowOpen, windowOptions, [&](Sodium::SdUi& ui)
+					{
+						ui.Declare<Sodium::SdText>("SodiumGUI component showcase");
+						ui.Declare<Sodium::SdText>("中文字体测试：微软雅黑 / 黑体 / 宋体");
+						char frameBuffer[96] = {};
+						std::snprintf(frameBuffer, sizeof(frameBuffer), "Frame: %llu  FPS: %.2f", static_cast<unsigned long long>(frameCount), liveFps);
+						ui.Declare<Sodium::SdText>(frameBuffer);
+						bool incrementClicked = false;
+						ui.Declare<Sodium::SdButton>("Increment", incrementClicked);
+						if (incrementClicked)
+							++controls.clickCount;
+						ui.Declare<Sodium::SdCheckBox>(controls.optionEnabled);
+						ui.Declare<Sodium::SdText>(controls.optionEnabled ? "CheckBox: enabled" : "CheckBox: disabled");
+
+						char clickBuffer[64] = {};
+						std::snprintf(clickBuffer, sizeof(clickBuffer), "Button clicks: %d", controls.clickCount);
+						ui.Declare<Sodium::SdText>(clickBuffer);
+
+						ui.DeclareKeyed<Sodium::SdSliderFloat>("demo_slider", controls.sliderValue, 0.0f, 1.0f);
+						char sliderBuffer[64] = {};
+						std::snprintf(sliderBuffer, sizeof(sliderBuffer), "SliderFloat: %.2f", controls.sliderValue);
+						ui.Declare<Sodium::SdText>(sliderBuffer);
+
+						ui.DeclareKeyed<Sodium::SdTextInput>("demo_text_input", controls.textInputValue);
+
+						Sodium::SdScrollViewOptions scrollOptions = {};
+						scrollOptions.size = { 380.0f, 150.0f };
+						scrollOptions.wheelStep = 28.0f;
+						ui.Declare<Sodium::SdText>("ScrollView");
+						ui.DeclareKeyed<Sodium::SdScrollView>("demo_scroll_view", scrollOptions, [&](Sodium::SdUi& scrollUi)
+							{
+								scrollUi.Declare<Sodium::SdText>("Scroll row 01");
+								scrollUi.Declare<Sodium::SdText>("Scroll row 02");
+								scrollUi.Declare<Sodium::SdText>("Scroll row 03");
+								scrollUi.Declare<Sodium::SdText>("Scroll row 04");
+								scrollUi.Declare<Sodium::SdText>("Scroll row 05");
+								scrollUi.Declare<Sodium::SdText>("Scroll row 06");
+								scrollUi.Declare<Sodium::SdText>("Scroll row 07");
+								scrollUi.Declare<Sodium::SdText>("Scroll row 08");
+							});
+					});
+
+
+				Sodium::SdWindowOptions mediaOptions = {};
+				mediaOptions.initialPosition = { 520.0f, 42.0f };
+				mediaOptions.initialSize = { 430.0f, 550.0f };
+				mediaOptions.minSize = { 340.0f, 360.0f };
+				context.ui.DeclareKeyed<Sodium::SdWindow>("media_window", "Media and overlays", controls.mediaWindowOpen, mediaOptions, [&](Sodium::SdUi& ui)
+				{
+					ui.Declare<Sodium::SdPanel>();
+
+					Sodium::SdImageViewerOptions imageOptions = {};
+					imageOptions.thumbnailSize = { 144.0f, 144.0f };
+					imageOptions.previewSize = { 320.0f, 320.0f };
+					imageOptions.initialZoom = 4.0f;
+					imageOptions.maxZoom = 24.0f;
+					ui.Declare<Sodium::SdText>("Font atlas ImageViewer");
+					ui.DeclareKeyed<Sodium::SdImageViewer>("font_atlas_image_viewer", fontAtlasTexture, imageOptions);
+
+					bool popupClicked = false;
+					ui.Declare<Sodium::SdButton>(controls.popupOpen ? "Hide Popup" : "Show Popup", popupClicked);
+					if (popupClicked)
+						controls.popupOpen = !controls.popupOpen;
+
+					bool contextClicked = false;
+					ui.Declare<Sodium::SdButton>("Place ContextMenu", contextClicked);
+					if (contextClicked)
+					{
+						controls.contextMenuOpen = true;
+						controls.contextMenuPosition = context.input.GetMousePosition() + Sodium::SdVec2{ 14.0f, 16.0f };
+					}
+
+					bool tooltipClicked = false;
+					ui.Declare<Sodium::SdButton>(controls.tooltipVisible ? "Hide Tooltip" : "Show Tooltip", tooltipClicked);
+					if (tooltipClicked)
+						controls.tooltipVisible = !controls.tooltipVisible;
+				});
+
+				Sodium::SdPopupOptions popupOptions = {};
+				popupOptions.position = { 540.0f, 430.0f };
+				popupOptions.size = { 260.0f, 130.0f };
+				context.ui.DeclareKeyed<Sodium::SdPopup>("demo_popup", controls.popupOpen, popupOptions, [&](Sodium::SdUi& popupUi)
+				{
+					popupUi.Declare<Sodium::SdText>("SdPopup");
+					popupUi.Declare<Sodium::SdText>("Floating content layer");
+					bool closeClicked = false;
+					popupUi.Declare<Sodium::SdButton>("Close Popup", closeClicked);
+					if (closeClicked)
+						controls.popupOpen = false;
+				});
+
+				Sodium::SdPopupOptions contextMenuOptions = {};
+				contextMenuOptions.position = controls.contextMenuPosition;
+				contextMenuOptions.size = { 230.0f, 126.0f };
+				context.ui.DeclareKeyed<Sodium::SdContextMenu>("demo_context_menu", controls.contextMenuOpen, contextMenuOptions, [&](Sodium::SdUi& menuUi)
+				{
+					menuUi.Declare<Sodium::SdText>("SdContextMenu");
+					menuUi.Declare<Sodium::SdText>("Right click to move");
+					bool closeClicked = false;
+					menuUi.Declare<Sodium::SdButton>("Close Menu", closeClicked);
+					if (closeClicked)
+						controls.contextMenuOpen = false;
+				});
+
+				context.ui.DeclareKeyed<Sodium::SdTooltip>("demo_tooltip", controls.tooltipVisible, "SdTooltip follows the cursor");
 			}
 		};
 
@@ -249,6 +407,19 @@ namespace SodiumDynamicExample
 
 			gui.SetRendererBackend(&renderer);
 			gui.SetFontBackend(&fontBackend);
+			const Sodium::SdFontRequest fontRequests[] =
+			{
+				{ L"C:\\Windows\\Fonts\\segoeui.ttf", "Segoe UI" },
+				{ L"C:\\Windows\\Fonts\\arial.ttf", "Arial" },
+				{ L"C:\\Windows\\Fonts\\msyh.ttc", "Microsoft YaHei" },
+				{ L"C:\\Windows\\Fonts\\simhei.ttf", "SimHei" },
+				{ L"C:\\Windows\\Fonts\\simsun.ttc", "SimSun" },
+				{ L"C:\\Windows\\Fonts\\Deng.ttf", "DengXian" }
+			};
+			for (const Sodium::SdFontRequest& request : fontRequests)
+			{
+				fontBackend.LoadFont(request);
+			}
 			initialized = true;
 			return true;
 		}
@@ -260,13 +431,22 @@ namespace SodiumDynamicExample
 			if (!dx.RefreshDisplaySize())
 				return;
 
+			const auto frameStart = std::chrono::steady_clock::now();
 			gui.BeginFrame(platform, dx.displaySize);
-			gui.ui.Declare<OverlayWindow>(overlayWindowOpen, enabled, clickCount, frameCount);
+			gui.ui.Declare<OverlayWindow>(overlayWindowOpen, controls, frameCount, liveFps, fontBackend.GetAtlasTexture());
 			gui.EndFrame();
 
 			ID3D11RenderTargetView* target = dx.renderTargetView.Get();
 			dx.deviceContext->OMSetRenderTargets(1, &target, nullptr);
 			gui.Render();
+
+			const auto frameEnd = std::chrono::steady_clock::now();
+			const std::chrono::steady_clock::time_point frameReference = previousFrameTime.time_since_epoch().count() != 0
+				? previousFrameTime
+				: frameStart;
+			const double frameSeconds = std::chrono::duration<double>(frameEnd - frameReference).count();
+			liveFps = frameSeconds > 0.0 ? 1.0 / frameSeconds : 0.0;
+			previousFrameTime = frameEnd;
 			++frameCount;
 		}
 

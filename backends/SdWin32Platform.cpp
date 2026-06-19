@@ -245,6 +245,7 @@ namespace Sodium::Backends
 		windowHandle = nullptr;
 		running = false;
 		imeComposing = false;
+		pendingImeResultChars.clear();
 		for (bool& connected : xinputConnected)
 			connected = false;
 		for (SdUInt32& packet : xinputPackets)
@@ -394,12 +395,16 @@ namespace Sodium::Backends
 			return false;
 		}
 		case WM_CHAR:
+			if (TryConsumeDuplicateImeChar(wParam))
+				return false;
 			if (!imeComposing && wParam >= 0x20)
 				PushSimpleEvent(targetInputSystem, SdInputEventType::TextCommit, SdInputDevice::Text, SdTextCommitEvent{ WideCodepointToUtf8(static_cast<wchar_t>(wParam)) });
 			return false;
 		case SdWmUnichar:
 			if (wParam == SdUnicodeNoChar)
 				return true;
+			if (wParam <= 0xFFFFu && TryConsumeDuplicateImeChar(wParam))
+				return false;
 			if (!imeComposing && wParam >= 0x20)
 				PushSimpleEvent(targetInputSystem, SdInputEventType::TextCommit, SdInputDevice::Text, SdTextCommitEvent{ WideCodepointToUtf8(static_cast<wchar_t>(wParam)) });
 			return false;
@@ -427,6 +432,7 @@ namespace Sodium::Backends
 				{
 					std::wstring wideText(static_cast<SdSize>(bytes / sizeof(wchar_t)), L'\0');
 					::ImmGetCompositionStringW(context, GCS_RESULTSTR, wideText.data(), bytes);
+					pendingImeResultChars = wideText;
 					PushSimpleEvent(targetInputSystem, SdInputEventType::TextCommit, SdInputDevice::Text, SdTextCommitEvent{ WideToUtf8(wideText.data(), static_cast<int>(wideText.size())) });
 				}
 			}
@@ -478,6 +484,22 @@ namespace Sodium::Backends
 		SyncMouseState(targetInputSystem);
 		PollGamepads(targetInputSystem);
 		SyncImeWindow(targetInputSystem);
+		pendingImeResultChars.clear();
+	}
+
+	bool SdWin32Platform::TryConsumeDuplicateImeChar(WPARAM character)
+	{
+		if (pendingImeResultChars.empty())
+			return false;
+
+		if (character <= 0xFFFFu && pendingImeResultChars.front() == static_cast<wchar_t>(character))
+		{
+			pendingImeResultChars.erase(pendingImeResultChars.begin());
+			return true;
+		}
+
+		pendingImeResultChars.clear();
+		return false;
 	}
 
 	void SdWin32Platform::LoadXInput()

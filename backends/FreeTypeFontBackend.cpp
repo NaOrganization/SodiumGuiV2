@@ -62,6 +62,7 @@ namespace Sodium::Backends
 		}
 		faces.clear();
 		families.clear();
+		fallbackFonts.clear();
 		glyphCache.clear();
 		paragraphCache.clear();
 		paragraphCacheClock = 0;
@@ -170,8 +171,10 @@ namespace Sodium::Backends
 
 		face.family = familyHandle;
 		faces.push_back(std::move(face));
+		const SdFontHandle font = faces.back().handle;
 		if (FontFamily* family = TryGetFamily(familyHandle))
-			family->faces.push_back(faces.back().handle);
+			family->faces.push_back(font);
+		AddFallbackFont(font);
 		return familyHandle;
 	}
 
@@ -192,14 +195,18 @@ namespace Sodium::Backends
 	SdGlyphRun SdFreeTypeFontBackend::ShapeText(SdFontHandle font, std::u32string_view text, const SdTextShapeOptions& options)
 	{
 		SdGlyphRun run = {};
-		FontFace* face = TryGetFace(font.IsValid() ? font : fallbackFont);
-		if (!face || !face->face)
+		if (text.empty())
 			return run;
 
-		FT_Set_Pixel_Sizes(face->face, 0, static_cast<FT_UInt>(std::ceil(options.pixelSize)));
 		float penX = 0.0f;
 		for (char32_t codepoint : text)
 		{
+			const SdFontHandle resolvedFont = ResolveFontForCodepoint(font, static_cast<SdUInt32>(codepoint));
+			FontFace* face = TryGetFace(resolvedFont);
+			if (!face || !face->face)
+				continue;
+
+			FT_Set_Pixel_Sizes(face->face, 0, static_cast<FT_UInt>(std::ceil(options.pixelSize)));
 			FT_UInt glyphIndex = FT_Get_Char_Index(face->face, static_cast<FT_ULong>(codepoint));
 			if (glyphIndex == 0)
 				glyphIndex = FT_Get_Char_Index(face->face, static_cast<FT_ULong>('?'));
@@ -264,6 +271,48 @@ namespace Sodium::Backends
 				return font;
 		}
 		return fallbackFont;
+	}
+
+	SdFontHandle SdFreeTypeFontBackend::ResolveFontForCodepoint(const SdTextStyle& style, SdUInt32 codepoint) const noexcept
+	{
+		for (SdFontHandle font : style.fontStack.fonts)
+		{
+			if (HasGlyph(font, codepoint))
+				return font;
+		}
+		for (SdFontHandle font : fallbackFonts)
+		{
+			if (HasGlyph(font, codepoint))
+				return font;
+		}
+		return ResolveFont(style);
+	}
+
+	SdFontHandle SdFreeTypeFontBackend::ResolveFontForCodepoint(SdFontHandle preferredFont, SdUInt32 codepoint) const noexcept
+	{
+		if (HasGlyph(preferredFont, codepoint))
+			return preferredFont;
+		for (SdFontHandle font : fallbackFonts)
+		{
+			if (HasGlyph(font, codepoint))
+				return font;
+		}
+		return preferredFont.IsValid() ? preferredFont : fallbackFont;
+	}
+
+	bool SdFreeTypeFontBackend::HasGlyph(SdFontHandle font, SdUInt32 codepoint) const noexcept
+	{
+		const FontFace* face = TryGetFace(font);
+		return face && face->face && FT_Get_Char_Index(face->face, static_cast<FT_ULong>(codepoint)) != 0;
+	}
+
+	void SdFreeTypeFontBackend::AddFallbackFont(SdFontHandle font)
+	{
+		if (!font.IsValid())
+			return;
+		if (std::find(fallbackFonts.begin(), fallbackFonts.end(), font) != fallbackFonts.end())
+			return;
+		fallbackFonts.push_back(font);
 	}
 
 	void SdFreeTypeFontBackend::InitializeAtlas(SdUInt32 width, SdUInt32 height)
@@ -573,20 +622,38 @@ namespace Sodium::Backends
 	{
 		if (style.lineHeight > 0.0f)
 			return style.lineHeight;
-		const FontFace* face = TryGetFace(font);
-		if (!face || !face->face)
-			return style.pixelSize;
-		FT_Set_Pixel_Sizes(face->face, 0, static_cast<FT_UInt>(std::ceil(style.pixelSize)));
-		return static_cast<float>(face->face->size->metrics.height) / 64.0f;
+		float lineHeight = style.pixelSize;
+		auto includeFont = [&](SdFontHandle candidate)
+		{
+			const FontFace* face = TryGetFace(candidate);
+			if (!face || !face->face)
+				return;
+			FT_Set_Pixel_Sizes(face->face, 0, static_cast<FT_UInt>(std::ceil(style.pixelSize)));
+			lineHeight = std::max(lineHeight, static_cast<float>(face->face->size->metrics.height) / 64.0f);
+		};
+
+		includeFont(font);
+		for (SdFontHandle fallback : fallbackFonts)
+			includeFont(fallback);
+		return lineHeight;
 	}
 
 	float SdFreeTypeFontBackend::ResolveAscender(SdFontHandle font, float pixelSize)
 	{
-		const FontFace* face = TryGetFace(font);
-		if (!face || !face->face)
-			return pixelSize;
-		FT_Set_Pixel_Sizes(face->face, 0, static_cast<FT_UInt>(std::ceil(pixelSize)));
-		return static_cast<float>(face->face->size->metrics.ascender) / 64.0f;
+		float ascender = pixelSize;
+		auto includeFont = [&](SdFontHandle candidate)
+		{
+			const FontFace* face = TryGetFace(candidate);
+			if (!face || !face->face)
+				return;
+			FT_Set_Pixel_Sizes(face->face, 0, static_cast<FT_UInt>(std::ceil(pixelSize)));
+			ascender = std::max(ascender, static_cast<float>(face->face->size->metrics.ascender) / 64.0f);
+		};
+
+		includeFont(font);
+		for (SdFontHandle fallback : fallbackFonts)
+			includeFont(fallback);
+		return ascender;
 	}
 
 	SdVec2 SdFreeTypeFontBackend::MeasureText(SdUtf8StringView text, const SdTextStyle& style)
@@ -694,12 +761,12 @@ namespace Sodium::Backends
 		std::pmr::memory_resource* resource)
 	{
 		SdParagraphLayout layout(resource);
-		const SdFontHandle font = ResolveFont(style);
-		if (!font.IsValid() || text.empty())
+		const SdFontHandle baseFont = ResolveFont(style);
+		if (!baseFont.IsValid() || text.empty())
 			return layout;
 
-		const float lineHeight = ResolveLineHeight(font, style);
-		const float ascender = ResolveAscender(font, style.pixelSize);
+		const float lineHeight = ResolveLineHeight(baseFont, style);
+		const float ascender = ResolveAscender(baseFont, style.pixelSize);
 		const std::vector<SdUInt32> codepoints = Utf8::DecodeToCodepoints(text);
 		float penX = 0.0f;
 		float penY = 0.0f;
@@ -732,6 +799,7 @@ namespace Sodium::Backends
 				continue;
 			}
 
+			const SdFontHandle font = ResolveFontForCodepoint(style, codepoint);
 			const GlyphInfo* glyph = EnsureGlyph(font, codepoint, style.pixelSize);
 			if (!glyph)
 				continue;

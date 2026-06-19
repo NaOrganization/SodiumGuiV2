@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <array>
 #include <cstddef>
+#include <cmath>
 #include <cstring>
 
 #ifdef min
@@ -583,10 +584,12 @@ namespace Sodium::Backends
 			deviceContext->PSSetShaderResources(0, 1, &view);
 
 			D3D11_RECT scissor = {};
-			scissor.left = static_cast<LONG>(std::max(0.0f, batch.clipRect.min.x));
-			scissor.top = static_cast<LONG>(std::max(0.0f, batch.clipRect.min.y));
-			scissor.right = static_cast<LONG>(std::min(displaySize.x, batch.clipRect.max.x));
-			scissor.bottom = static_cast<LONG>(std::min(displaySize.y, batch.clipRect.max.y));
+			scissor.left = static_cast<LONG>(std::floor(std::max(0.0f, batch.clipRect.min.x)));
+			scissor.top = static_cast<LONG>(std::floor(std::max(0.0f, batch.clipRect.min.y)));
+			scissor.right = static_cast<LONG>(std::ceil(std::min(displaySize.x, batch.clipRect.max.x)));
+			scissor.bottom = static_cast<LONG>(std::ceil(std::min(displaySize.y, batch.clipRect.max.y)));
+			if (scissor.left >= scissor.right || scissor.top >= scissor.bottom)
+				continue;
 			deviceContext->RSSetScissorRects(1, &scissor);
 			deviceContext->DrawIndexed(batch.indexCount, batch.indexOffset, 0);
 		}

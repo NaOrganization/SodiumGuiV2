@@ -101,6 +101,7 @@ namespace Sodium::Backends
 		SdFontHandle fallbackFont = {};
 		std::vector<FontFace> faces = {};
 		std::vector<FontFamily> families = {};
+		std::vector<SdFontHandle> fallbackFonts = {};
 		std::unordered_map<GlyphKey, GlyphInfo, GlyphKeyHash> glyphCache = {};
 		std::vector<ParagraphCacheEntry> paragraphCache = {};
 		Atlas atlas = {};
@@ -110,6 +111,10 @@ namespace Sodium::Backends
 		FontFamily* TryGetFamily(SdFontFamilyHandle handle) noexcept;
 		const FontFamily* TryGetFamily(SdFontFamilyHandle handle) const noexcept;
 		SdFontHandle ResolveFont(const SdTextStyle& style) const noexcept;
+		SdFontHandle ResolveFontForCodepoint(const SdTextStyle& style, SdUInt32 codepoint) const noexcept;
+		SdFontHandle ResolveFontForCodepoint(SdFontHandle preferredFont, SdUInt32 codepoint) const noexcept;
+		bool HasGlyph(SdFontHandle font, SdUInt32 codepoint) const noexcept;
+		void AddFallbackFont(SdFontHandle font);
 		void InitializeAtlas(SdUInt32 width, SdUInt32 height);
 		void BakeAtlasDrawPrimitives();
 		void RebuildAtlasDrawPrimitiveUvs();

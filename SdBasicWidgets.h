@@ -16,6 +16,12 @@ namespace Sodium
 		return color;
 	}
 
+	inline SdColor SdMakeOpaque(SdColor color)
+	{
+		color.a = 255;
+		return color;
+	}
+
 	class SdText final : public SdWidgetTag
 	{
 	public:
@@ -648,7 +654,7 @@ namespace Sodium
 			const State& state = context.State<State>();
 			if (!state.open)
 				return;
-			context.renderList.AddRectFilled(context.animatedRect, SdApplyOpacity(context.style.background, context.opacity), context.clipRect, context.style.radius);
+			context.renderList.AddRectFilled(context.animatedRect, SdApplyOpacity(SdMakeOpaque(context.style.background), context.opacity), context.clipRect, context.style.radius);
 			context.renderList.AddRect(context.animatedRect, SdApplyOpacity(context.style.border, context.opacity), context.clipRect, 1.0f, context.style.radius);
 		}
 
@@ -707,7 +713,7 @@ namespace Sodium
 		{
 			if (!context.State<State>().open)
 				return;
-			context.renderList.AddRectFilled(context.animatedRect, SdApplyOpacity(context.style.background, context.opacity), context.clipRect, context.style.radius);
+			context.renderList.AddRectFilled(context.animatedRect, SdApplyOpacity(SdMakeOpaque(context.style.background), context.opacity), context.clipRect, context.style.radius);
 			context.renderList.AddRect(context.animatedRect, SdApplyOpacity(context.style.border, context.opacity), context.clipRect, 1.0f, context.style.radius);
 		}
 
@@ -761,7 +767,7 @@ namespace Sodium
 			const State& state = context.State<State>();
 			if (!state.visible)
 				return;
-			context.renderList.AddRectFilled(context.animatedRect, SdApplyOpacity(context.style.background, context.opacity), context.clipRect, context.style.radius);
+			context.renderList.AddRectFilled(context.animatedRect, SdApplyOpacity(SdMakeOpaque(context.style.background), context.opacity), context.clipRect, context.style.radius);
 			context.renderList.AddRect(context.animatedRect, SdApplyOpacity(context.style.border, context.opacity), context.clipRect, 1.0f, context.style.radius);
 			context.renderList.AddText(state.text, { context.animatedRect.min.x + 9.0f, context.animatedRect.min.y + 7.0f }, SdApplyOpacity(context.style.color, context.opacity), context.clipRect);
 		}

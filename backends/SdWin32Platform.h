@@ -5,6 +5,8 @@
 #include <Windows.h>
 #include <xinput.h>
 
+#include <string>
+
 namespace Sodium::Backends
 {
 	struct SdWin32PlatformConfig final
@@ -28,6 +30,7 @@ namespace Sodium::Backends
 		HWND windowHandle = nullptr;
 		bool running = false;
 		bool imeComposing = false;
+		std::wstring pendingImeResultChars = {};
 		float gamepadStickDeadZone = 0.1f;
 		float gamepadTriggerDeadZone = 0.05f;
 		LARGE_INTEGER performanceFrequency = {};
@@ -54,6 +57,7 @@ namespace Sodium::Backends
 		void SyncWindowState(Sodium::SdInputSystem& targetInputSystem);
 		void SyncMouseState(Sodium::SdInputSystem& targetInputSystem);
 		void SyncImeWindow(Sodium::SdInputSystem& targetInputSystem);
+		bool TryConsumeDuplicateImeChar(WPARAM character);
 	};
 
 	using SdPlatform = SdWin32Platform;
