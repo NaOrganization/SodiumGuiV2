@@ -18,9 +18,26 @@ namespace Sodium
 		bool inputEnabled = true;
 	};
 
+	struct SdLayerDrawRecord final
+	{
+		SdWidgetId widgetId = 0;
+		SdLayerPriority layerPriority = SdLayerPriority::Content;
+		SdRect clipRect = {};
+		SdUInt32 paintOrder = 0;
+	};
+
+	struct SdLayerDrawChannel final
+	{
+		SdLayerPriority layerPriority = SdLayerPriority::Content;
+		SdUInt32 firstRecord = 0;
+		SdUInt32 recordCount = 0;
+	};
+
 	class SdLayerSystem final
 	{
 	private:
+		std::vector<SdLayerDrawRecord> drawRecords = {};
+		std::vector<SdLayerDrawChannel> drawChannels = {};
 		std::vector<SdHitTestRecord> hitTestRecords = {};
 
 		static SdRect IntersectRect(const SdRect& left, const SdRect& right)
@@ -39,7 +56,23 @@ namespace Sodium
 	public:
 		void BeginFrame()
 		{
+			drawRecords.clear();
+			drawChannels.clear();
 			hitTestRecords.clear();
+		}
+
+		void AddDrawRecord(const SdLayerDrawRecord& record)
+		{
+			if (drawChannels.empty() || drawChannels.back().layerPriority != record.layerPriority)
+			{
+				drawChannels.push_back({
+					record.layerPriority,
+					static_cast<SdUInt32>(drawRecords.size()),
+					0
+				});
+			}
+			drawRecords.push_back(record);
+			++drawChannels.back().recordCount;
 		}
 
 		void AddHitTestRecord(const SdHitTestRecord& record)
@@ -75,6 +108,16 @@ namespace Sodium
 		const std::vector<SdHitTestRecord>& GetHitTestRecords() const noexcept
 		{
 			return hitTestRecords;
+		}
+
+		const std::vector<SdLayerDrawRecord>& GetDrawRecords() const noexcept
+		{
+			return drawRecords;
+		}
+
+		const std::vector<SdLayerDrawChannel>& GetDrawChannels() const noexcept
+		{
+			return drawChannels;
 		}
 	};
 

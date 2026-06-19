@@ -412,6 +412,12 @@ namespace Sodium
 		for (SdWidgetId id : paintIds)
 		{
 			SdWidgetRecord& record = widgets[id];
+			layerSystem.AddDrawRecord({
+				id,
+				record.state.layerPriority,
+				record.state.computedClipRect,
+				paintOrder
+			});
 			layerSystem.AddHitTestRecord({
 				id,
 				record.state.layerPriority,
@@ -501,6 +507,7 @@ namespace Sodium
 
 		const SdDrawData& drawData = renderList.GetDrawData();
 		diagnostics.hitTestRecordCount = static_cast<SdUInt32>(layerSystem.GetHitTestRecords().size());
+		diagnostics.layerDrawChannelCount = static_cast<SdUInt32>(layerSystem.GetDrawChannels().size());
 		diagnostics.activeAnimationChannelCount = static_cast<SdUInt32>(animationSystem.GetActiveChannelCount());
 		diagnostics.drawCommandCount = static_cast<SdUInt32>(drawData.commands.size());
 		diagnostics.drawVertexCount = static_cast<SdUInt32>(drawData.vertices.size());
