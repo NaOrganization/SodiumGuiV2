@@ -3,4 +3,7 @@
 /examples/desktop/win32_directx11/bin
 /examples/desktop/win32_directx11/obj
 /examples/dynamic/dll_dx11_win32/bin
+/.codegraph
+/tests/bin
+/tests/obj
 /*.obj

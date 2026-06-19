@@ -67,7 +67,13 @@ namespace Sodium
 		Button,
 		CheckBox,
 		Window,
-		ImageViewer
+		ImageViewer,
+		Slider,
+		TextInput,
+		ScrollView,
+		Popup,
+		ContextMenu,
+		Tooltip
 	};
 
 	enum class SdStyleInteractionState : SdUInt8

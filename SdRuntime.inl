@@ -332,6 +332,8 @@ namespace Sodium
 				styleInteraction = SdStyleInteractionState::Pressed;
 			else if (interactionSystem.IsHovered(id))
 				styleInteraction = SdStyleInteractionState::Hovered;
+			else if (interactionSystem.IsFocused(id))
+				styleInteraction = SdStyleInteractionState::Focused;
 			ResolveWidgetStyle(record, styleInteraction);
 
 			SdLayoutResult result = {};

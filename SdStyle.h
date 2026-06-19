@@ -69,6 +69,15 @@ namespace Sodium
 			AddRule({ SdStyleWidgetClass::CheckBox, SdStyleInteractionState::Hovered, SdStyleToken::ColorButtonHovered, SdStyleToken::ColorText, SdStyleToken::RadiusSmall, true, true, true });
 			AddRule({ SdStyleWidgetClass::Window, SdStyleInteractionState::Normal, SdStyleToken::ColorWindowBg, SdStyleToken::ColorText, SdStyleToken::RadiusSmall, true, true, true });
 			AddRule({ SdStyleWidgetClass::ImageViewer, SdStyleInteractionState::Normal, SdStyleToken::ColorPanelBg, SdStyleToken::ColorText, SdStyleToken::RadiusSmall, true, true, true });
+			AddRule({ SdStyleWidgetClass::Slider, SdStyleInteractionState::Normal, SdStyleToken::ColorPanelBg, SdStyleToken::ColorText, SdStyleToken::RadiusSmall, true, true, true });
+			AddRule({ SdStyleWidgetClass::Slider, SdStyleInteractionState::Hovered, SdStyleToken::ColorButtonHovered, SdStyleToken::ColorText, SdStyleToken::RadiusSmall, true, true, true });
+			AddRule({ SdStyleWidgetClass::Slider, SdStyleInteractionState::Pressed, SdStyleToken::ColorButtonPressed, SdStyleToken::ColorText, SdStyleToken::RadiusSmall, true, true, true });
+			AddRule({ SdStyleWidgetClass::TextInput, SdStyleInteractionState::Normal, SdStyleToken::ColorPanelBg, SdStyleToken::ColorText, SdStyleToken::RadiusSmall, true, true, true });
+			AddRule({ SdStyleWidgetClass::TextInput, SdStyleInteractionState::Focused, SdStyleToken::ColorButton, SdStyleToken::ColorText, SdStyleToken::RadiusSmall, true, true, true });
+			AddRule({ SdStyleWidgetClass::ScrollView, SdStyleInteractionState::Normal, SdStyleToken::ColorPanelBg, SdStyleToken::ColorText, SdStyleToken::RadiusSmall, true, true, true });
+			AddRule({ SdStyleWidgetClass::Popup, SdStyleInteractionState::Normal, SdStyleToken::ColorWindowBg, SdStyleToken::ColorText, SdStyleToken::RadiusSmall, true, true, true });
+			AddRule({ SdStyleWidgetClass::ContextMenu, SdStyleInteractionState::Normal, SdStyleToken::ColorWindowBg, SdStyleToken::ColorText, SdStyleToken::RadiusSmall, true, true, true });
+			AddRule({ SdStyleWidgetClass::Tooltip, SdStyleInteractionState::Normal, SdStyleToken::ColorPanelBg, SdStyleToken::ColorText, SdStyleToken::RadiusSmall, true, true, true });
 		}
 
 		const SdTheme& GetTheme() const noexcept
