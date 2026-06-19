@@ -223,12 +223,22 @@ namespace Sodium
 			record.state.submittedThisFrame = false;
 	}
 
+	inline SdTransition SdInstance::GetDefaultTransition() const noexcept
+	{
+		const float seconds = std::max(0.001f, styleSystem.GetTheme().GetMetric(SdStyleToken::DurationFast));
+		return {
+			std::chrono::duration_cast<SdDuration>(std::chrono::duration<float>(seconds)),
+			SdAnimationEasing::OutCubic
+		};
+	}
+
 	inline void SdInstance::UpdateWidgetAnimation(SdWidgetRecord& record)
 	{
 		const bool leaving = record.state.lifePhase == SdWidgetLifePhase::Leaving;
 		const float target = leaving ? 0.0f : 1.0f;
-		animationSystem.SetTarget(record.animation.layoutWeight, target);
-		animationSystem.SetTarget(record.animation.opacity, target);
+		const SdTransition transition = GetDefaultTransition();
+		animationSystem.SetTarget(record.animation.layoutWeight, target, transition);
+		animationSystem.SetTarget(record.animation.opacity, target, transition);
 		record.state.animationActive = record.state.layoutWeight != target || record.state.opacity != target;
 	}
 
@@ -273,10 +283,11 @@ namespace Sodium
 				return;
 			}
 
-			animationSystem.SetTarget(record.animation.rectX, targetRect.min.x);
-			animationSystem.SetTarget(record.animation.rectY, targetRect.min.y);
-			animationSystem.SetTarget(record.animation.rectWidth, targetRect.Width());
-			animationSystem.SetTarget(record.animation.rectHeight, targetRect.Height());
+			const SdTransition transition = GetDefaultTransition();
+			animationSystem.SetTarget(record.animation.rectX, targetRect.min.x, transition);
+			animationSystem.SetTarget(record.animation.rectY, targetRect.min.y, transition);
+			animationSystem.SetTarget(record.animation.rectWidth, targetRect.Width(), transition);
+			animationSystem.SetTarget(record.animation.rectHeight, targetRect.Height(), transition);
 		};
 
 		auto applyAnimatedRect = [this](SdWidgetRecord& record)

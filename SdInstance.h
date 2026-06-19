@@ -91,6 +91,7 @@ namespace Sodium
 		SdWidgetRecord& GetOrCreateWidgetRecord(SdWidgetId id);
 		void MarkSubmitted(SdWidgetRecord& record, SdWidgetId id, SdWidgetId parentId, SdResolvedKey resolvedKey, SdUtf8StringView debugKey);
 		void FinishWidgetFrame();
+		SdTransition GetDefaultTransition() const noexcept;
 		void UpdateWidgetAnimation(SdWidgetRecord& record);
 		void SolveLayoutAndPaint();
 		SdUInt32 RemoveDeadWidgets();

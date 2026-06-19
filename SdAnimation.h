@@ -23,8 +23,10 @@ namespace Sodium
 		SdAnimationChannelId id = 0;
 		SdWidgetId widgetId = 0;
 		SdAnimationChannelKind kind = SdAnimationChannelKind::LayoutWeight;
+		float startValue = 0.0f;
 		float value = 0.0f;
 		float target = 0.0f;
+		SdDuration elapsed = {};
 		SdTransition transition = {};
 		bool active = false;
 	};
@@ -62,6 +64,7 @@ namespace Sodium
 			channel.id = nextChannelId++;
 			channel.widgetId = widgetId;
 			channel.kind = kind;
+			channel.startValue = initialValue;
 			channel.value = initialValue;
 			channel.target = initialValue;
 			return channel;
@@ -69,7 +72,11 @@ namespace Sodium
 
 		void SetTarget(SdAnimationChannel& channel, float target, const SdTransition& transition)
 		{
+			if (channel.target == target && channel.transition.duration == transition.duration && channel.transition.easing == transition.easing)
+				return;
+			channel.startValue = channel.value;
 			channel.target = target;
+			channel.elapsed = {};
 			channel.transition = transition;
 			channel.active = channel.value != channel.target;
 			if (channel.active && std::find(activeChannels.begin(), activeChannels.end(), channel.id) == activeChannels.end())
@@ -129,7 +136,9 @@ namespace Sodium
 			if (SdAnimationChannel* channel = FindChannel(id))
 			{
 				channel->value = value;
+				channel->startValue = value;
 				channel->target = value;
+				channel->elapsed = {};
 				channel->active = false;
 				activeChannels.erase(std::remove(activeChannels.begin(), activeChannels.end(), id), activeChannels.end());
 			}
@@ -164,11 +173,16 @@ namespace Sodium
 					continue;
 				}
 
+				channel->elapsed += std::chrono::duration_cast<SdDuration>(std::chrono::duration<float>(seconds));
 				const float durationSeconds = std::max(0.001f, static_cast<float>(channel->transition.duration.count()) / 1000000000.0f);
-				channel->value = SdMoveToward(channel->value, channel->target, seconds / durationSeconds);
-				channel->active = channel->value != channel->target;
+				const float elapsedSeconds = std::max(0.0f, static_cast<float>(channel->elapsed.count()) / 1000000000.0f);
+				const float t = std::clamp(elapsedSeconds / durationSeconds, 0.0f, 1.0f);
+				const float eased = SdApplyEasing(t, channel->transition.easing);
+				channel->value = channel->startValue + (channel->target - channel->startValue) * eased;
+				channel->active = t < 1.0f && channel->value != channel->target;
 				if (!channel->active)
 				{
+					channel->value = channel->target;
 					activeChannels[i] = activeChannels.back();
 					activeChannels.pop_back();
 					continue;
