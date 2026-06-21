@@ -215,6 +215,7 @@ namespace
 	SdColor gTypedStylePaintColor = {};
 	bool gContextStyleNodeApiObservedRoot = false;
 	bool gContextStyleNodeApiObservedPart = false;
+	bool gPaintContextObservedLayoutBox = false;
 
 	struct RegistryDispatchStyle final
 	{
@@ -380,6 +381,28 @@ namespace
 		void DrainPendingUploads(std::vector<SdUploadRequest>& uploads) override
 		{
 			(void)uploads;
+		}
+	};
+
+	struct PaintLayoutBoxWidget final : SdWidgetTag
+	{
+		static constexpr SdStyleId TargetTypeId = SdStyleIdLiteral("Tests.PaintLayoutBoxWidget");
+		using Style = SdWidgetRootStyle;
+
+		void OnUpdate(SdUpdateContext& context)
+		{
+			context.widgetState.targetTypeId = TargetTypeId;
+		}
+
+		void OnLayout(SdLayoutContext& context)
+		{
+			context.SetDesiredSize({ 48.0f, 24.0f });
+		}
+
+		void OnPaint(SdPaintContext& context)
+		{
+			gPaintContextObservedLayoutBox = context.rootLayoutBox.borderBox.Width() > 0.0f
+				&& context.rootLayoutBox.contentBox.Width() <= context.rootLayoutBox.borderBox.Width();
 		}
 	};
 
@@ -1392,6 +1415,13 @@ namespace
 		}
 		Check(manualShadowBoxUsesAbsoluteRect, "runtime maps manual layout widgets to absolute shadow boxes");
 		Check(manualLayoutBoxUsesAbsoluteRect, "runtime writes manual shadow geometry to style node layout box");
+
+		gPaintContextObservedLayoutBox = false;
+		SdInstance paintLayoutBoxInstance;
+		paintLayoutBoxInstance.BeginFrame({ 320.0f, 200.0f });
+		paintLayoutBoxInstance.ui.Declare<PaintLayoutBoxWidget>();
+		PumpFrame(paintLayoutBoxInstance);
+		Check(gPaintContextObservedLayoutBox, "paint context exposes root layout box geometry");
 	}
 
 	void TestIdAndKeySemantics()

@@ -266,6 +266,7 @@ namespace Sodium
 				record.state.targetRect,
 				record.state.animatedRect,
 				record.state.computedClipRect,
+				record.rootStyleNode.layoutBox,
 				record.state.opacity,
 				static_cast<SdLayerId>(record.state.layerPriority)
 			};

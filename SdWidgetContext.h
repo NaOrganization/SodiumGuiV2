@@ -121,6 +121,7 @@ namespace Sodium
 		SdRect rect = {};
 		SdRect animatedRect = {};
 		SdRect clipRect = {};
+		SdUsedBox rootLayoutBox = {};
 		float opacity = 1.0f;
 		SdLayerId layer = 0;
 	};
