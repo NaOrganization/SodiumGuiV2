@@ -3,6 +3,7 @@
 #include "SdStyleCore.h"
 
 #include <algorithm>
+#include <unordered_map>
 #include <vector>
 
 namespace Sodium
@@ -168,6 +169,7 @@ namespace Sodium
 		std::vector<SdBoxNode> boxes = {};
 		std::vector<SdUInt32> rootIndices = {};
 		std::vector<SdUInt32> lastChildIndices = {};
+		std::unordered_map<SdStyleNodeId, SdUInt32> boxIndexByStyleNodeId = {};
 
 		void SetBoxRect(SdBoxNode& box, SdRect borderBox)
 		{
@@ -383,6 +385,7 @@ namespace Sodium
 			boxes.clear();
 			rootIndices.clear();
 			lastChildIndices.clear();
+			boxIndexByStyleNodeId.clear();
 		}
 
 		SdUInt32 AddBox(SdStyleNodeId styleNodeId, SdUInt32 parentBoxIndex, const SdBoxStyle& style, SdVec2 intrinsicSize = {})
@@ -396,6 +399,8 @@ namespace Sodium
 			box.position = style.position;
 			box.intrinsicSize = intrinsicSize;
 			lastChildIndices.push_back(SdInvalidIndex<SdUInt32>);
+			if (styleNodeId != SdInvalidStyleNodeId)
+				boxIndexByStyleNodeId[styleNodeId] = index;
 			if (parentBoxIndex != SdInvalidIndex<SdUInt32> && parentBoxIndex < boxes.size())
 			{
 				SdBoxNode& parent = boxes[parentBoxIndex];
@@ -441,6 +446,14 @@ namespace Sodium
 		SdSize GetBoxCount() const noexcept
 		{
 			return boxes.size();
+		}
+
+		const SdBoxNode* FindBoxByStyleNodeId(SdStyleNodeId styleNodeId) const noexcept
+		{
+			const auto it = boxIndexByStyleNodeId.find(styleNodeId);
+			if (it == boxIndexByStyleNodeId.end() || it->second >= boxes.size())
+				return nullptr;
+			return &boxes[it->second];
 		}
 	};
 }

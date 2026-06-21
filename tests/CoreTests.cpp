@@ -1198,6 +1198,7 @@ namespace
 		PumpFrame(instance);
 		bool hasUsedBox = false;
 		bool hasPartUsedBox = false;
+		bool hasShadowBox = false;
 		for (const auto& [id, record] : instance.GetStateStorage().GetWidgetRecords())
 		{
 			(void)id;
@@ -1206,14 +1207,17 @@ namespace
 				const SdStyleNode& root = instance.GetRootStyleNode(record.state.id);
 				const SdStyleNode& content = instance.GetStylePart(record.state.id, SdButton::Parts::Content);
 				const SdStyleNode& label = instance.GetStylePart(record.state.id, SdButton::Parts::Label);
+				const SdBoxNode* box = instance.GetBoxTree().FindBoxByStyleNodeId(record.rootStyleNodeId);
 				hasUsedBox = root.usedBox.borderBox.Width() > 0.0f
 					&& root.usedBox.contentBox.Width() <= root.usedBox.borderBox.Width();
 				hasPartUsedBox = content.usedBox.borderBox.Width() == root.usedBox.borderBox.Width()
 					&& label.usedBox.contentBox.Height() == root.usedBox.contentBox.Height();
+				hasShadowBox = box && box->borderBox.Width() > 0.0f && box->contentBox.Width() <= box->borderBox.Width();
 			}
 		}
 		Check(hasUsedBox, "runtime writes used geometry to root style node");
 		Check(hasPartUsedBox, "runtime writes used geometry to part style nodes");
+		Check(hasShadowBox, "runtime shadow box tree indexes root style nodes");
 
 		SdInstance panelInstance;
 		panelInstance.BeginFrame({ 320.0f, 200.0f });
