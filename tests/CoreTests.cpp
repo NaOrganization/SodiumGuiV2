@@ -495,6 +495,21 @@ namespace
 		Check(panelDefault.width.unit == SdLengthUnit::Pixels && panelDefault.width.value == 240.0f, "panel default width resolves through root style");
 		Check(SdResolveLength(panelDefault.padding.left, 0.0f) > 0.0f, "panel default padding resolves through root style");
 
+		constexpr SdStyleClassId textClass = SdStyleClassLiteral("Tests.Text.RootStyle");
+		constexpr SdStyleScopeId textScope = SdStyleScopeLiteral("Tests.Text.Scope");
+		const SdStyleClassId textClasses[] = { textClass };
+		styleSystem.RootRule(SdText::TargetTypeId)
+			.Scope(textScope)
+			.Class(textClass)
+			.Set(&SdBoxStyle::padding, SdStyleValue::FromSpacing({ 1.0f, 2.0f, 3.0f, 4.0f }));
+		const SdWidgetRootStyle textScoped = styleSystem.ResolveRootStyle(
+			SdText::TargetTypeId,
+			SdStyleInteractionState::Normal,
+			SdLayerPriority::Content,
+			SdSpan<const SdStyleClassId>(textClasses, 1),
+			textScope);
+		Check(textScoped.padding.left.value == 1.0f && textScoped.padding.bottom.value == 4.0f, "text scoped padding resolves through root style");
+
 		const SdWidgetRootStyle windowDefault = styleSystem.ResolveRootStyle(SdWindow::TargetTypeId, SdStyleInteractionState::Normal, SdLayerPriority::Floating);
 		Check(windowDefault.width.unit == SdLengthUnit::Pixels && windowDefault.width.value == 420.0f, "window default width resolves through root style");
 		Check(windowDefault.height.unit == SdLengthUnit::Pixels && windowDefault.height.value == 260.0f, "window default height resolves through root style");

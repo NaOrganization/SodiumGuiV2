@@ -32,6 +32,7 @@ namespace SodiumDynamicExample
 
 	constexpr Sodium::SdStyleClassId kOverlayAccentTextClass = Sodium::SdStyleClassLiteral("Sodium.DynamicExample.Text.Accent");
 	constexpr Sodium::SdStyleClassId kOverlayMutedTextClass = Sodium::SdStyleClassLiteral("Sodium.DynamicExample.Text.Muted");
+	constexpr Sodium::SdStyleClassId kOverlayPaddedTextClass = Sodium::SdStyleClassLiteral("Sodium.DynamicExample.Text.Padded");
 	constexpr Sodium::SdStyleClassId kOverlayBasicPanelClass = Sodium::SdStyleClassLiteral("Sodium.DynamicExample.Panel.Basic");
 	constexpr Sodium::SdStyleClassId kOverlayBasicScrollClass = Sodium::SdStyleClassLiteral("Sodium.DynamicExample.Scroll.Basic");
 	constexpr Sodium::SdStyleScopeId kOverlayTextScope = Sodium::SdStyleScopeLiteral("Sodium.DynamicExample.Scope.Overlay");
@@ -265,9 +266,12 @@ namespace SodiumDynamicExample
 				std::snprintf(overlayStatus, sizeof(overlayStatus), "Styled overlay text - %.1f FPS", liveFps);
 				context.ui.DeclareStyledKeyed<Sodium::SdText>("overlay_style_status", statusIdentity, nullptr, overlayStatus);
 
-				Sodium::SdText::Style inlineTextStyle = {};
-				inlineTextStyle.padding = { 2.0f, 1.0f, 2.0f, 1.0f };
-				context.ui.DeclareStyledKeyed<Sodium::SdText>("overlay_inline_style", &inlineTextStyle, "Inline target style");
+				const Sodium::SdStyleClassId paddedTextClasses[] = { kOverlayPaddedTextClass };
+				const Sodium::SdStyleIdentity paddedTextIdentity{
+					Sodium::SdSpan<const Sodium::SdStyleClassId>(paddedTextClasses, 1),
+					kOverlayTextScope
+				};
+				context.ui.DeclareStyledKeyed<Sodium::SdText>("overlay_padded_style", paddedTextIdentity, nullptr, "Class/scope padded text");
 
 				const Sodium::SdStyleClassId panelClasses[] = { kOverlayBasicPanelClass };
 				const Sodium::SdStyleIdentity panelIdentity{
@@ -404,10 +408,8 @@ namespace SodiumDynamicExample
 			styleSystem.RootRule(Sodium::SdText::TargetTypeId)
 				.Scope(kOverlayTextScope)
 				.Set(&Sodium::SdBoxStyle::fontSize, 15.0f)
-				.Set(&Sodium::SdBoxStyle::lineHeight, 19.0f);
-			styleSystem.Rule<Sodium::SdText>()
-				.Scope(kOverlayTextScope)
-				.Set(&Sodium::SdText::Style::padding, Sodium::SdSpacing{ 2.0f, 0.0f, 2.0f, 0.0f });
+				.Set(&Sodium::SdBoxStyle::lineHeight, 19.0f)
+				.Set(&Sodium::SdBoxStyle::padding, Sodium::SdStyleValue::FromSpacing({ 2.0f, 0.0f, 2.0f, 0.0f }));
 			styleSystem.RootRule(Sodium::SdText::TargetTypeId)
 				.Scope(kOverlayTextScope)
 				.Class(kOverlayAccentTextClass)
@@ -416,6 +418,10 @@ namespace SodiumDynamicExample
 				.Scope(kOverlayTextScope)
 				.Class(kOverlayMutedTextClass)
 				.Set(&Sodium::SdBoxStyle::color, Sodium::SdColor{ 178, 196, 214, 255 });
+			styleSystem.RootRule(Sodium::SdText::TargetTypeId)
+				.Scope(kOverlayTextScope)
+				.Class(kOverlayPaddedTextClass)
+				.Set(&Sodium::SdBoxStyle::padding, Sodium::SdStyleValue::FromSpacing({ 2.0f, 1.0f, 2.0f, 1.0f }));
 			styleSystem.RootRule(Sodium::SdPanel::TargetTypeId)
 				.Scope(kOverlayPanelScope)
 				.Class(kOverlayBasicPanelClass)

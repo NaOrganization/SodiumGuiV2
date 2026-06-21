@@ -31,6 +31,7 @@ namespace
 	constexpr UINT kInitialWindowHeight = 720;
 	constexpr Sodium::SdStyleClassId kExampleAccentTextClass = Sodium::SdStyleClassLiteral("Sodium.Example.Text.Accent");
 	constexpr Sodium::SdStyleClassId kExampleWarningTextClass = Sodium::SdStyleClassLiteral("Sodium.Example.Text.Warning");
+	constexpr Sodium::SdStyleClassId kExamplePaddedTextClass = Sodium::SdStyleClassLiteral("Sodium.Example.Text.Padded");
 	constexpr Sodium::SdStyleClassId kExampleBasicPanelClass = Sodium::SdStyleClassLiteral("Sodium.Example.Panel.Basic");
 	constexpr Sodium::SdStyleClassId kExampleBasicScrollClass = Sodium::SdStyleClassLiteral("Sodium.Example.Scroll.Basic");
 	constexpr Sodium::SdStyleScopeId kExampleDemoTextScope = Sodium::SdStyleScopeLiteral("Sodium.Example.Scope.DemoWindow");
@@ -242,9 +243,12 @@ namespace
 				std::snprintf(styledStatus, sizeof(styledStatus), "Class/scope style text - %.1f FPS", liveFps);
 				context.ui.DeclareStyledKeyed<Sodium::SdText>("style_status", statusIdentity, nullptr, styledStatus);
 
-				Sodium::SdText::Style inlineTextStyle = {};
-				inlineTextStyle.padding = { 2.0f, 1.0f, 2.0f, 1.0f };
-				context.ui.DeclareStyledKeyed<Sodium::SdText>("style_inline", &inlineTextStyle, "Inline target style text");
+				const Sodium::SdStyleClassId paddedTextClasses[] = { kExamplePaddedTextClass };
+				const Sodium::SdStyleIdentity paddedTextIdentity{
+					Sodium::SdSpan<const Sodium::SdStyleClassId>(paddedTextClasses, 1),
+					kExampleDemoTextScope
+				};
+				context.ui.DeclareStyledKeyed<Sodium::SdText>("style_padded", paddedTextIdentity, nullptr, "Class/scope padded style text");
 
 				if (!context.input.IsKeyHeld(Sodium::SdKeyCode::W))
 					context.ui.DeclareKeyed<Sodium::SdText>("test_text", "中文");
@@ -399,10 +403,8 @@ namespace
 			styleSystem.RootRule(Sodium::SdText::TargetTypeId)
 				.Scope(kExampleDemoTextScope)
 				.Set(&Sodium::SdBoxStyle::fontSize, 17.0f)
-				.Set(&Sodium::SdBoxStyle::lineHeight, 22.0f);
-			styleSystem.Rule<Sodium::SdText>()
-				.Scope(kExampleDemoTextScope)
-				.Set(&Sodium::SdText::Style::padding, Sodium::SdSpacing{ 2.0f, 0.0f, 2.0f, 0.0f });
+				.Set(&Sodium::SdBoxStyle::lineHeight, 22.0f)
+				.Set(&Sodium::SdBoxStyle::padding, Sodium::SdStyleValue::FromSpacing({ 2.0f, 0.0f, 2.0f, 0.0f }));
 			styleSystem.RootRule(Sodium::SdText::TargetTypeId)
 				.Scope(kExampleDemoTextScope)
 				.Class(kExampleAccentTextClass)
@@ -411,6 +413,10 @@ namespace
 				.Scope(kExampleDemoTextScope)
 				.Class(kExampleWarningTextClass)
 				.Set(&Sodium::SdBoxStyle::color, Sodium::SdColor{ 255, 176, 92, 255 });
+			styleSystem.RootRule(Sodium::SdText::TargetTypeId)
+				.Scope(kExampleDemoTextScope)
+				.Class(kExamplePaddedTextClass)
+				.Set(&Sodium::SdBoxStyle::padding, Sodium::SdStyleValue::FromSpacing({ 2.0f, 1.0f, 2.0f, 1.0f }));
 			styleSystem.RootRule(Sodium::SdPanel::TargetTypeId)
 				.Scope(kExampleDemoPanelScope)
 				.Class(kExampleBasicPanelClass)

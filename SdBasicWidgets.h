@@ -139,10 +139,6 @@ namespace Sodium
 
 		struct Style final
 		{
-			static constexpr SdStyleId Color = SdStylePropertyIds::Color;
-			static constexpr SdStyleId Opacity = SdStylePropertyIds::Opacity;
-			SdSpacing padding = {};
-
 			static Style Default(const SdStyleContext& context)
 			{
 				(void)context;
@@ -152,7 +148,7 @@ namespace Sodium
 
 			static void Describe(SdStyleContract<Style>& contract)
 			{
-				contract.Layout(&Style::padding);
+				(void)contract;
 			}
 		};
 
@@ -211,14 +207,14 @@ namespace Sodium
 		void OnLayout(SdLayoutContext& context)
 		{
 			const State& state = context.State<State>();
-			const Style& style = context.RootResolvedStyle<SdText>();
 			const SdBoxStyle& rootStyle = context.RootStyleNode().resolvedStyle;
+			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(rootStyle, context.constraints.maxSize, {});
 			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle(state.textStyle, rootStyle.fontSize, rootStyle.lineHeight);
 			SdVec2 desiredSize = BasicWidgetDetail::MeasureText(context, state.text, textStyle);
 
 			desiredSize.y = std::max(desiredSize.y, BasicWidgetDetail::ResolveLineHeight(textStyle));
-			desiredSize.x += style.padding.left + style.padding.right;
-			desiredSize.y += style.padding.top + style.padding.bottom;
+			desiredSize.x += usedStyle.padding.left + usedStyle.padding.right;
+			desiredSize.y += usedStyle.padding.top + usedStyle.padding.bottom;
 			if (context.constraints.maxSize.x > 0.0f)
 				desiredSize.x = std::min(desiredSize.x, context.constraints.maxSize.x);
 			if (context.constraints.maxSize.y > 0.0f)
@@ -232,15 +228,15 @@ namespace Sodium
 			if (state.text.empty())
 				return;
 
-			const Style& style = context.RootResolvedStyle<SdText>();
 			const SdBoxStyle& presentation = context.RootStyleNode().presentationStyle;
+			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(presentation, context.animatedRect.Size(), {});
 			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle(state.textStyle, presentation.fontSize, presentation.lineHeight);
 			const SdColor color = BasicWidgetDetail::ApplyOpacity(
 				presentation.color,
 				context.opacity * presentation.opacity);
 			const SdVec2 position = {
-				context.animatedRect.min.x + style.padding.left,
-				context.animatedRect.min.y + style.padding.top
+				context.animatedRect.min.x + usedStyle.padding.left,
+				context.animatedRect.min.y + usedStyle.padding.top
 			};
 			context.renderList.AddText(state.text, textStyle, position, color, context.clipRect);
 		}
