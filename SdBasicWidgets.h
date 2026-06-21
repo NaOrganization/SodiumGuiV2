@@ -435,40 +435,22 @@ namespace Sodium
 
 		struct Style final
 		{
-			SdSpacing padding = { 8.0f, 5.0f, 8.0f, 5.0f };
 			float boxSize = 18.0f;
 			float gap = 8.0f;
-			float minHeight = 28.0f;
-			float fontSize = 16.0f;
-			float lineHeight = 0.0f;
-			float radius = 4.0f;
-			float opacity = 1.0f;
 
 			static Style Default(const SdStyleContext& context)
 			{
 				Style style = {};
 				const float smallSpacing = context.theme.GetMetricVariable(SdThemeVariableLiteral("spacing.small"));
-				style.padding = { smallSpacing, smallSpacing, smallSpacing, smallSpacing };
 				style.boxSize = 18.0f;
 				style.gap = smallSpacing;
-				style.minHeight = 28.0f;
-				style.fontSize = BasicWidgetDetail::kDefaultFontSize;
-				style.lineHeight = 0.0f;
-				style.radius = std::max(2.0f, context.theme.GetMetricVariable(SdThemeVariableLiteral("radius.small")) - 1.0f);
-				style.opacity = 1.0f;
 				return style;
 			}
 
 			static void Describe(SdStyleContract<Style>& contract)
 			{
-				contract.Layout(&Style::padding);
 				contract.Layout(&Style::boxSize);
 				contract.Layout(&Style::gap);
-				contract.Layout(&Style::minHeight);
-				contract.Layout(&Style::fontSize);
-				contract.Layout(&Style::lineHeight);
-				contract.Paint(&Style::radius).InterpolatesAsFloat();
-				contract.Composite(&Style::opacity).InterpolatesAsFloat();
 			}
 		};
 
@@ -517,13 +499,15 @@ namespace Sodium
 		{
 			const State& state = context.State<State>();
 			const Style& style = context.RootResolvedStyle<SdCheckBox>();
-			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, style.fontSize, style.lineHeight);
+			const SdBoxStyle& rootStyle = context.RootStyleNode().resolvedStyle;
+			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(rootStyle, context.constraints.maxSize, {});
+			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, rootStyle.fontSize, rootStyle.lineHeight);
 			SdVec2 textSize = BasicWidgetDetail::MeasureText(context, state.label, textStyle);
 			textSize.y = std::max(textSize.y, BasicWidgetDetail::ResolveLineHeight(textStyle));
 
 			context.SetDesiredSize({
-				style.padding.left + style.boxSize + style.gap + textSize.x + style.padding.right,
-				std::max(style.minHeight, std::max(style.boxSize, textSize.y) + style.padding.top + style.padding.bottom)
+				usedStyle.padding.left + style.boxSize + style.gap + textSize.x + usedStyle.padding.right,
+				std::max(usedStyle.minHeight, std::max(style.boxSize, textSize.y) + usedStyle.padding.top + usedStyle.padding.bottom)
 			});
 		}
 
@@ -532,36 +516,38 @@ namespace Sodium
 			const State& state = context.State<State>();
 			const Style& style = context.RootPresentationStyle<SdCheckBox>();
 			const SdBoxStyle& presentation = context.RootStyleNode().presentationStyle;
-			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, style.fontSize, style.lineHeight);
+			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(presentation, context.animatedRect.Size(), {});
+			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, presentation.fontSize, presentation.lineHeight);
 			const float lineHeight = BasicWidgetDetail::ResolveLineHeight(textStyle);
 			const float boxY = context.animatedRect.min.y + (context.animatedRect.Height() - style.boxSize) * 0.5f;
 			const SdRect boxRect = {
-				context.animatedRect.min.x + style.padding.left,
+				context.animatedRect.min.x + usedStyle.padding.left,
 				boxY,
-				context.animatedRect.min.x + style.padding.left + style.boxSize,
+				context.animatedRect.min.x + usedStyle.padding.left + style.boxSize,
 				boxY + style.boxSize
 			};
-			const SdColor background = BasicWidgetDetail::ApplyOpacity(presentation.backgroundColor, context.opacity * style.opacity);
-			const SdColor border = BasicWidgetDetail::ApplyOpacity(presentation.border.left.color, context.opacity * style.opacity);
-			const SdColor textColor = BasicWidgetDetail::ApplyOpacity(presentation.color, context.opacity * style.opacity);
+			const SdColor background = BasicWidgetDetail::ApplyOpacity(presentation.backgroundColor, context.opacity * presentation.opacity);
+			const SdColor border = BasicWidgetDetail::ApplyOpacity(presentation.border.left.color, context.opacity * presentation.opacity);
+			const SdColor textColor = BasicWidgetDetail::ApplyOpacity(presentation.color, context.opacity * presentation.opacity);
 			const SdColor accent = BasicWidgetDetail::ApplyOpacity(
 				context.instance.GetStyleSystem().GetTheme().GetColorVariable(SdThemeVariableLiteral("accent")),
-				context.opacity * style.opacity);
+				context.opacity * presentation.opacity);
+			const float radius = SdResolveLength(presentation.radius, style.boxSize);
 
-			context.renderList.AddRectFilled(boxRect, background, context.clipRect, style.radius);
-			context.renderList.AddRect(boxRect, border, context.clipRect, 1.0f, style.radius);
+			context.renderList.AddRectFilled(boxRect, background, context.clipRect, radius);
+			context.renderList.AddRect(boxRect, border, context.clipRect, 1.0f, radius);
 			if (state.checked)
 			{
 				context.renderList.AddRectFilled(
 					BasicWidgetDetail::InsetRect(boxRect, { 4.0f, 4.0f, 4.0f, 4.0f }),
 					accent,
 					context.clipRect,
-					std::max(0.0f, style.radius - 2.0f));
+					std::max(0.0f, radius - 2.0f));
 			}
 
 			const SdVec2 textPosition = {
 				boxRect.max.x + style.gap,
-				context.animatedRect.min.y + std::max(style.padding.top, (context.animatedRect.Height() - lineHeight) * 0.5f)
+				context.animatedRect.min.y + std::max(usedStyle.padding.top, (context.animatedRect.Height() - lineHeight) * 0.5f)
 			};
 			context.renderList.AddText(state.label, textStyle, textPosition, textColor, context.clipRect);
 		}

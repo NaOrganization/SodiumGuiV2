@@ -40,8 +40,6 @@ namespace SodiumDynamicExample
 	{
 		const auto themeTransition = 360ms;
 		const Sodium::SdAnimationEasing easing = Sodium::SdAnimationEasing::OutCubic;
-		styleSystem.Rule<Sodium::SdCheckBox>()
-			.Transition(&Sodium::SdCheckBox::Style::radius, themeTransition, easing);
 		styleSystem.Rule<Sodium::SdSliderFloat>()
 			.Transition(&Sodium::SdSliderFloat::Style::radius, themeTransition, easing);
 		styleSystem.Rule<Sodium::SdTextInput>()
