@@ -287,6 +287,31 @@ namespace
 		Check(instance.GetDrawPacket().commands.size() > 0, "smoke draw packet is non-empty");
 	}
 
+	void TestStyleCorePhaseOneTypes()
+	{
+		SdWidgetRootStyle rootStyle = {};
+		rootStyle.display = SdDisplay::Flex;
+		rootStyle.boxSizing = SdBoxSizing::BorderBox;
+		rootStyle.width = SdLength::Pixels(120.0f);
+		rootStyle.padding = SdBoxEdges::All(SdLength::Pixels(4.0f));
+		rootStyle.backgroundColor = { 9, 8, 7, 255 };
+
+		SdStyleNode rootNode = {};
+		rootNode.styleNodeId = 1;
+		rootNode.widgetId = 42;
+		rootNode.part = SdStylePart::Root();
+		rootNode.pseudoState = SdPseudoState::FromInteraction(SdStyleInteractionState::Pressed);
+		rootNode.specifiedStyle = rootStyle;
+		rootNode.resolvedStyle = rootStyle;
+		rootNode.presentationStyle = rootStyle;
+
+		Check(rootNode.part.IsRoot(), "style node root part is strongly typed");
+		Check(rootNode.pseudoState.Has(SdPseudoStateFlag::Hovered), "pseudo state maps hovered bit");
+		Check(rootNode.pseudoState.Has(SdPseudoStateFlag::Active), "pseudo state maps active bit");
+		Check(rootNode.presentationStyle.width.unit == SdLengthUnit::Pixels, "presentation style carries CSS-like length");
+		Check(rootNode.presentationStyle.backgroundColor == SdColor(9, 8, 7, 255), "presentation style carries paint color");
+	}
+
 	void TestIdAndKeySemantics()
 	{
 		SdInstance instance;
@@ -1022,6 +1047,7 @@ namespace
 int main()
 {
 	TestSmokeAndDrawPacket();
+	TestStyleCorePhaseOneTypes();
 	TestIdAndKeySemantics();
 	TestLifecycleStateAndModel();
 	TestBasicTextModelI18n();

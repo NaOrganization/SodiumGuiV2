@@ -78,6 +78,17 @@ namespace Sodium
 		const bool firstStyle = !record.styleCache.valid;
 		record.style = context.styleSystem.Resolve(record.state.styleTokenTag, interactionState, layerPriority, record.styleClasses, record.styleScope);
 		record.styleCache.computed = record.style;
+		record.styleCache.presentation = record.style;
+		record.styleCache.rootStyleNodeId = 0;
+		record.rootStyleNode.styleNodeId = 0;
+		record.rootStyleNode.widgetId = record.state.id;
+		record.rootStyleNode.kind = SdStyleNodeKind::Root;
+		record.rootStyleNode.part = SdStylePart::Root();
+		record.rootStyleNode.scopeId = record.styleScope;
+		record.rootStyleNode.pseudoState = SdPseudoState::FromInteraction(interactionState);
+		record.rootStyleNode.specifiedStyle = SdPresentationStyleFromLegacyComputed(record.style);
+		record.rootStyleNode.resolvedStyle = record.rootStyleNode.specifiedStyle;
+		record.rootStyleNode.presentationStyle = record.rootStyleNode.resolvedStyle;
 		record.styleCache.styleTokenTag = record.state.styleTokenTag;
 		record.styleCache.interactionState = interactionState;
 		record.styleCache.layerPriority = layerPriority;
@@ -188,6 +199,8 @@ namespace Sodium
 				record.animation.styleBorderG,
 				record.animation.styleBorderB,
 				record.animation.styleBorderA);
+		record.styleCache.presentation = record.style;
+		record.rootStyleNode.presentationStyle = SdPresentationStyleFromLegacyComputed(record.style);
 	}
 
 	template<class TWidget>

@@ -234,6 +234,8 @@ namespace Sodium
 		SdStyleValue value = {};
 	};
 
+	// Compatibility path for the pre-style-node property bag. New runtime paint
+	// paths should use SdStyleNode::presentationStyle instead.
 	struct SdComputedStyle final
 	{
 		SdColor color = SdColorWhite;

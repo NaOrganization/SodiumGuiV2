@@ -1,6 +1,7 @@
 #pragma once
 
 #include "SdAnimation.h"
+#include "SdStyleCore.h"
 #include "SdWidgetContext.h"
 
 #include <cassert>
@@ -262,6 +263,8 @@ namespace Sodium
 	struct SdStyleCache final
 	{
 		SdComputedStyle computed = {};
+		SdComputedStyle presentation = {};
+		SdStyleNodeId rootStyleNodeId = SdInvalidStyleNodeId;
 		SdStyleTokenTag styleTokenTag = SdStyleTargetTags::Default;
 		SdStyleInteractionState interactionState = SdStyleInteractionState::Normal;
 		SdLayerPriority layerPriority = SdLayerPriority::Content;
@@ -304,6 +307,7 @@ namespace Sodium
 	{
 		SdWidgetState state = {};
 		SdComputedStyle style = {};
+		SdStyleNode rootStyleNode = {};
 		SdLayoutCache layoutCache = {};
 		SdStyleCache styleCache = {};
 		SdAnimationWidgetState animation = {};
