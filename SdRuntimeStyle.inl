@@ -4,26 +4,6 @@ namespace Sodium
 {
 	namespace Detail
 	{
-		inline SdTypedStyleAnimationChannel* FindTypedStyleAnimationChannel(SdTypedStyleRecord& styleRecord, SdUInt64 fieldId) noexcept
-		{
-			for (SdTypedStyleAnimationChannel& channel : styleRecord.animationChannels)
-			{
-				if (channel.fieldId == fieldId)
-					return &channel;
-			}
-			return nullptr;
-		}
-
-		inline SdTypedStyleAnimationChannel& GetOrCreateTypedStyleAnimationChannel(SdTypedStyleRecord& styleRecord, SdUInt64 fieldId)
-		{
-			if (SdTypedStyleAnimationChannel* channel = FindTypedStyleAnimationChannel(styleRecord, fieldId))
-				return *channel;
-
-			SdTypedStyleAnimationChannel& channel = styleRecord.animationChannels.emplace_back();
-			channel.fieldId = fieldId;
-			return channel;
-		}
-
 		inline void MarkTypedStyleFieldImpact(SdWidgetRecord& record, SdStyleFieldImpact impact, bool animationActive) noexcept
 		{
 			if (impact == SdStyleFieldImpact::Layout)
@@ -296,7 +276,6 @@ namespace Sodium
 			{
 				resolvedStyle = resolvedStyleValue;
 				presentationStyle = resolvedStyleValue;
-				styleRecord.animationChannels.clear();
 				styleRecord.targetTypeId = record.state.targetTypeId;
 				styleRecord.interactionState = interactionState;
 				styleRecord.layerPriority = layerPriority;
@@ -353,18 +332,12 @@ namespace Sodium
 							transition,
 							false,
 							field.expensiveTransition);
-						SdTypedStyleAnimationChannel& channel = Detail::GetOrCreateTypedStyleAnimationChannel(styleRecord, field.fieldId);
-						channel.styleNodeId = record.rootStyleNodeId;
-						channel.propertyId = field.fieldId;
-						channel.active = propertyChannel.active;
-						if (!channel.active)
+						if (!propertyChannel.active)
 							field.writeValue(&presentationStyle, propertyChannel.currentValue, context.styleSystem.GetTheme());
-						Detail::MarkTypedStyleFieldImpact(record, field.impact, channel.active);
+						Detail::MarkTypedStyleFieldImpact(record, field.impact, propertyChannel.active);
 					}
 					else
 					{
-						if (SdTypedStyleAnimationChannel* channel = Detail::FindTypedStyleAnimationChannel(styleRecord, field.fieldId))
-							channel->active = false;
 						if (field.readValue)
 						{
 							SdPropertyAnimationChannel& propertyChannel = context.styleAnimationChannels.Ensure(record.rootStyleNodeId, field.fieldId);
@@ -404,30 +377,25 @@ namespace Sodium
 
 			const auto& contract = context.styleSystem.GetContract<TWidget>();
 			(void)deltaTime;
-			for (SdTypedStyleAnimationChannel& channel : styleRecord.animationChannels)
+			for (const SdStyleFieldDescriptor& field : contract.GetFields())
 			{
-				if (!channel.active)
+				if (!field.writeValue)
+					continue;
+				SdPropertyAnimationChannel* propertyChannel = context.styleAnimationChannels.Find(record.rootStyleNodeId, field.fieldId);
+				if (!propertyChannel)
 					continue;
 
-				const SdStyleFieldDescriptor* field = contract.Find(channel.fieldId);
-				if (!field || !field->writeValue)
+				field.writeValue(presentationStyle, propertyChannel->currentValue, context.styleSystem.GetTheme());
+				const bool active = propertyChannel->active
+					&& !Detail::StyleValuesEqual(propertyChannel->currentValue, propertyChannel->targetValue);
+				if (!active)
 				{
-					channel.active = false;
-					continue;
+					field.writeValue(presentationStyle, propertyChannel->targetValue, context.styleSystem.GetTheme());
+					propertyChannel->active = false;
+					propertyChannel->currentValue = propertyChannel->targetValue;
 				}
 
-				SdPropertyAnimationChannel& propertyChannel = context.styleAnimationChannels.Ensure(channel.styleNodeId, channel.propertyId);
-				field->writeValue(presentationStyle, propertyChannel.currentValue, context.styleSystem.GetTheme());
-				channel.active = propertyChannel.active
-					&& !Detail::StyleValuesEqual(propertyChannel.currentValue, propertyChannel.targetValue);
-				if (!channel.active)
-				{
-					field->writeValue(presentationStyle, propertyChannel.targetValue, context.styleSystem.GetTheme());
-					propertyChannel.active = false;
-					propertyChannel.currentValue = propertyChannel.targetValue;
-				}
-
-				Detail::MarkTypedStyleFieldImpact(record, field->impact, channel.active);
+				Detail::MarkTypedStyleFieldImpact(record, field.impact, active);
 			}
 		}
 	}

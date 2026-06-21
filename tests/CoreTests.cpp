@@ -1439,7 +1439,6 @@ namespace
 		PumpFrame(transitionInstance);
 		Check(gTypedStylePaintColor != startColor && gTypedStylePaintColor != targetColor, "typed presentation style interpolates between targets");
 		Check(transitionInstance.GetDiagnostics().activeStyleNodeAnimationChannelCount > 0, "typed style transition contributes style node animation diagnostics");
-		bool typedTransitionBoundToStyleNode = false;
 		bool typedTransitionUsesStyleNodeChannel = false;
 		const SdPropertyId typedColorPropertyId = Detail::SdStyleFieldId(&TypedStyleWidget::Style::color);
 		for (const auto& [id, record] : transitionInstance.GetStateStorage().GetWidgetRecords())
@@ -1454,19 +1453,8 @@ namespace
 						&& channel.styleNodeId == record.rootStyleNodeId
 						&& channel.propertyId == typedColorPropertyId);
 			}
-			const auto styleIt = record.typedStyles.find(std::type_index(typeid(TypedStyleWidget::Style)));
-			if (styleIt == record.typedStyles.end())
-				continue;
-			for (const SdTypedStyleAnimationChannel& channel : styleIt->second.animationChannels)
-			{
-				typedTransitionBoundToStyleNode = typedTransitionBoundToStyleNode
-					|| (channel.active
-						&& channel.styleNodeId == record.rootStyleNodeId
-						&& channel.propertyId == typedColorPropertyId);
-			}
 		}
 		Check(typedTransitionUsesStyleNodeChannel, "typed style transition is driven by style node property channel");
-		Check(typedTransitionBoundToStyleNode, "typed style transition channel records style node property identity");
 
 		std::this_thread::sleep_for(std::chrono::milliseconds(450));
 		transitionInstance.BeginFrame({ 640.0f, 480.0f });

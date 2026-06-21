@@ -103,6 +103,26 @@ namespace Sodium
 			return channel;
 		}
 
+		SdPropertyAnimationChannel* Find(SdStyleNodeId styleNodeId, SdPropertyId propertyId) noexcept
+		{
+			for (SdPropertyAnimationChannel& channel : channels)
+			{
+				if (channel.styleNodeId == styleNodeId && channel.propertyId == propertyId)
+					return &channel;
+			}
+			return nullptr;
+		}
+
+		const SdPropertyAnimationChannel* Find(SdStyleNodeId styleNodeId, SdPropertyId propertyId) const noexcept
+		{
+			for (const SdPropertyAnimationChannel& channel : channels)
+			{
+				if (channel.styleNodeId == styleNodeId && channel.propertyId == propertyId)
+					return &channel;
+			}
+			return nullptr;
+		}
+
 		SdUInt32 CountActive() const noexcept
 		{
 			SdUInt32 count = 0;

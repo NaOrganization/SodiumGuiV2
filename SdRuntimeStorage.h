@@ -273,14 +273,6 @@ namespace Sodium
 		bool valid = false;
 	};
 
-	struct SdTypedStyleAnimationChannel final
-	{
-		SdUInt64 fieldId = 0;
-		SdStyleNodeId styleNodeId = SdInvalidStyleNodeId;
-		SdPropertyId propertyId = 0;
-		bool active = false;
-	};
-
 	struct SdTypedStyleRecord final
 	{
 		Detail::SdObjectHandle resolvedStyle = {};
@@ -294,7 +286,6 @@ namespace Sodium
 		SdUInt64 inlineStyleRevision = 0;
 		SdUInt64 resolvedInlineStyleRevision = 0;
 		SdUInt64 styleRevision = 0;
-		std::vector<SdTypedStyleAnimationChannel> animationChannels = {};
 		bool valid = false;
 	};
 
