@@ -1167,29 +1167,16 @@ namespace Sodium
 
 		struct Style final
 		{
-			SdSpacing padding = {};
-			float width = 160.0f;
-			float height = 120.0f;
-			float radius = 5.0f;
-			float opacity = 1.0f;
-
 			static Style Default(const SdStyleContext& context)
 			{
+				(void)context;
 				Style style = {};
-				style.width = 160.0f;
-				style.height = 120.0f;
-				style.radius = context.theme.GetMetricVariable(SdThemeVariableLiteral("radius.small"));
-				style.opacity = 1.0f;
 				return style;
 			}
 
 			static void Describe(SdStyleContract<Style>& contract)
 			{
-				contract.Layout(&Style::padding);
-				contract.Layout(&Style::width);
-				contract.Layout(&Style::height);
-				contract.Paint(&Style::radius).InterpolatesAsFloat();
-				contract.Composite(&Style::opacity).InterpolatesAsFloat();
+				(void)contract;
 			}
 		};
 
@@ -1226,29 +1213,36 @@ namespace Sodium
 		void OnLayout(SdLayoutContext& context)
 		{
 			const State& state = context.State<State>();
-			const Style& style = context.RootResolvedStyle<SdImageViewer>();
+			const SdBoxStyle& rootStyle = context.RootStyleNode().resolvedStyle;
+			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(rootStyle, context.constraints.maxSize, { 160.0f, 120.0f });
 			const SdVec2 imageSize = {
-				state.size.x > 0.0f ? state.size.x : style.width,
-				state.size.y > 0.0f ? state.size.y : style.height
+				state.size.x > 0.0f ? state.size.x : usedStyle.width,
+				state.size.y > 0.0f ? state.size.y : usedStyle.height
 			};
 			context.SetDesiredSize({
-				imageSize.x + style.padding.left + style.padding.right,
-				imageSize.y + style.padding.top + style.padding.bottom
+				imageSize.x + usedStyle.padding.left + usedStyle.padding.right,
+				imageSize.y + usedStyle.padding.top + usedStyle.padding.bottom
 			});
 		}
 
 		void OnPaint(SdPaintContext& context)
 		{
 			const State& state = context.State<State>();
-			const Style& style = context.RootPresentationStyle<SdImageViewer>();
 			const SdBoxStyle& presentation = context.RootStyleNode().presentationStyle;
-			const SdColor background = BasicWidgetDetail::ApplyOpacity(presentation.backgroundColor, context.opacity * style.opacity);
-			const SdColor tint = BasicWidgetDetail::ApplyOpacity(state.tint, context.opacity * style.opacity);
-			context.renderList.AddRectFilled(context.animatedRect, background, context.clipRect, style.radius);
-			const SdRect imageRect = BasicWidgetDetail::InsetRect(context.animatedRect, style.padding);
+			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(presentation, context.animatedRect.Size(), { 160.0f, 120.0f });
+			const SdColor background = BasicWidgetDetail::ApplyOpacity(presentation.backgroundColor, context.opacity * presentation.opacity);
+			const SdColor tint = BasicWidgetDetail::ApplyOpacity(state.tint, context.opacity * presentation.opacity);
+			const float radius = SdResolveLength(presentation.radius, context.animatedRect.Width());
+			context.renderList.AddRectFilled(context.animatedRect, background, context.clipRect, radius);
+			const SdRect imageRect = BasicWidgetDetail::InsetRect(context.animatedRect, {
+				usedStyle.padding.left,
+				usedStyle.padding.top,
+				usedStyle.padding.right,
+				usedStyle.padding.bottom
+			});
 			if (state.texture.IsValid())
 				context.renderList.AddImage(state.texture, imageRect, state.uvRect, tint, context.clipRect);
-			context.renderList.AddRect(context.animatedRect, presentation.border.left.color, context.clipRect, 1.0f, style.radius);
+			context.renderList.AddRect(context.animatedRect, presentation.border.left.color, context.clipRect, 1.0f, radius);
 		}
 	};
 

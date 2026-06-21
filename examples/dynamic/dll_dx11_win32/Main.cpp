@@ -42,8 +42,6 @@ namespace SodiumDynamicExample
 		const Sodium::SdAnimationEasing easing = Sodium::SdAnimationEasing::OutCubic;
 		styleSystem.Rule<Sodium::SdWindow>()
 			.Transition(&Sodium::SdWindow::Style::radius, themeTransition, easing);
-		styleSystem.Rule<Sodium::SdImageViewer>()
-			.Transition(&Sodium::SdImageViewer::Style::radius, themeTransition, easing);
 		styleSystem.Rule<Sodium::SdScrollView>()
 			.Transition(&Sodium::SdScrollView::Style::radius, themeTransition, easing);
 		styleSystem.Rule<Sodium::SdPopup>()
