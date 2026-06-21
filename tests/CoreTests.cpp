@@ -1185,7 +1185,10 @@ namespace
 
 		const SdUInt64 previousStyleRevision = instance.GetStyleSystem().GetRevision();
 		const SdColor updatedButtonColor = { 11, 22, 33, 255 };
+		const SdColor updatedRootColor = { 17, 29, 41, 255 };
 		instance.GetStyleSystem().SetColorVariable("button.bg", updatedButtonColor);
+		instance.GetStyleSystem().RootRule(TestDrawWidget::TargetTypeId)
+			.Set(&SdBoxStyle::backgroundColor, updatedRootColor);
 		instance.BeginFrame({ 640.0f, 480.0f });
 		instance.ui.DeclareKeyed<TestContainer>("container", [](SdUi& ui)
 		{
@@ -1196,6 +1199,8 @@ namespace
 
 		bool hasUpdatedStyleRevision = false;
 		bool hasUpdatedContentPartStyle = false;
+		bool hasRootBackgroundStyleNodeAnimation = false;
+		const SdPropertyId backgroundPropertyId = Detail::SdStylePropertyId(&SdBoxStyle::backgroundColor);
 		for (const auto& [id, record] : instance.GetStateStorage().GetWidgetRecords())
 		{
 			(void)id;
@@ -1209,10 +1214,22 @@ namespace
 					record.styleCache.resolvedStyle,
 					SdStyleInteractionState::Normal);
 				hasUpdatedContentPartStyle = contentStyle.backgroundColor == updatedButtonColor;
+				for (const SdPropertyAnimationChannel& channel : instance.GetContext().styleAnimationChannels.GetChannels())
+				{
+					if (channel.styleNodeId == record.rootStyleNodeId
+						&& channel.propertyId == backgroundPropertyId
+						&& channel.impact == SdStyleFieldImpact::Paint
+						&& channel.interpolation == SdStyleInterpolation::Color)
+					{
+						hasRootBackgroundStyleNodeAnimation = true;
+					}
+				}
 			}
 		}
 		Check(hasUpdatedStyleRevision, "style cache refreshes when style system revision changes");
 		Check(hasUpdatedContentPartStyle, "button content part style refreshes when style system revision changes");
+		Check(hasRootBackgroundStyleNodeAnimation, "root background transition is tracked by style node property channel");
+		Check(instance.GetDiagnostics().activeStyleNodeAnimationChannelCount > 0, "diagnostics expose active style node animation channels");
 	}
 
 	void TestIdStackAndStyleLayerSelectors()

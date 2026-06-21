@@ -130,6 +130,7 @@ namespace Sodium
 
 	inline void SdInstance::SetWidgetStyleAnimationTarget(SdWidgetRecord& record, const SdWidgetRootStyle& style, bool immediate)
 	{
+		const SdPropertyId backgroundPropertyId = Detail::SdStylePropertyId(&SdBoxStyle::backgroundColor);
 		const auto setChannel = [this, immediate](SdAnimationChannelId channelId, float target)
 		{
 			if (immediate)
@@ -165,6 +166,30 @@ namespace Sodium
 			record.animation.styleBorderB,
 			record.animation.styleBorderA,
 			style.border.left.color);
+
+		const auto toByte = [](float value) noexcept
+		{
+			return static_cast<SdUInt8>(std::clamp(value, 0.0f, 255.0f));
+		};
+		const SdColor currentBackground = {
+			toByte(context.animationSystem.GetValue(record.animation.styleBackgroundR, static_cast<float>(style.backgroundColor.r))),
+			toByte(context.animationSystem.GetValue(record.animation.styleBackgroundG, static_cast<float>(style.backgroundColor.g))),
+			toByte(context.animationSystem.GetValue(record.animation.styleBackgroundB, static_cast<float>(style.backgroundColor.b))),
+			toByte(context.animationSystem.GetValue(record.animation.styleBackgroundA, static_cast<float>(style.backgroundColor.a)))
+		};
+		SdPropertyAnimationChannel& backgroundChannel = context.styleAnimationChannels.Ensure(
+			record.rootStyleNodeId,
+			backgroundPropertyId);
+		backgroundChannel.impact = SdStyleFieldImpact::Paint;
+		backgroundChannel.interpolation = SdStyleInterpolation::Color;
+		backgroundChannel.transition = immediate ? SdTransition{} : GetDefaultTransition();
+		backgroundChannel.elapsed = {};
+		backgroundChannel.startValue = SdStyleValue::FromColor(currentBackground);
+		backgroundChannel.targetValue = SdStyleValue::FromColor(style.backgroundColor);
+		backgroundChannel.currentValue = backgroundChannel.startValue;
+		backgroundChannel.active = !immediate && !Detail::StyleValuesEqual(backgroundChannel.startValue, backgroundChannel.targetValue);
+		if (immediate || !backgroundChannel.active)
+			backgroundChannel.currentValue = backgroundChannel.targetValue;
 	}
 
 	inline void SdInstance::ApplyWidgetStyleAnimation(SdWidgetRecord& record)
@@ -229,6 +254,15 @@ namespace Sodium
 				record.animation.styleBorderB,
 				record.animation.styleBorderA);
 		record.styleCache.presentationStyle = presentationStyle;
+		SdPropertyAnimationChannel& backgroundChannel = context.styleAnimationChannels.Ensure(
+			record.rootStyleNodeId,
+			Detail::SdStylePropertyId(&SdBoxStyle::backgroundColor));
+		backgroundChannel.currentValue = SdStyleValue::FromColor(presentationStyle.backgroundColor);
+		backgroundChannel.active = anyColorChannelActive(
+			record.animation.styleBackgroundR,
+			record.animation.styleBackgroundG,
+			record.animation.styleBackgroundB,
+			record.animation.styleBackgroundA);
 		if (SdStyleNode* rootNode = context.stateStorage.FindStyleNodeById(record.rootStyleNodeId))
 		{
 			rootNode->presentationStyle = presentationStyle;

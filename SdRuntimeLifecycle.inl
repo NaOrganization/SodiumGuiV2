@@ -141,6 +141,12 @@ namespace Sodium
 	{
 		return context.stateStorage.RemoveDeadWidgets([this](SdWidgetId widgetId)
 		{
+			if (const SdWidgetRecord* record = context.stateStorage.FindWidgetRecord(widgetId))
+			{
+				context.styleAnimationChannels.RemoveStyleNode(record->rootStyleNodeId);
+				for (SdStyleNodeId partStyleNodeId : record->partStyleNodeIds)
+					context.styleAnimationChannels.RemoveStyleNode(partStyleNodeId);
+			}
 			context.animationSystem.RemoveWidget(widgetId);
 		});
 	}

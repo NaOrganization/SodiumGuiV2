@@ -7,6 +7,7 @@
 #include "SdRenderCore.h"
 #include "SdRuntimeStorage.h"
 #include "SdStyle.h"
+#include "SdStyleAnimation.h"
 #include "SdUi.h"
 
 #include <vector>
@@ -79,6 +80,7 @@ namespace Sodium
 		std::vector<SdWidgetId> frameOrder = {};
 		SdInputSystem input{ 512 };
 		SdAnimationSystem animationSystem = {};
+		SdStyleAnimationChannels styleAnimationChannels = {};
 		SdStyleSystem styleSystem = {};
 		SdLayoutSystem layoutSystem = {};
 		SdLayerSystem layerSystem = {};

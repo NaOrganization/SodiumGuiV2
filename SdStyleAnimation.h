@@ -2,6 +2,7 @@
 
 #include "SdStyleProperty.h"
 
+#include <algorithm>
 #include <vector>
 
 namespace Sodium
@@ -68,6 +69,14 @@ namespace Sodium
 		const std::vector<SdPropertyAnimationChannel>& GetChannels() const noexcept
 		{
 			return channels;
+		}
+
+		void RemoveStyleNode(SdStyleNodeId styleNodeId)
+		{
+			channels.erase(std::remove_if(channels.begin(), channels.end(), [styleNodeId](const SdPropertyAnimationChannel& channel)
+			{
+				return channel.styleNodeId == styleNodeId;
+			}), channels.end());
 		}
 	};
 }
