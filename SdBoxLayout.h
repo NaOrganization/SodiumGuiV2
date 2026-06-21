@@ -218,7 +218,10 @@ namespace Sodium
 		{
 			SdBoxNode& parent = boxes[parentIndex];
 			const bool row = parent.usedStyleValues.flexDirection == SdFlexDirection::Row;
-			float main = row ? parent.contentBox.min.x : parent.contentBox.min.y;
+			const float parentMainSize = row ? parent.contentBox.Width() : parent.contentBox.Height();
+			float occupiedMainSize = 0.0f;
+			SdSize visibleChildCount = 0;
+
 			for (SdUInt32 childIndex = parent.firstChildIndex;
 				childIndex != SdInvalidIndex<SdUInt32>;
 				childIndex = boxes[childIndex].nextSiblingIndex)
@@ -234,6 +237,49 @@ namespace Sodium
 				const float childHeight = std::max(0.0f, child.usedStyleValues.height
 					+ child.usedStyleValues.padding.top + child.usedStyleValues.padding.bottom
 					+ child.usedStyleValues.border.top + child.usedStyleValues.border.bottom);
+				occupiedMainSize += row
+					? child.usedStyleValues.margin.left + childWidth + child.usedStyleValues.margin.right
+					: child.usedStyleValues.margin.top + childHeight + child.usedStyleValues.margin.bottom;
+				++visibleChildCount;
+			}
+
+			if (visibleChildCount > 1)
+				occupiedMainSize += parent.usedStyleValues.gap * static_cast<float>(visibleChildCount - 1);
+
+			const float remainingMainSize = std::max(0.0f, parentMainSize - occupiedMainSize);
+			float main = row ? parent.contentBox.min.x : parent.contentBox.min.y;
+			float gap = parent.usedStyleValues.gap;
+			switch (parent.usedStyleValues.justifyContent)
+			{
+			case SdJustifyContent::Center:
+				main += remainingMainSize * 0.5f;
+				break;
+			case SdJustifyContent::FlexEnd:
+				main += remainingMainSize;
+				break;
+			case SdJustifyContent::SpaceBetween:
+				if (visibleChildCount > 1)
+					gap += remainingMainSize / static_cast<float>(visibleChildCount - 1);
+				break;
+			case SdJustifyContent::FlexStart:
+			default:
+				break;
+			}
+
+			for (SdUInt32 childIndex = parent.firstChildIndex;
+				childIndex != SdInvalidIndex<SdUInt32>;
+				childIndex = boxes[childIndex].nextSiblingIndex)
+			{
+				SdBoxNode& child = boxes[childIndex];
+				if (child.display == SdDisplay::None)
+					continue;
+
+				const float childWidth = std::max(0.0f, child.usedStyleValues.width
+					+ child.usedStyleValues.padding.left + child.usedStyleValues.padding.right
+					+ child.usedStyleValues.border.left + child.usedStyleValues.border.right);
+				const float childHeight = std::max(0.0f, child.usedStyleValues.height
+					+ child.usedStyleValues.padding.top + child.usedStyleValues.padding.bottom
+					+ child.usedStyleValues.border.top + child.usedStyleValues.border.bottom);
 				SdRect rect = {};
 				if (row)
 				{
@@ -243,7 +289,7 @@ namespace Sodium
 						main + child.usedStyleValues.margin.left + childWidth,
 						parent.contentBox.min.y + child.usedStyleValues.margin.top + childHeight
 					};
-					main = rect.max.x + child.usedStyleValues.margin.right + parent.usedStyleValues.gap;
+					main = rect.max.x + child.usedStyleValues.margin.right + gap;
 				}
 				else
 				{
@@ -253,7 +299,7 @@ namespace Sodium
 						parent.contentBox.min.x + child.usedStyleValues.margin.left + childWidth,
 						main + child.usedStyleValues.margin.top + childHeight
 					};
-					main = rect.max.y + child.usedStyleValues.margin.bottom + parent.usedStyleValues.gap;
+					main = rect.max.y + child.usedStyleValues.margin.bottom + gap;
 				}
 				SetBoxRect(child, rect);
 				LayoutChildBlock(childIndex);

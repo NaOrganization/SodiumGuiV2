@@ -1116,6 +1116,25 @@ namespace
 		Check(boxes[1].borderBox.min.x == boxes[0].contentBox.min.x, "flex first child starts at content min");
 		Check(boxes[2].borderBox.min.x == boxes[1].borderBox.max.x + 5.0f, "flex gap advances next child");
 
+		parentStyle.justifyContent = SdJustifyContent::Center;
+		SdBoxTree centeredTree = {};
+		const SdUInt32 centeredParent = centeredTree.AddBox(7, SdInvalidIndex<SdUInt32>, parentStyle, { 120.0f, 40.0f });
+		centeredTree.AddBox(8, centeredParent, childStyle, { 20.0f, 10.0f });
+		centeredTree.AddBox(9, centeredParent, childStyle, { 20.0f, 10.0f });
+		centeredTree.Layout({ 0.0f, 0.0f, 200.0f, 100.0f });
+		const std::vector<SdBoxNode>& centeredBoxes = centeredTree.GetBoxes();
+		Check(centeredBoxes[1].borderBox.min.x == centeredBoxes[0].contentBox.min.x + 37.5f, "flex justify-content center offsets row children");
+
+		parentStyle.justifyContent = SdJustifyContent::SpaceBetween;
+		SdBoxTree spacedTree = {};
+		const SdUInt32 spacedParent = spacedTree.AddBox(10, SdInvalidIndex<SdUInt32>, parentStyle, { 120.0f, 40.0f });
+		spacedTree.AddBox(11, spacedParent, childStyle, { 20.0f, 10.0f });
+		spacedTree.AddBox(12, spacedParent, childStyle, { 20.0f, 10.0f });
+		spacedTree.Layout({ 0.0f, 0.0f, 200.0f, 100.0f });
+		const std::vector<SdBoxNode>& spacedBoxes = spacedTree.GetBoxes();
+		Check(spacedBoxes[2].borderBox.max.x == spacedBoxes[0].contentBox.max.x, "flex justify-content space-between distributes row children");
+
+		parentStyle.justifyContent = SdJustifyContent::FlexStart;
 		parentStyle.flexDirection = SdFlexDirection::Column;
 		SdBoxTree columnTree = {};
 		const SdUInt32 columnParent = columnTree.AddBox(4, SdInvalidIndex<SdUInt32>, parentStyle, { 120.0f, 40.0f });
@@ -1175,6 +1194,7 @@ namespace
 		overflowInstance.GetStyleSystem().RootRule(TestOverflowContainer::TargetTypeId)
 			.Set(&SdBoxStyle::display, SdDisplay::Flex)
 			.Set(&SdBoxStyle::flexDirection, SdFlexDirection::Column)
+			.Set(&SdBoxStyle::justifyContent, SdJustifyContent::Center)
 			.Set(&SdBoxStyle::boxSizing, SdBoxSizing::BorderBox)
 			.Set(&SdBoxStyle::maxWidth, SdLength::Pixels(96.0f))
 			.Set(&SdBoxStyle::maxHeight, SdLength::Pixels(72.0f))
@@ -1192,6 +1212,7 @@ namespace
 		Check(
 			overflowStyle.display == SdDisplay::Flex
 			&& overflowStyle.flexDirection == SdFlexDirection::Column
+			&& overflowStyle.justifyContent == SdJustifyContent::Center
 			&& overflowStyle.boxSizing == SdBoxSizing::BorderBox
 			&& overflowStyle.maxWidth.value == 96.0f
 			&& overflowStyle.maxHeight.value == 72.0f
