@@ -204,6 +204,13 @@ namespace Sodium
 	private:
 		std::vector<SdPropertyDescriptor> properties = {};
 
+		static bool CanUseBoxStyleProperty(std::type_index propertyStyleType, std::type_index requestedStyleType) noexcept
+		{
+			return propertyStyleType == std::type_index(typeid(SdBoxStyle))
+				&& (requestedStyleType == std::type_index(typeid(SdWidgetRootStyle))
+					|| requestedStyleType == std::type_index(typeid(SdWidgetPartStyle)));
+		}
+
 	public:
 		template<auto Member>
 		SdPropertyDescriptor& Register(
@@ -250,7 +257,7 @@ namespace Sodium
 			}
 			for (const SdPropertyDescriptor& property : properties)
 			{
-				if (property.propertyId == propertyId)
+				if (property.propertyId == propertyId && CanUseBoxStyleProperty(property.styleType, styleType))
 					return &property;
 			}
 			return nullptr;

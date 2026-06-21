@@ -135,7 +135,6 @@ namespace
 		void OnLayout(SdLayoutContext& context)
 		{
 			context.SetDesiredSize({ 120.0f, 80.0f });
-			context.widgetState.arrangeChildren = true;
 		}
 	};
 
@@ -1161,6 +1160,7 @@ namespace
 
 		SdInstance overflowInstance;
 		overflowInstance.GetStyleSystem().RootRule(TestOverflowContainer::TargetTypeId)
+			.Set(&SdBoxStyle::display, SdDisplay::Flex)
 			.Set(&SdBoxStyle::padding, SdStyleValue::FromSpacing({ 5.0f, 6.0f, 7.0f, 8.0f }))
 			.Set(&SdBoxStyle::overflowX, SdOverflow::Hidden)
 			.Set(&SdBoxStyle::overflowY, SdOverflow::Clip);
@@ -1172,9 +1172,12 @@ namespace
 		PumpFrame(overflowInstance);
 		const SdWidgetRootStyle overflowStyle = overflowInstance.GetStyleSystem().ResolveRootStyle(TestOverflowContainer::TargetTypeId, SdStyleInteractionState::Normal);
 		Check(
-			overflowStyle.overflowX == SdOverflow::Hidden && overflowStyle.overflowY == SdOverflow::Clip,
-			"stylesheet resolves root overflow enum properties");
+			overflowStyle.display == SdDisplay::Flex
+			&& overflowStyle.overflowX == SdOverflow::Hidden
+			&& overflowStyle.overflowY == SdOverflow::Clip,
+			"stylesheet resolves root layout enum properties");
 		bool childClipMatchesOverflowContent = false;
+		bool childArrangedFromFlexDisplay = false;
 		SdRect overflowContentRect = {};
 		for (const auto& [id, record] : overflowInstance.GetStateStorage().GetWidgetRecords())
 		{
@@ -1187,12 +1190,15 @@ namespace
 			(void)id;
 			if (record.widgetType == std::type_index(typeid(TestDrawWidget)))
 			{
+				childArrangedFromFlexDisplay = record.state.targetRect.min.x == overflowContentRect.min.x
+					&& record.state.targetRect.min.y == overflowContentRect.min.y;
 				childClipMatchesOverflowContent = record.state.computedClipRect.min.x == overflowContentRect.min.x
 					&& record.state.computedClipRect.min.y == overflowContentRect.min.y
 					&& record.state.computedClipRect.max.x == overflowContentRect.max.x
 					&& record.state.computedClipRect.max.y == overflowContentRect.max.y;
 			}
 		}
+		Check(childArrangedFromFlexDisplay, "runtime derives child arrangement from root flex display style");
 		Check(childClipMatchesOverflowContent, "runtime derives child clipping from root overflow style");
 	}
 

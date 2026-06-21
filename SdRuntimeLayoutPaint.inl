@@ -119,6 +119,7 @@ namespace Sodium
 			record.state.measuredSize = result.desiredSize;
 			const SdResolvedBoxStyle rootUsedStyle = SdResolveBoxStyle(record.styleCache.resolvedStyle, constraints.maxSize, result.desiredSize);
 			const SdResolvedBoxEdges rootBorder = SdResolveBorderEdges(record.styleCache.resolvedStyle.border, record.state.measuredSize);
+			const bool styleArrangesChildren = rootUsedStyle.display == SdDisplay::Flex;
 			const bool styleClipsChildren = overflowClipsChildren(rootUsedStyle.overflowX)
 				|| overflowClipsChildren(rootUsedStyle.overflowY);
 
@@ -138,7 +139,7 @@ namespace Sodium
 				record.state.layoutWeight,
 				std::max(0.0f, rootUsedStyle.gap),
 				record.state.manualLayout,
-				record.state.arrangeChildren,
+				record.state.arrangeChildren || styleArrangesChildren,
 				record.state.clipChildren || styleClipsChildren
 			});
 		}
