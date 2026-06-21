@@ -34,7 +34,8 @@ namespace Sodium
 			channel.targetValue = targetValue;
 			channel.currentValue = channel.startValue;
 			channel.expensiveLayout = expensiveLayout;
-			channel.discrete = interpolation == SdStyleInterpolation::None;
+			channel.discrete = transition.behavior == SdTransitionBehavior::AllowDiscrete
+				&& interpolation == SdStyleInterpolation::None;
 			channel.active = !immediate && !StyleValuesEqual(channel.startValue, channel.targetValue);
 			if (immediate || !channel.active)
 				channel.currentValue = channel.targetValue;
@@ -369,9 +370,11 @@ namespace Sodium
 						record.styleScope,
 						transition);
 					const bool layoutTransitionAllowed = field.impact != SdStyleFieldImpact::Layout || field.expensiveTransition;
+					const bool discreteTransitionAllowed = transition.behavior == SdTransitionBehavior::AllowDiscrete
+						&& field.interpolation == SdStyleInterpolation::None;
 					const bool canTransition = hasTransition
 						&& layoutTransitionAllowed
-						&& field.interpolation != SdStyleInterpolation::None
+						&& (field.interpolation != SdStyleInterpolation::None || discreteTransitionAllowed)
 						&& field.readValue
 						&& field.writeValue;
 

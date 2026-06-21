@@ -601,6 +601,14 @@ namespace Sodium
 			}
 
 			template<class TField>
+			SdStyleSystemSheetRuleBuilder& Transition(TField TStyle::* member, SdDuration duration, SdDuration delay, SdAnimationEasing easing, SdTransitionBehavior behavior)
+			{
+				builder.Transition(member, duration, delay, easing, behavior);
+				TouchCompiledSheet();
+				return *this;
+			}
+
+			template<class TField>
 			SdStyleSystemSheetRuleBuilder& TransitionImportant(TField TStyle::* member, SdDuration duration, SdAnimationEasing easing)
 			{
 				builder.TransitionImportant(member, duration, easing);
@@ -612,6 +620,14 @@ namespace Sodium
 			SdStyleSystemSheetRuleBuilder& TransitionImportant(TField TStyle::* member, SdDuration duration, SdDuration delay, SdAnimationEasing easing)
 			{
 				builder.TransitionImportant(member, duration, delay, easing);
+				TouchCompiledSheet();
+				return *this;
+			}
+
+			template<class TField>
+			SdStyleSystemSheetRuleBuilder& TransitionImportant(TField TStyle::* member, SdDuration duration, SdDuration delay, SdAnimationEasing easing, SdTransitionBehavior behavior)
+			{
+				builder.TransitionImportant(member, duration, delay, easing, behavior);
 				TouchCompiledSheet();
 				return *this;
 			}
@@ -1354,6 +1370,14 @@ namespace Sodium
 		SdStyleRuleBuilder& Transition(TField Style::* member, SdDuration duration, SdDuration delay, SdAnimationEasing easing)
 		{
 			builder.Transition(member, duration, delay, easing);
+			TouchCompiledSheet();
+			return *this;
+		}
+
+		template<class TField>
+		SdStyleRuleBuilder& Transition(TField Style::* member, SdDuration duration, SdDuration delay, SdAnimationEasing easing, SdTransitionBehavior behavior)
+		{
+			builder.Transition(member, duration, delay, easing, behavior);
 			TouchCompiledSheet();
 			return *this;
 		}

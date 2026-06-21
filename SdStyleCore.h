@@ -174,12 +174,6 @@ namespace Sodium
 		float rotateRadians = 0.0f;
 	};
 
-	enum class SdTransitionBehavior : SdUInt8
-	{
-		Normal,
-		AllowDiscrete
-	};
-
 	struct SdStyleTransition final
 	{
 		SdPropertyId propertyId = 0;

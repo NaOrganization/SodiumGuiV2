@@ -250,11 +250,18 @@ namespace Sodium
 		OutCubic
 	};
 
+	enum class SdTransitionBehavior : SdUInt8
+	{
+		Normal,
+		AllowDiscrete
+	};
+
 	struct SdTransition final
 	{
 		SdDuration duration = 160ms;
 		SdAnimationEasing easing = SdAnimationEasing::OutCubic;
 		SdDuration delay = {};
+		SdTransitionBehavior behavior = SdTransitionBehavior::Normal;
 	};
 
 	struct SdWidgetTransition final

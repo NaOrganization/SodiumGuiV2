@@ -210,6 +210,12 @@ namespace Sodium
 		}
 
 		template<class TOwner, class TField>
+		SdStyleSheetRuleBuilder& Transition(TField TOwner::* member, SdDuration duration, SdDuration delay, SdAnimationEasing easing, SdTransitionBehavior behavior)
+		{
+			return TransitionValue(member, { duration, easing, delay, behavior }, false);
+		}
+
+		template<class TOwner, class TField>
 		SdStyleSheetRuleBuilder& TransitionImportant(TField TOwner::* member, SdDuration duration, SdAnimationEasing easing)
 		{
 			return TransitionValue(member, { duration, easing }, true);
@@ -219,6 +225,12 @@ namespace Sodium
 		SdStyleSheetRuleBuilder& TransitionImportant(TField TOwner::* member, SdDuration duration, SdDuration delay, SdAnimationEasing easing)
 		{
 			return TransitionValue(member, { duration, easing, delay }, true);
+		}
+
+		template<class TOwner, class TField>
+		SdStyleSheetRuleBuilder& TransitionImportant(TField TOwner::* member, SdDuration duration, SdDuration delay, SdAnimationEasing easing, SdTransitionBehavior behavior)
+		{
+			return TransitionValue(member, { duration, easing, delay, behavior }, true);
 		}
 
 	private:

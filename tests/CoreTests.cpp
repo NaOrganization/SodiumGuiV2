@@ -864,9 +864,12 @@ namespace
 			.Transition(&SdWidgetPartStyle::opacity, std::chrono::milliseconds(260), SdAnimationEasing::Linear);
 		styleSystem.RootRule(SdButton::TargetTypeId)
 			.Transition(&SdWidgetRootStyle::opacity, std::chrono::milliseconds(180), std::chrono::milliseconds(45), SdAnimationEasing::Linear);
+		styleSystem.RootRule(SdText::TargetTypeId)
+			.Transition(&SdWidgetRootStyle::display, std::chrono::milliseconds(90), std::chrono::milliseconds(15), SdAnimationEasing::Linear, SdTransitionBehavior::AllowDiscrete);
 		Check(!styleSystem.GetCompiledStyleSheet().GetRules().empty(), "style system exposes compiled stylesheet with part rules");
 		SdTransition partTransition = {};
 		SdTransition delayedRootTransition = {};
+		SdTransition discreteRootTransition = {};
 		const bool partTransitionResolved = styleSystem.TryResolvePartTransition(
 			SdButton::TargetTypeId,
 			SdButton::Parts::Label,
@@ -884,12 +887,25 @@ namespace
 			{},
 			0,
 			delayedRootTransition);
+		const bool discreteRootTransitionResolved = styleSystem.TryResolveRootTransition(
+			SdText::TargetTypeId,
+			Detail::SdStylePropertyId(&SdWidgetRootStyle::display),
+			SdStyleInteractionState::Normal,
+			SdLayerPriority::Content,
+			{},
+			0,
+			discreteRootTransition);
 		Check(partTransitionResolved && partTransition.duration == std::chrono::milliseconds(260), "part stylesheet transition resolves through compiled stylesheet");
 		Check(
 			delayedRootTransitionResolved
 			&& delayedRootTransition.duration == std::chrono::milliseconds(180)
 			&& delayedRootTransition.delay == std::chrono::milliseconds(45),
 			"root stylesheet transition preserves delay");
+		Check(
+			discreteRootTransitionResolved
+			&& discreteRootTransition.behavior == SdTransitionBehavior::AllowDiscrete
+			&& discreteRootTransition.delay == std::chrono::milliseconds(15),
+			"root stylesheet transition preserves discrete behavior");
 
 		const SdWidgetRootStyle panelDefault = styleSystem.ResolveRootStyle(SdPanel::TargetTypeId, SdStyleInteractionState::Normal);
 		Check(panelDefault.width.unit == SdLengthUnit::Pixels && panelDefault.width.value == 240.0f, "panel default width resolves through root style");
@@ -1967,6 +1983,32 @@ namespace
 			&& delayedChannel.currentValue.number < 1.0f
 			&& delayedChannel.active,
 			"style node transition starts interpolating after delay");
+
+		SdStyleAnimationChannels discreteStyleChannels;
+		SdPropertyAnimationChannel& discreteChannel = discreteStyleChannels.Ensure(12, Detail::SdStylePropertyId(&SdBoxStyle::display));
+		discreteChannel.impact = SdStyleFieldImpact::Layout;
+		discreteChannel.interpolation = SdStyleInterpolation::None;
+		discreteChannel.transition = SdTransition{
+			std::chrono::milliseconds(100),
+			SdAnimationEasing::Linear,
+			{},
+			SdTransitionBehavior::AllowDiscrete
+		};
+		discreteChannel.startValue = SdStyleValue::FromFloat(0.0f);
+		discreteChannel.targetValue = SdStyleValue::FromFloat(1.0f);
+		discreteChannel.currentValue = discreteChannel.startValue;
+		discreteChannel.active = true;
+		discreteChannel.discrete = true;
+		discreteStyleChannels.Update(std::chrono::milliseconds(50));
+		Check(
+			discreteChannel.currentValue.number == 0.0f
+			&& discreteChannel.active,
+			"style node discrete transition holds start value until completion");
+		discreteStyleChannels.Update(std::chrono::milliseconds(60));
+		Check(
+			discreteChannel.currentValue.number == 1.0f
+			&& !discreteChannel.active,
+			"style node discrete transition jumps to target at completion");
 	}
 
 	void TestLayerSystemDirect()
