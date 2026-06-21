@@ -308,6 +308,7 @@ namespace
 	{
 		SdUtf8String lastMeasuredText = {};
 		SdUtf8String lastPaintText = {};
+		SdColor lastPaintColor = {};
 
 		SdFontHandle GetFallbackFont() const noexcept override
 		{
@@ -329,7 +330,7 @@ namespace
 		{
 			(void)style;
 			(void)maxWidth;
-			(void)color;
+			lastPaintColor = color;
 			lastPaintText.assign(text.data(), text.size());
 			SdParagraphLayout layout(resource);
 			layout.size = { static_cast<float>(text.size()), 1.0f };
@@ -431,8 +432,12 @@ namespace
 		Check(gContextStyleNodeApiObservedPart, "context exposes part style node");
 
 		SdInstance partStyleInstance;
+		RecordingFontBackend partFontBackend = {};
+		partStyleInstance.SetFontBackend(&partFontBackend);
+		const SdColor labelPartColor = SdColor(18, 52, 86, 255);
 		partStyleInstance.GetStyleSystem().Part<SdButton>(SdButton::Parts::Label)
-			.Set(&SdBoxStyle::opacity, 0.42f);
+			.Set(&SdBoxStyle::opacity, 0.42f)
+			.Set(&SdBoxStyle::color, labelPartColor);
 		partStyleInstance.BeginFrame({ 320.0f, 200.0f });
 		partStyleInstance.ui.Declare<SdButton>("Part style");
 		PumpFrame(partStyleInstance);
@@ -441,9 +446,19 @@ namespace
 		{
 			(void)id;
 			if (record.widgetType == std::type_index(typeid(SdButton)))
-				partRuleApplied = partStyleInstance.GetStylePart(record.state.id, SdButton::Parts::Label).presentationStyle.opacity == 0.42f;
+			{
+				const SdBoxStyle& labelStyle = partStyleInstance.GetStylePart(record.state.id, SdButton::Parts::Label).presentationStyle;
+				partRuleApplied = labelStyle.opacity == 0.42f && labelStyle.color == labelPartColor;
+			}
 		}
 		Check(partRuleApplied, "runtime resolves compiled part selector into part style node");
+		Check(partFontBackend.lastPaintText == "Part style", "button label part drives text paint");
+		Check(
+			partFontBackend.lastPaintColor.r == labelPartColor.r
+			&& partFontBackend.lastPaintColor.g == labelPartColor.g
+			&& partFontBackend.lastPaintColor.b == labelPartColor.b
+			&& partFontBackend.lastPaintColor.a <= BasicWidgetDetail::ApplyOpacity(labelPartColor, 0.42f).a,
+			"button label part color drives text paint");
 	}
 
 	void TestStyleSheetCascadeAndRegistry()

@@ -350,13 +350,14 @@ namespace Sodium
 		{
 			const State& state = context.State<State>();
 			const SdBoxStyle& presentation = context.RootStyleNode().presentationStyle;
+			const SdBoxStyle& labelPresentation = context.Part(Parts::Label).presentationStyle;
 			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(presentation, context.animatedRect.Size(), {});
-			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, presentation.fontSize, presentation.lineHeight);
+			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, labelPresentation.fontSize, labelPresentation.lineHeight);
 			const float lineHeight = BasicWidgetDetail::ResolveLineHeight(textStyle);
 			const SdVec2 textSize = BasicWidgetDetail::MeasureText(context.instance, state.label, textStyle);
 			const SdColor background = BasicWidgetDetail::ApplyOpacity(presentation.backgroundColor, context.opacity * presentation.opacity);
 			const SdColor border = BasicWidgetDetail::ApplyOpacity(presentation.border.left.color, context.opacity * presentation.opacity);
-			const SdColor color = BasicWidgetDetail::ApplyOpacity(presentation.color, context.opacity * presentation.opacity);
+			const SdColor color = BasicWidgetDetail::ApplyOpacity(labelPresentation.color, context.opacity * labelPresentation.opacity);
 			const float radius = SdResolveLength(presentation.radius, context.animatedRect.Width());
 
 			context.renderList.AddRectFilled(context.animatedRect, background, context.clipRect, radius);
