@@ -67,6 +67,8 @@ namespace Sodium
 	using SdStyleTokenTag = SdUInt64;
 	using SdStyleClassId = SdUInt64;
 	using SdStyleScopeId = SdUInt64;
+	using SdPropertyId = SdUInt64;
+	using SdThemeVariableId = SdUInt64;
 
 	inline constexpr SdStyleTokenTag SdStyleTokenTagLiteral(const char* text) noexcept
 	{
@@ -86,6 +88,11 @@ namespace Sodium
 	}
 
 	inline constexpr SdStyleScopeId SdStyleScopeLiteral(const char* text) noexcept
+	{
+		return SdStyleTokenTagLiteral(text);
+	}
+
+	inline constexpr SdThemeVariableId SdThemeVariableLiteral(const char* text) noexcept
 	{
 		return SdStyleTokenTagLiteral(text);
 	}
@@ -167,7 +174,9 @@ namespace Sodium
 		Spacing,
 		Vec2,
 		ColorToken,
-		MetricToken
+		MetricToken,
+		ColorVariable,
+		MetricVariable
 	};
 
 	struct SdStyleValue final
@@ -178,6 +187,7 @@ namespace Sodium
 		SdSpacing spacing = {};
 		SdVec2 vec2 = {};
 		SdStyleToken token = SdStyleToken::Count;
+		SdThemeVariableId variableId = 0;
 
 		static constexpr SdStyleValue FromColor(SdColor value) noexcept
 		{
@@ -226,7 +236,33 @@ namespace Sodium
 			result.token = value;
 			return result;
 		}
+
+		static constexpr SdStyleValue FromColorVariable(SdThemeVariableId value) noexcept
+		{
+			SdStyleValue result = {};
+			result.kind = SdStyleValueKind::ColorVariable;
+			result.variableId = value;
+			return result;
+		}
+
+		static constexpr SdStyleValue FromMetricVariable(SdThemeVariableId value) noexcept
+		{
+			SdStyleValue result = {};
+			result.kind = SdStyleValueKind::MetricVariable;
+			result.variableId = value;
+			return result;
+		}
 	};
+
+	inline constexpr SdStyleValue ThemeColor(const char* name) noexcept
+	{
+		return SdStyleValue::FromColorVariable(SdThemeVariableLiteral(name));
+	}
+
+	inline constexpr SdStyleValue ThemeMetric(const char* name) noexcept
+	{
+		return SdStyleValue::FromMetricVariable(SdThemeVariableLiteral(name));
+	}
 
 	struct SdStyleDeclaration final
 	{

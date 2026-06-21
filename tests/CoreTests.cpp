@@ -160,6 +160,17 @@ namespace
 	bool gContextStyleNodeApiObservedRoot = false;
 	bool gContextStyleNodeApiObservedPart = false;
 
+	struct RegistryDispatchStyle final
+	{
+		SdColor color = SdColorWhite;
+		float opacity = 1.0f;
+	};
+
+	struct RegistryDispatchWidget final : SdWidgetTag
+	{
+		using Style = RegistryDispatchStyle;
+	};
+
 	struct TypedStyleWidget final : SdWidgetTag
 	{
 		struct Style final
@@ -396,6 +407,59 @@ namespace
 		PumpFrame(contextInstance);
 		Check(gContextStyleNodeApiObservedRoot, "context exposes root style node and root presentation style");
 		Check(gContextStyleNodeApiObservedPart, "context exposes part style node");
+	}
+
+	void TestStyleSheetCascadeAndRegistry()
+	{
+		SdPropertyRegistry registry = {};
+		registry.Register<&RegistryDispatchStyle::color>(SdStyleFieldImpact::Paint, SdStyleInterpolation::Color);
+		registry.Register<&RegistryDispatchStyle::opacity>(SdStyleFieldImpact::Composite, SdStyleInterpolation::Float);
+
+		SdStyleSheet sheet = {};
+		constexpr SdStyleClassId dangerClass = SdStyleClassLiteral("Tests.Cascade.Danger");
+		sheet.Rule<RegistryDispatchWidget>()
+			.Set(&RegistryDispatchStyle::opacity, 0.25f);
+		sheet.Rule<RegistryDispatchWidget>()
+			.Class(dangerClass)
+			.Set(&RegistryDispatchStyle::opacity, 0.50f);
+		sheet.Rule<RegistryDispatchWidget>()
+			.Class(dangerClass)
+			.SetImportant(&RegistryDispatchStyle::opacity, 0.75f);
+		const SdCompiledStyleSheet compiled = sheet.Compile();
+		const SdStyleClassId classes[] = { dangerClass };
+		SdStyleResolveRequest request = {};
+		request.targetTag = SdStyleTokenTagLiteral(typeid(RegistryDispatchWidget).name());
+		request.classes = SdSpan<const SdStyleClassId>(classes, 1);
+
+		const RegistryDispatchStyle resolved = SdStyleResolver::ResolveStyle<RegistryDispatchStyle>(
+			compiled,
+			request,
+			registry,
+			RegistryDispatchStyle{});
+		Check(resolved.opacity == 0.75f, "compiled stylesheet cascade applies class specificity and important");
+
+		SdStyleSystem styleSystem;
+		styleSystem.SetMetricVariable("tests.width", 72.0f);
+		styleSystem.Rule<StyleNodeApiWidget>()
+			.Class(dangerClass)
+			.Set(&StyleNodeApiWidget::Style::width, ThemeMetric("tests.width"));
+		const StyleNodeApiWidget::Style systemResolved = styleSystem.ResolveTargetStyle<StyleNodeApiWidget>(
+			SdStyleInteractionState::Normal,
+			SdLayerPriority::Content,
+			SdSpan<const SdStyleClassId>(classes, 1),
+			0);
+		Check(systemResolved.width == 72.0f, "style system resolves typed theme metric variable");
+
+		styleSystem.Part<StyleNodeApiWidget>(StyleNodeApiWidget::Parts::Label)
+			.Set(&SdWidgetPartStyle::opacity, 0.42f);
+		Check(!styleSystem.GetCompiledStyleSheet().GetRules().empty(), "style system exposes compiled stylesheet with part rules");
+
+		RegistryDispatchStyle localStyle = {};
+		const SdPropertyDescriptor* colorProperty = registry.Find(Detail::SdStylePropertyId(&RegistryDispatchStyle::color), std::type_index(typeid(RegistryDispatchStyle)));
+		Check(colorProperty && colorProperty->writeValue != nullptr, "property registry stores write dispatch table");
+		if (colorProperty && colorProperty->writeValue)
+			colorProperty->writeValue(&localStyle, SdStyleValue::FromColor({ 1, 2, 3, 4 }));
+		Check(localStyle.color == SdColor(1, 2, 3, 4), "property registry dispatch writes typed field");
 	}
 
 	void TestIdAndKeySemantics()
@@ -1135,6 +1199,7 @@ int main()
 	TestSmokeAndDrawPacket();
 	TestStyleCorePhaseOneTypes();
 	TestStyleNodeRuntimeParts();
+	TestStyleSheetCascadeAndRegistry();
 	TestIdAndKeySemantics();
 	TestLifecycleStateAndModel();
 	TestBasicTextModelI18n();

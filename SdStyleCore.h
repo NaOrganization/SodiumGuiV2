@@ -7,15 +7,8 @@
 namespace Sodium
 {
 	using SdStyleNodeId = SdUInt32;
-	using SdPropertyId = SdUInt64;
-	using SdThemeVariableId = SdUInt64;
 
 	inline constexpr SdStyleNodeId SdInvalidStyleNodeId = SdInvalidIndex<SdStyleNodeId>;
-
-	inline constexpr SdThemeVariableId SdThemeVariableLiteral(const char* text) noexcept
-	{
-		return SdStyleTokenTagLiteral(text);
-	}
 
 	enum class SdLengthUnit : SdUInt8
 	{
@@ -353,9 +346,9 @@ namespace Sodium
 		SdStyleScopeId scopeId = 0;
 		SdPseudoState pseudoState = {};
 		SdUInt64 revision = 1;
-		SdWidgetRootStyle specifiedStyle = {};
-		SdWidgetRootStyle resolvedStyle = {};
-		SdWidgetRootStyle presentationStyle = {};
+		SdBoxStyle specifiedStyle = {};
+		SdBoxStyle resolvedStyle = {};
+		SdBoxStyle presentationStyle = {};
 		SdUsedBox usedBox = {};
 	};
 
