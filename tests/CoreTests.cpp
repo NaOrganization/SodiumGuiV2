@@ -429,6 +429,21 @@ namespace
 		PumpFrame(contextInstance);
 		Check(gContextStyleNodeApiObservedRoot, "context exposes root style node and root presentation style");
 		Check(gContextStyleNodeApiObservedPart, "context exposes part style node");
+
+		SdInstance partStyleInstance;
+		partStyleInstance.GetStyleSystem().Part<SdButton>(SdButton::Parts::Label)
+			.Set(&SdBoxStyle::opacity, 0.42f);
+		partStyleInstance.BeginFrame({ 320.0f, 200.0f });
+		partStyleInstance.ui.Declare<SdButton>("Part style");
+		PumpFrame(partStyleInstance);
+		bool partRuleApplied = false;
+		for (const auto& [id, record] : partStyleInstance.GetStateStorage().GetWidgetRecords())
+		{
+			(void)id;
+			if (record.widgetType == std::type_index(typeid(SdButton)))
+				partRuleApplied = partStyleInstance.GetStylePart(record.state.id, SdButton::Parts::Label).presentationStyle.opacity == 0.42f;
+		}
+		Check(partRuleApplied, "runtime resolves compiled part selector into part style node");
 	}
 
 	void TestStyleSheetCascadeAndRegistry()

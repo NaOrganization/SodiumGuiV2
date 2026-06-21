@@ -94,6 +94,27 @@ namespace Sodium
 		rootNode.resolvedStyle = resolvedStyle;
 		rootNode.presentationStyle = resolvedStyle;
 		record.rootStyleNode = rootNode;
+		for (SdStyleNodeId partNodeId : record.partStyleNodeIds)
+		{
+			SdStyleNode* partNode = context.stateStorage.FindStyleNodeById(partNodeId);
+			if (!partNode)
+				continue;
+			const SdWidgetPartStyle partStyle = context.styleSystem.ResolvePartStyle(
+				record.state.targetTypeId,
+				partNode->part,
+				resolvedStyle,
+				interactionState,
+				layerPriority,
+				record.styleClasses,
+				record.styleScope);
+			partNode->widgetId = record.state.id;
+			partNode->parentStyleNodeId = rootNode.styleNodeId;
+			partNode->scopeId = record.styleScope;
+			partNode->pseudoState = SdPseudoState::FromInteraction(interactionState);
+			partNode->specifiedStyle = partStyle;
+			partNode->resolvedStyle = partStyle;
+			partNode->presentationStyle = partStyle;
+		}
 		record.styleCache.targetTypeId = record.state.targetTypeId;
 		record.styleCache.interactionState = interactionState;
 		record.styleCache.layerPriority = layerPriority;

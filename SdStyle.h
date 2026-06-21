@@ -661,6 +661,31 @@ namespace Sodium
 				styleScope);
 		}
 
+		SdWidgetPartStyle ResolvePartStyle(
+			SdStyleTokenTag targetTypeId,
+			SdStylePart part,
+			const SdWidgetRootStyle& rootStyle,
+			SdStyleInteractionState interactionState,
+			SdLayerPriority layerPriority = SdLayerPriority::Content,
+			SdSpan<const SdStyleClassId> styleClasses = {},
+			SdStyleScopeId styleScope = 0) const
+		{
+			SdWidgetPartStyle result = {};
+			if (result.inheritText)
+			{
+				result.color = rootStyle.color;
+				result.opacity = rootStyle.opacity;
+			}
+			return ApplyCompiledTypedRules(
+				result,
+				targetTypeId,
+				part,
+				interactionState,
+				layerPriority,
+				styleClasses,
+				styleScope);
+		}
+
 		template<class TWidget>
 		typename TWidget::Style ResolveTypedStyle(
 			SdStyleInteractionState interactionState,
