@@ -1344,6 +1344,37 @@ namespace
 		const bool panelPaintUsesLayoutBox = panelPaintMinX == panelLayoutMinX;
 		Check(panelPaintUsesLayoutBox, "panel paint uses root layout box geometry");
 
+		SdInstance buttonPaintInstance;
+		buttonPaintInstance.GetRenderSharedData().flags = 0;
+		const SdColor buttonPaintColor{ 19, 43, 67, 255 };
+		const SdColor buttonPaintBorderColor{ 67, 43, 19, 255 };
+		buttonPaintInstance.GetStyleSystem().RootRule(SdButton::TargetTypeId)
+			.Set(&SdBoxStyle::margin, SdStyleValue::FromSpacing({ 11.0f, 0.0f, 0.0f, 0.0f }))
+			.Set(&SdBoxStyle::radius, SdLength::Pixels(0.0f));
+		buttonPaintInstance.GetStyleSystem().Part<SdButton>(SdButton::Parts::Content)
+			.Set(&SdBoxStyle::backgroundColor, buttonPaintColor)
+			.Set(&SdBoxStyle::border, SdStyleValue::FromColor(buttonPaintBorderColor))
+			.Set(&SdBoxStyle::radius, SdLength::Pixels(0.0f));
+		buttonPaintInstance.BeginFrame({ 320.0f, 200.0f });
+		buttonPaintInstance.ui.Declare<SdButton>("Layout");
+		PumpFrame(buttonPaintInstance);
+		float buttonLayoutMinX = -1.0f;
+		for (const auto& [id, record] : buttonPaintInstance.GetStateStorage().GetWidgetRecords())
+		{
+			(void)id;
+			if (record.widgetType == std::type_index(typeid(SdButton)))
+				buttonLayoutMinX = buttonPaintInstance.GetRootStyleNode(record.state.id).layoutBox.borderBox.min.x;
+		}
+		const SdUInt32 buttonPaintPackedRgb = buttonPaintColor.Pack() & 0x00ffffffu;
+		float buttonPaintMinX = 1000000.0f;
+		for (const SdVertex& vertex : buttonPaintInstance.GetRenderData().vertices)
+		{
+			if ((vertex.color & 0x00ffffffu) == buttonPaintPackedRgb && (vertex.color >> 24) > 0u)
+				buttonPaintMinX = std::min(buttonPaintMinX, vertex.position.x);
+		}
+		const bool buttonPaintUsesLayoutBox = buttonPaintMinX == buttonLayoutMinX;
+		Check(buttonPaintUsesLayoutBox, "button paint uses root layout box geometry");
+
 		SdInstance overflowInstance;
 		overflowInstance.GetStyleSystem().RootRule(TestOverflowContainer::TargetTypeId)
 			.Set(&SdBoxStyle::display, SdDisplay::Flex)
