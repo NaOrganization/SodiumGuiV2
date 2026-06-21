@@ -114,7 +114,12 @@ namespace Sodium
 		void UpdateWidgetAnimation(SdWidgetRecord& record);
 		void SetWidgetStyleIdentity(SdWidgetRecord& record, SdSpan<const SdStyleClassId> styleClasses, SdStyleScopeId styleScope);
 		void ResolveWidgetStyle(SdWidgetRecord& record, SdStyleInteractionState interactionState, SdLayerPriority layerPriority);
-		void SetWidgetStyleAnimationTarget(SdWidgetRecord& record, const SdWidgetRootStyle& style, bool immediate);
+		void SetWidgetStyleAnimationTarget(
+			SdWidgetRecord& record,
+			const SdWidgetRootStyle& style,
+			SdStyleInteractionState interactionState,
+			SdLayerPriority layerPriority,
+			bool immediate);
 		void ApplyWidgetStyleAnimation(SdWidgetRecord& record);
 		void SolveLayoutAndPaint();
 		SdUInt32 RemoveDeadWidgets();

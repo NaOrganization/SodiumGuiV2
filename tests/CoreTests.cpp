@@ -1195,6 +1195,7 @@ namespace
 		instance.GetStyleSystem().SetColorVariable("button.bg", updatedButtonColor);
 		instance.GetStyleSystem().RootRule(TestDrawWidget::TargetTypeId)
 			.Set(&SdBoxStyle::backgroundColor, updatedRootColor)
+			.Transition(&SdBoxStyle::backgroundColor, std::chrono::milliseconds(320), SdAnimationEasing::Linear)
 			.Set(&SdBoxStyle::color, updatedTextColor)
 			.Set(&SdBoxStyle::border, SdStyleValue::FromColor(updatedBorderColor));
 		instance.BeginFrame({ 640.0f, 480.0f });
@@ -1208,6 +1209,7 @@ namespace
 		bool hasUpdatedStyleRevision = false;
 		bool hasUpdatedContentPartStyle = false;
 		bool hasRootBackgroundStyleNodeAnimation = false;
+		bool hasRootBackgroundStylesheetTransition = false;
 		bool hasRootBackgroundFromStyleNodeAnimation = false;
 		bool hasRootColorStyleNodeAnimation = false;
 		bool hasRootColorFromStyleNodeAnimation = false;
@@ -1236,6 +1238,7 @@ namespace
 						&& channel.interpolation == SdStyleInterpolation::Color)
 					{
 						hasRootBackgroundStyleNodeAnimation = true;
+						hasRootBackgroundStylesheetTransition = channel.transition.duration == std::chrono::milliseconds(320);
 						if (channel.currentValue.kind == SdStyleValueKind::Color)
 						{
 							const SdStyleNode& rootNode = instance.GetRootStyleNode(record.state.id);
@@ -1272,6 +1275,7 @@ namespace
 		Check(hasUpdatedStyleRevision, "style cache refreshes when style system revision changes");
 		Check(hasUpdatedContentPartStyle, "button content part style refreshes when style system revision changes");
 		Check(hasRootBackgroundStyleNodeAnimation, "root background transition is tracked by style node property channel");
+		Check(hasRootBackgroundStylesheetTransition, "root background transition uses stylesheet duration");
 		Check(hasRootBackgroundFromStyleNodeAnimation, "root background presentation reads style node property channel");
 		Check(hasRootColorStyleNodeAnimation, "root color transition is tracked by style node property channel");
 		Check(hasRootColorFromStyleNodeAnimation, "root color presentation reads style node property channel");

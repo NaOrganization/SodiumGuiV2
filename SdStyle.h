@@ -571,6 +571,22 @@ namespace Sodium
 				return *this;
 			}
 
+			template<class TField>
+			SdStyleSystemSheetRuleBuilder& Transition(TField TStyle::* member, SdDuration duration, SdAnimationEasing easing)
+			{
+				builder.Transition(member, duration, easing);
+				TouchCompiledSheet();
+				return *this;
+			}
+
+			template<class TField>
+			SdStyleSystemSheetRuleBuilder& TransitionImportant(TField TStyle::* member, SdDuration duration, SdAnimationEasing easing)
+			{
+				builder.TransitionImportant(member, duration, easing);
+				TouchCompiledSheet();
+				return *this;
+			}
+
 		};
 
 	private:
@@ -714,6 +730,27 @@ namespace Sodium
 			SdStyleScopeId styleScope,
 			SdTransition& transition) const;
 
+		bool TryResolveRootTransition(
+			SdStyleId targetTypeId,
+			SdPropertyId propertyId,
+			SdStyleInteractionState interactionState,
+			SdLayerPriority layerPriority,
+			SdSpan<const SdStyleClassId> styleClasses,
+			SdStyleScopeId styleScope,
+			SdTransition& transition) const
+		{
+			return TryResolveCompiledTransition(
+				std::type_index(typeid(SdWidgetRootStyle)),
+				targetTypeId,
+				SdStylePart::Root(),
+				propertyId,
+				interactionState,
+				layerPriority,
+				styleClasses,
+				styleScope,
+				transition);
+		}
+
 		template<class TWidget>
 		const SdStyleContract<typename TWidget::Style>& GetContract() const;
 
@@ -839,6 +876,63 @@ namespace Sodium
 		static SdStyleValue ResolveCompiledValue(const SdStyleValue& value, const void* owner)
 		{
 			return static_cast<const SdStyleSystem*>(owner)->ResolveValue(value);
+		}
+
+		bool TryResolveCompiledTransition(
+			std::type_index styleType,
+			SdStyleId targetTypeId,
+			SdStylePart part,
+			SdPropertyId propertyId,
+			SdStyleInteractionState interactionState,
+			SdLayerPriority layerPriority,
+			SdSpan<const SdStyleClassId> styleClasses,
+			SdStyleScopeId styleScope,
+			SdTransition& transition) const
+		{
+			SdStyleResolveRequest request = {};
+			request.targetTag = targetTypeId;
+			request.part = part;
+			request.pseudoState = SdPseudoState::FromInteraction(interactionState);
+			request.layerPriority = layerPriority;
+			request.classes = styleClasses;
+			request.scope = styleScope;
+			bool found = false;
+			bool currentImportant = false;
+			SdCascadeLayer currentLayer = SdCascadeLayer::UserAgent;
+			SdStyleSpecificity currentSpecificity = {};
+			SdUInt32 currentSourceOrder = 0;
+			for (const SdCompiledStyleRule& rule : compiledStyleSheet.GetRules())
+			{
+				if (rule.selector.styleType != styleType)
+					continue;
+				if (!SdStyleResolver::SelectorMatches(rule.selector, request))
+					continue;
+
+				for (const SdCompiledTransition& candidate : rule.transitions)
+				{
+					if (candidate.styleType != styleType || candidate.propertyId != propertyId)
+						continue;
+					if (!found
+						|| SdStyleResolver::HasHigherCascadePriority(
+							candidate.important,
+							rule.cascadeLayer,
+							rule.specificity,
+							rule.sourceOrder,
+							currentImportant,
+							currentLayer,
+							currentSpecificity,
+							currentSourceOrder))
+					{
+						transition = candidate.transition;
+						currentImportant = candidate.important;
+						currentLayer = rule.cascadeLayer;
+						currentSpecificity = rule.specificity;
+						currentSourceOrder = rule.sourceOrder;
+						found = true;
+					}
+				}
+			}
+			return found;
 		}
 
 		template<class TWidget>
@@ -1301,49 +1395,16 @@ namespace Sodium
 	{
 		using Style = typename TWidget::Style;
 		const std::type_index styleType = std::type_index(typeid(Style));
-		SdStyleResolveRequest request = {};
-		request.targetTag = GetTargetTag<TWidget>();
-		request.part = SdStylePart::Root();
-		request.pseudoState = SdPseudoState::FromInteraction(interactionState);
-		request.layerPriority = layerPriority;
-		request.classes = styleClasses;
-		request.scope = styleScope;
-		bool found = false;
-		bool currentImportant = false;
-		SdCascadeLayer currentLayer = SdCascadeLayer::UserAgent;
-		SdStyleSpecificity currentSpecificity = {};
-		SdUInt32 currentSourceOrder = 0;
-		for (const SdCompiledStyleRule& rule : compiledStyleSheet.GetRules())
-		{
-			if (rule.selector.styleType != styleType)
-				continue;
-			if (!SdStyleResolver::SelectorMatches(rule.selector, request))
-				continue;
-
-			for (const SdCompiledTransition& candidate : rule.transitions)
-			{
-				if (candidate.styleType != styleType || candidate.propertyId != fieldId)
-					continue;
-				if (!found
-					|| SdStyleResolver::HasHigherCascadePriority(
-						candidate.important,
-						rule.cascadeLayer,
-						rule.specificity,
-						rule.sourceOrder,
-						currentImportant,
-						currentLayer,
-						currentSpecificity,
-						currentSourceOrder))
-				{
-					transition = candidate.transition;
-					currentImportant = candidate.important;
-					currentLayer = rule.cascadeLayer;
-					currentSpecificity = rule.specificity;
-					currentSourceOrder = rule.sourceOrder;
-					found = true;
-				}
-			}
-		}
+		bool found = TryResolveCompiledTransition(
+			styleType,
+			GetTargetTag<TWidget>(),
+			SdStylePart::Root(),
+			fieldId,
+			interactionState,
+			layerPriority,
+			styleClasses,
+			styleScope,
+			transition);
 		if (found)
 			return true;
 

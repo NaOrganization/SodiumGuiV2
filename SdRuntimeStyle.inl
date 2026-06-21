@@ -162,19 +162,37 @@ namespace Sodium
 		record.styleCache.styleRevision = context.styleSystem.GetRevision();
 		record.styleCache.valid = true;
 		record.state.styleDirty = false;
-		SetWidgetStyleAnimationTarget(record, record.styleCache.resolvedStyle, firstStyle);
+		SetWidgetStyleAnimationTarget(record, record.styleCache.resolvedStyle, interactionState, layerPriority, firstStyle);
 		ApplyWidgetStyleAnimation(record);
 		if (record.styleCallback)
 			record.styleCallback(*this, record, interactionState, layerPriority);
 	}
 
-	inline void SdInstance::SetWidgetStyleAnimationTarget(SdWidgetRecord& record, const SdWidgetRootStyle& style, bool immediate)
+	inline void SdInstance::SetWidgetStyleAnimationTarget(
+		SdWidgetRecord& record,
+		const SdWidgetRootStyle& style,
+		SdStyleInteractionState interactionState,
+		SdLayerPriority layerPriority,
+		bool immediate)
 	{
 		const SdPropertyId colorPropertyId = Detail::SdStylePropertyId(&SdBoxStyle::color);
 		const SdPropertyId backgroundPropertyId = Detail::SdStylePropertyId(&SdBoxStyle::backgroundColor);
 		const SdPropertyId borderPropertyId = Detail::SdStylePropertyId(&SdBoxStyle::border);
 
-		const SdTransition transition = GetDefaultTransition();
+		const SdTransition defaultTransition = GetDefaultTransition();
+		const auto resolveTransition = [this, &record, interactionState, layerPriority, defaultTransition](SdPropertyId propertyId)
+		{
+			SdTransition transition = defaultTransition;
+			context.styleSystem.TryResolveRootTransition(
+				record.state.targetTypeId,
+				propertyId,
+				interactionState,
+				layerPriority,
+				record.styleClasses,
+				record.styleScope,
+				transition);
+			return transition;
+		};
 		Detail::SetStyleColorPropertyChannelTarget(
 			context.styleAnimationChannels,
 			record.rootStyleNodeId,
@@ -185,7 +203,7 @@ namespace Sodium
 				colorPropertyId,
 				style.color),
 			style.color,
-			transition,
+			resolveTransition(colorPropertyId),
 			immediate);
 		Detail::SetStyleColorPropertyChannelTarget(
 			context.styleAnimationChannels,
@@ -197,7 +215,7 @@ namespace Sodium
 				backgroundPropertyId,
 				style.backgroundColor),
 			style.backgroundColor,
-			transition,
+			resolveTransition(backgroundPropertyId),
 			immediate);
 		Detail::SetStyleColorPropertyChannelTarget(
 			context.styleAnimationChannels,
@@ -209,7 +227,7 @@ namespace Sodium
 				borderPropertyId,
 				style.border.left.color),
 			style.border.left.color,
-			transition,
+			resolveTransition(borderPropertyId),
 			immediate);
 	}
 
