@@ -222,12 +222,6 @@ namespace Sodium
 			record.animation.styleColorB,
 			record.animation.styleColorA,
 			record.styleCache.resolvedStyle.color);
-		presentationStyle.backgroundColor = readColorChannels(
-			record.animation.styleBackgroundR,
-			record.animation.styleBackgroundG,
-			record.animation.styleBackgroundB,
-			record.animation.styleBackgroundA,
-			record.styleCache.resolvedStyle.backgroundColor);
 		presentationStyle.border = SdBorder::All(
 			record.styleCache.resolvedStyle.border.left.width,
 			readColorChannels(
@@ -253,16 +247,25 @@ namespace Sodium
 				record.animation.styleBorderG,
 				record.animation.styleBorderB,
 				record.animation.styleBorderA);
-		record.styleCache.presentationStyle = presentationStyle;
 		SdPropertyAnimationChannel& backgroundChannel = context.styleAnimationChannels.Ensure(
 			record.rootStyleNodeId,
 			Detail::SdStylePropertyId(&SdBoxStyle::backgroundColor));
-		backgroundChannel.currentValue = SdStyleValue::FromColor(presentationStyle.backgroundColor);
+		backgroundChannel.currentValue = SdStyleValue::FromColor(readColorChannels(
+			record.animation.styleBackgroundR,
+			record.animation.styleBackgroundG,
+			record.animation.styleBackgroundB,
+			record.animation.styleBackgroundA,
+			record.styleCache.resolvedStyle.backgroundColor));
 		backgroundChannel.active = anyColorChannelActive(
 			record.animation.styleBackgroundR,
 			record.animation.styleBackgroundG,
 			record.animation.styleBackgroundB,
 			record.animation.styleBackgroundA);
+		if (!backgroundChannel.active)
+			backgroundChannel.currentValue = backgroundChannel.targetValue;
+		if (backgroundChannel.currentValue.kind == SdStyleValueKind::Color)
+			presentationStyle.backgroundColor = backgroundChannel.currentValue.color;
+		record.styleCache.presentationStyle = presentationStyle;
 		if (SdStyleNode* rootNode = context.stateStorage.FindStyleNodeById(record.rootStyleNodeId))
 		{
 			rootNode->presentationStyle = presentationStyle;

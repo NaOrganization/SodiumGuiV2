@@ -1200,6 +1200,7 @@ namespace
 		bool hasUpdatedStyleRevision = false;
 		bool hasUpdatedContentPartStyle = false;
 		bool hasRootBackgroundStyleNodeAnimation = false;
+		bool hasRootBackgroundFromStyleNodeAnimation = false;
 		const SdPropertyId backgroundPropertyId = Detail::SdStylePropertyId(&SdBoxStyle::backgroundColor);
 		for (const auto& [id, record] : instance.GetStateStorage().GetWidgetRecords())
 		{
@@ -1222,6 +1223,11 @@ namespace
 						&& channel.interpolation == SdStyleInterpolation::Color)
 					{
 						hasRootBackgroundStyleNodeAnimation = true;
+						if (channel.currentValue.kind == SdStyleValueKind::Color)
+						{
+							const SdStyleNode& rootNode = instance.GetRootStyleNode(record.state.id);
+							hasRootBackgroundFromStyleNodeAnimation = rootNode.presentationStyle.backgroundColor == channel.currentValue.color;
+						}
 					}
 				}
 			}
@@ -1229,6 +1235,7 @@ namespace
 		Check(hasUpdatedStyleRevision, "style cache refreshes when style system revision changes");
 		Check(hasUpdatedContentPartStyle, "button content part style refreshes when style system revision changes");
 		Check(hasRootBackgroundStyleNodeAnimation, "root background transition is tracked by style node property channel");
+		Check(hasRootBackgroundFromStyleNodeAnimation, "root background presentation reads style node property channel");
 		Check(instance.GetDiagnostics().activeStyleNodeAnimationChannelCount > 0, "diagnostics expose active style node animation channels");
 	}
 
