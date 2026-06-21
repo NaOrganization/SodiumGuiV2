@@ -424,8 +424,6 @@ namespace Sodium
 	{
 		std::type_index styleType = std::type_index(typeid(void));
 		SdUInt64 fieldId = 0;
-		SdStyleValue value = {};
-		std::function<void(void*, const SdStyleValue&, const SdTheme&)> apply = {};
 	};
 
 	struct SdTypedStyleTransition final
@@ -1393,14 +1391,7 @@ namespace Sodium
 				system.template RegisterTypedProperty<Style>(member);
 				SdTypedStyleDeclaration declaration = {};
 				declaration.styleType = std::type_index(typeid(Style));
-			declaration.fieldId = Detail::SdStyleFieldId(member);
-			declaration.value = value;
-			declaration.apply = [member](void* style, const SdStyleValue& styleValue, const SdTheme& theme)
-			{
-				TField resolvedValue = {};
-				if (Detail::TryResolveStyleValue(styleValue, theme, resolvedValue))
-					static_cast<Style*>(style)->*member = resolvedValue;
-				};
+				declaration.fieldId = Detail::SdStyleFieldId(member);
 				rule.declarations.push_back(std::move(declaration));
 				BuildCompiledRule().Set(member, value);
 				system.compiledStyleSheet = system.typedStyleSheet.Compile();
