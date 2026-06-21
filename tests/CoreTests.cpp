@@ -676,6 +676,11 @@ namespace
 		const SdColor titlePartColor = SdColor(22, 88, 143, 255);
 		const SdColor titlebarPartColor = SdColor(13, 47, 69, 255);
 		const SdColor closeButtonPartColor = SdColor(201, 43, 98, 255);
+		const SdColor windowContentPartColor = SdColor(48, 29, 84, 255);
+		const SdColor windowContentBorderPartColor = SdColor(84, 48, 29, 255);
+		windowPartStyleInstance.GetStyleSystem().Part<SdWindow>(SdWindow::Parts::Content)
+			.Set(&SdBoxStyle::backgroundColor, windowContentPartColor)
+			.Set(&SdBoxStyle::border, SdStyleValue::FromColor(windowContentBorderPartColor));
 		windowPartStyleInstance.GetStyleSystem().Part<SdWindow>(SdWindow::Parts::Titlebar)
 			.Set(&SdBoxStyle::backgroundColor, titlebarPartColor);
 		windowPartStyleInstance.GetStyleSystem().Part<SdWindow>(SdWindow::Parts::Title)
@@ -694,6 +699,7 @@ namespace
 			&& windowPartFontBackend.lastPaintColor.g == titlePartColor.g
 			&& windowPartFontBackend.lastPaintColor.b == titlePartColor.b,
 			"window title part color drives text paint");
+		bool windowContentPartRuleApplied = false;
 		bool titlebarPartRuleApplied = false;
 		bool closeButtonPartRuleApplied = false;
 		for (const auto& [id, record] : windowPartStyleInstance.GetStateStorage().GetWidgetRecords())
@@ -701,16 +707,38 @@ namespace
 			(void)id;
 			if (record.widgetType == std::type_index(typeid(SdWindow)))
 			{
+				const SdBoxStyle& contentStyle = windowPartStyleInstance.GetStylePart(record.state.id, SdWindow::Parts::Content).presentationStyle;
 				const SdBoxStyle& titlebarStyle = windowPartStyleInstance.GetStylePart(record.state.id, SdWindow::Parts::Titlebar).presentationStyle;
 				const SdBoxStyle& closeButtonStyle = windowPartStyleInstance.GetStylePart(record.state.id, SdWindow::Parts::CloseButton).presentationStyle;
+				windowContentPartRuleApplied = contentStyle.backgroundColor == windowContentPartColor
+					&& contentStyle.border.left.color == windowContentBorderPartColor;
 				titlebarPartRuleApplied = titlebarStyle.backgroundColor == titlebarPartColor;
 				closeButtonPartRuleApplied = closeButtonStyle.color == closeButtonPartColor && closeButtonStyle.opacity == 1.0f;
 			}
 		}
+		Check(windowContentPartRuleApplied, "window content part background and border resolve into part style node");
 		Check(titlebarPartRuleApplied, "window titlebar part background resolves into part style node");
 		Check(closeButtonPartRuleApplied, "window close button part color resolves into part style node");
+		const SdUInt32 windowContentPartPackedRgb = windowContentPartColor.Pack() & 0x00ffffffu;
+		const SdUInt32 windowContentBorderPartPackedRgb = windowContentBorderPartColor.Pack() & 0x00ffffffu;
 		const SdUInt32 closeButtonPartPackedRgb = closeButtonPartColor.Pack() & 0x00ffffffu;
 		const SdDrawPacket windowPartDrawPacket = windowPartStyleInstance.GetDrawPacket();
+		const bool windowContentPartPainted = std::any_of(
+			windowPartDrawPacket.vertices.begin(),
+			windowPartDrawPacket.vertices.end(),
+			[windowContentPartPackedRgb](const SdVertex& vertex)
+			{
+				return (vertex.color & 0x00ffffffu) == windowContentPartPackedRgb
+					&& (vertex.color >> 24) > 0u;
+			});
+		const bool windowContentBorderPartPainted = std::any_of(
+			windowPartDrawPacket.vertices.begin(),
+			windowPartDrawPacket.vertices.end(),
+			[windowContentBorderPartPackedRgb](const SdVertex& vertex)
+			{
+				return (vertex.color & 0x00ffffffu) == windowContentBorderPartPackedRgb
+					&& (vertex.color >> 24) > 0u;
+			});
 		const bool closeButtonPartPainted = std::any_of(
 			windowPartDrawPacket.vertices.begin(),
 			windowPartDrawPacket.vertices.end(),
@@ -719,6 +747,8 @@ namespace
 				return (vertex.color & 0x00ffffffu) == closeButtonPartPackedRgb
 					&& (vertex.color >> 24) > 0u;
 			});
+		Check(windowContentPartPainted, "window content part background drives window paint");
+		Check(windowContentBorderPartPainted, "window content part border drives window paint");
 		Check(closeButtonPartPainted, "window close button part color drives icon paint");
 	}
 
@@ -792,7 +822,9 @@ namespace
 		Check(windowDefault.height.unit == SdLengthUnit::Pixels && windowDefault.height.value == 260.0f, "window default height resolves through root style");
 		Check(windowDefault.padding.top.value == 40.0f, "window default title padding resolves through root style");
 		Check(SdResolveLength(windowDefault.gap, 0.0f) == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableLiteral("spacing.small")), "window default child spacing resolves through root gap");
+		const SdWidgetPartStyle windowContentDefault = styleSystem.ResolvePartStyle(SdWindow::TargetTypeId, SdWindow::Parts::Content, windowDefault, SdStyleInteractionState::Normal, SdLayerPriority::Floating);
 		const SdWidgetPartStyle windowTitlebarDefault = styleSystem.ResolvePartStyle(SdWindow::TargetTypeId, SdWindow::Parts::Titlebar, windowDefault, SdStyleInteractionState::Normal, SdLayerPriority::Floating);
+		Check(windowContentDefault.backgroundColor == styleSystem.GetTheme().GetColorVariable(SdThemeVariableLiteral("window.bg")), "window content default background resolves through part style");
 		Check(windowTitlebarDefault.backgroundColor == styleSystem.GetTheme().GetColorVariable(SdThemeVariableLiteral("button.bg")), "window titlebar default background resolves through part style");
 
 		const SdWidgetRootStyle buttonDefault = styleSystem.ResolveRootStyle(SdButton::TargetTypeId, SdStyleInteractionState::Normal);

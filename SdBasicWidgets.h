@@ -993,15 +993,16 @@ namespace Sodium
 			const SdBoxStyle& titlebarPresentation = context.Part(Parts::Titlebar).presentationStyle;
 			const SdBoxStyle& titlePresentation = context.Part(Parts::Title).presentationStyle;
 			const SdBoxStyle& closeButtonPresentation = context.Part(Parts::CloseButton).presentationStyle;
+			const SdBoxStyle& contentPresentation = context.Part(Parts::Content).presentationStyle;
 			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(presentation, context.animatedRect.Size(), { 420.0f, 260.0f });
 			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, titlePresentation.fontSize, titlePresentation.lineHeight);
 			const float lineHeight = BasicWidgetDetail::ResolveLineHeight(textStyle);
-			const SdColor background = BasicWidgetDetail::ApplyOpacity(presentation.backgroundColor, context.opacity * presentation.opacity);
-			const SdColor border = BasicWidgetDetail::ApplyOpacity(presentation.border.left.color, context.opacity * presentation.opacity);
+			const SdColor background = BasicWidgetDetail::ApplyOpacity(contentPresentation.backgroundColor, context.opacity * contentPresentation.opacity);
+			const SdColor border = BasicWidgetDetail::ApplyOpacity(contentPresentation.border.left.color, context.opacity * contentPresentation.opacity);
 			const SdColor textColor = BasicWidgetDetail::ApplyOpacity(titlePresentation.color, context.opacity * titlePresentation.opacity);
 			const SdColor closeColor = BasicWidgetDetail::ApplyOpacity(closeButtonPresentation.color, context.opacity * closeButtonPresentation.opacity);
 			const SdColor titleColor = BasicWidgetDetail::ApplyOpacity(titlebarPresentation.backgroundColor, context.opacity * titlebarPresentation.opacity);
-			const float radius = SdResolveLength(presentation.radius, context.animatedRect.Width());
+			const float radius = SdResolveLength(contentPresentation.radius, context.animatedRect.Width(), SdResolveLength(presentation.radius, context.animatedRect.Width()));
 			const float titlebarRadius = SdResolveLength(titlebarPresentation.radius, context.animatedRect.Width(), radius);
 
 			context.renderList.AddRectFilled(context.animatedRect, background, context.clipRect, radius);
