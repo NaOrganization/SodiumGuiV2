@@ -491,6 +491,27 @@ namespace
 			.Set(&SdWidgetPartStyle::opacity, 0.42f);
 		Check(!styleSystem.GetCompiledStyleSheet().GetRules().empty(), "style system exposes compiled stylesheet with part rules");
 
+		const SdWidgetRootStyle panelDefault = styleSystem.ResolveRootStyle(SdPanel::TargetTypeId, SdStyleInteractionState::Normal);
+		Check(panelDefault.width.unit == SdLengthUnit::Pixels && panelDefault.width.value == 240.0f, "panel default width resolves through root style");
+		Check(SdResolveLength(panelDefault.padding.left, 0.0f) > 0.0f, "panel default padding resolves through root style");
+
+		constexpr SdStyleClassId panelClass = SdStyleClassLiteral("Tests.Panel.RootStyle");
+		constexpr SdStyleScopeId panelScope = SdStyleScopeLiteral("Tests.Panel.Scope");
+		const SdStyleClassId panelClasses[] = { panelClass };
+		styleSystem.RootRule(SdPanel::TargetTypeId)
+			.Scope(panelScope)
+			.Class(panelClass)
+			.Set(&SdBoxStyle::width, SdLength::Pixels(333.0f))
+			.Set(&SdBoxStyle::padding, SdStyleValue::FromSpacing({ 3.0f, 4.0f, 5.0f, 6.0f }));
+		const SdWidgetRootStyle panelScoped = styleSystem.ResolveRootStyle(
+			SdPanel::TargetTypeId,
+			SdStyleInteractionState::Normal,
+			SdLayerPriority::Content,
+			SdSpan<const SdStyleClassId>(panelClasses, 1),
+			panelScope);
+		Check(panelScoped.width.unit == SdLengthUnit::Pixels && panelScoped.width.value == 333.0f, "panel scoped root width overrides default");
+		Check(panelScoped.padding.left.value == 3.0f && panelScoped.padding.bottom.value == 6.0f, "panel scoped root padding writes box edges");
+
 		RegistryDispatchStyle localStyle = {};
 		const SdPropertyDescriptor* colorProperty = registry.Find(Detail::SdStylePropertyId(&RegistryDispatchStyle::color), std::type_index(typeid(RegistryDispatchStyle)));
 		Check(colorProperty && colorProperty->writeValue != nullptr, "property registry stores write dispatch table");

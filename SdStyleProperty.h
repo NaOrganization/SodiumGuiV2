@@ -65,6 +65,9 @@ namespace Sodium
 		inline constexpr bool SdPropertyValueField<SdLength> = true;
 
 		template<>
+		inline constexpr bool SdPropertyValueField<SdBoxEdges> = true;
+
+		template<>
 		inline constexpr bool SdPropertyValueField<SdBorder> = true;
 
 		template<class T>
@@ -86,6 +89,12 @@ namespace Sodium
 					return SdStyleValue::FromMetricVariable(value.variableId);
 				return {};
 			}
+			else if constexpr (std::is_same_v<T, SdBoxEdges>)
+				return SdStyleValue::FromSpacing({
+					value.left.value,
+					value.top.value,
+					value.right.value,
+					value.bottom.value });
 			else if constexpr (std::is_same_v<T, SdBorder>)
 				return SdStyleValue::FromColor(value.left.color);
 			else
@@ -128,6 +137,13 @@ namespace Sodium
 				if (value.kind != SdStyleValueKind::Float)
 					return false;
 				destination = SdLength::Pixels(value.number);
+				return true;
+			}
+			else if constexpr (std::is_same_v<T, SdBoxEdges>)
+			{
+				if (value.kind != SdStyleValueKind::Spacing)
+					return false;
+				destination = SdBoxEdges::FromSpacing(value.spacing);
 				return true;
 			}
 			else if constexpr (std::is_same_v<T, SdBorder>)

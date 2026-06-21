@@ -31,14 +31,14 @@ namespace
 	constexpr UINT kInitialWindowHeight = 720;
 	constexpr Sodium::SdStyleClassId kExampleAccentTextClass = Sodium::SdStyleClassLiteral("Sodium.Example.Text.Accent");
 	constexpr Sodium::SdStyleClassId kExampleWarningTextClass = Sodium::SdStyleClassLiteral("Sodium.Example.Text.Warning");
+	constexpr Sodium::SdStyleClassId kExampleBasicPanelClass = Sodium::SdStyleClassLiteral("Sodium.Example.Panel.Basic");
 	constexpr Sodium::SdStyleScopeId kExampleDemoTextScope = Sodium::SdStyleScopeLiteral("Sodium.Example.Scope.DemoWindow");
+	constexpr Sodium::SdStyleScopeId kExampleDemoPanelScope = Sodium::SdStyleScopeLiteral("Sodium.Example.Scope.DemoPanel");
 
 	void ConfigureBuiltInThemeTransitions(Sodium::SdStyleSystem& styleSystem)
 	{
 		const auto themeTransition = std::chrono::milliseconds(360);
 		const Sodium::SdAnimationEasing easing = Sodium::SdAnimationEasing::OutCubic;
-		styleSystem.Rule<Sodium::SdPanel>()
-			.Transition(&Sodium::SdPanel::Style::radius, themeTransition, easing);
 		styleSystem.Rule<Sodium::SdButton>()
 			.Transition(&Sodium::SdButton::Style::radius, themeTransition, easing);
 		styleSystem.Rule<Sodium::SdCheckBox>()
@@ -285,12 +285,14 @@ namespace
 				if (context.input.IsKeyDown(Sodium::SdKeyCode::D))
 					context.ui.ConfigureModel<Sodium::SdText>("test_text2", [](Sodium::SdText::Model& model) { model.SetText("English"); });
 
+				const Sodium::SdStyleClassId panelClasses[] = { kExampleBasicPanelClass };
+				const Sodium::SdStyleIdentity panelIdentity{
+					Sodium::SdSpan<const Sodium::SdStyleClassId>(panelClasses, 1),
+					kExampleDemoPanelScope
+				};
 				Sodium::SdPanel::Style panelStyle = {};
-				panelStyle.width = 492.0f;
-				panelStyle.height = 72.0f;
-				panelStyle.padding = { 8.0f, 8.0f, 8.0f, 8.0f };
 				panelStyle.childSpacing = 3.0f;
-				context.ui.DeclareStyledKeyed<Sodium::SdPanel>("basic_panel", &panelStyle, [](Sodium::SdUi& ui)
+				context.ui.DeclareStyledKeyed<Sodium::SdPanel>("basic_panel", panelIdentity, &panelStyle, [](Sodium::SdUi& ui)
 				{
 					ui.Declare<Sodium::SdText>("SdPanel contains regular tagged children");
 					ui.Declare<Sodium::SdText>("Layout, clip, background and border come from the widget");
@@ -426,6 +428,12 @@ namespace
 				.Scope(kExampleDemoTextScope)
 				.Class(kExampleWarningTextClass)
 				.Set(&Sodium::SdBoxStyle::color, Sodium::SdColor{ 255, 176, 92, 255 });
+			styleSystem.RootRule(Sodium::SdPanel::TargetTypeId)
+				.Scope(kExampleDemoPanelScope)
+				.Class(kExampleBasicPanelClass)
+				.Set(&Sodium::SdBoxStyle::width, Sodium::SdLength::Pixels(492.0f))
+				.Set(&Sodium::SdBoxStyle::height, Sodium::SdLength::Pixels(72.0f))
+				.Set(&Sodium::SdBoxStyle::padding, Sodium::SdStyleValue::FromSpacing({ 8.0f, 8.0f, 8.0f, 8.0f }));
 		}
 
 		void ApplyGlobalTheme()

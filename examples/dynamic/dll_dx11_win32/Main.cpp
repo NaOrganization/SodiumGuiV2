@@ -32,14 +32,14 @@ namespace SodiumDynamicExample
 
 	constexpr Sodium::SdStyleClassId kOverlayAccentTextClass = Sodium::SdStyleClassLiteral("Sodium.DynamicExample.Text.Accent");
 	constexpr Sodium::SdStyleClassId kOverlayMutedTextClass = Sodium::SdStyleClassLiteral("Sodium.DynamicExample.Text.Muted");
+	constexpr Sodium::SdStyleClassId kOverlayBasicPanelClass = Sodium::SdStyleClassLiteral("Sodium.DynamicExample.Panel.Basic");
 	constexpr Sodium::SdStyleScopeId kOverlayTextScope = Sodium::SdStyleScopeLiteral("Sodium.DynamicExample.Scope.Overlay");
+	constexpr Sodium::SdStyleScopeId kOverlayPanelScope = Sodium::SdStyleScopeLiteral("Sodium.DynamicExample.Scope.Panel");
 
 	void ConfigureBuiltInThemeTransitions(Sodium::SdStyleSystem& styleSystem)
 	{
 		const auto themeTransition = 360ms;
 		const Sodium::SdAnimationEasing easing = Sodium::SdAnimationEasing::OutCubic;
-		styleSystem.Rule<Sodium::SdPanel>()
-			.Transition(&Sodium::SdPanel::Style::radius, themeTransition, easing);
 		styleSystem.Rule<Sodium::SdButton>()
 			.Transition(&Sodium::SdButton::Style::radius, themeTransition, easing);
 		styleSystem.Rule<Sodium::SdCheckBox>()
@@ -288,12 +288,14 @@ namespace SodiumDynamicExample
 				inlineTextStyle.padding = { 2.0f, 1.0f, 2.0f, 1.0f };
 				context.ui.DeclareStyledKeyed<Sodium::SdText>("overlay_inline_style", &inlineTextStyle, "Inline target style");
 
+				const Sodium::SdStyleClassId panelClasses[] = { kOverlayBasicPanelClass };
+				const Sodium::SdStyleIdentity panelIdentity{
+					Sodium::SdSpan<const Sodium::SdStyleClassId>(panelClasses, 1),
+					kOverlayPanelScope
+				};
 				Sodium::SdPanel::Style panelStyle = {};
-				panelStyle.width = 472.0f;
-				panelStyle.height = 64.0f;
-				panelStyle.padding = { 8.0f, 8.0f, 8.0f, 8.0f };
 				panelStyle.childSpacing = 3.0f;
-				context.ui.DeclareStyledKeyed<Sodium::SdPanel>("overlay_basic_panel", &panelStyle, [](Sodium::SdUi& ui)
+				context.ui.DeclareStyledKeyed<Sodium::SdPanel>("overlay_basic_panel", panelIdentity, &panelStyle, [](Sodium::SdUi& ui)
 				{
 					ui.Declare<Sodium::SdText>("SdPanel + SdText inside the DLL overlay");
 					ui.Declare<Sodium::SdText>("Built-in widgets use the same runtime path");
@@ -431,6 +433,12 @@ namespace SodiumDynamicExample
 				.Scope(kOverlayTextScope)
 				.Class(kOverlayMutedTextClass)
 				.Set(&Sodium::SdBoxStyle::color, Sodium::SdColor{ 178, 196, 214, 255 });
+			styleSystem.RootRule(Sodium::SdPanel::TargetTypeId)
+				.Scope(kOverlayPanelScope)
+				.Class(kOverlayBasicPanelClass)
+				.Set(&Sodium::SdBoxStyle::width, Sodium::SdLength::Pixels(472.0f))
+				.Set(&Sodium::SdBoxStyle::height, Sodium::SdLength::Pixels(64.0f))
+				.Set(&Sodium::SdBoxStyle::padding, Sodium::SdStyleValue::FromSpacing({ 8.0f, 8.0f, 8.0f, 8.0f }));
 			styleConfigured = true;
 		}
 

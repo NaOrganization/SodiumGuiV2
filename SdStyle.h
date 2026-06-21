@@ -848,6 +848,26 @@ namespace Sodium
 
 		void RegisterRootProperties()
 		{
+			propertyRegistry.Register<&SdBoxStyle::width>(
+				SdStyleFieldImpact::Layout,
+				SdStyleInterpolation::Float,
+				true);
+			propertyRegistry.Register<&SdBoxStyle::height>(
+				SdStyleFieldImpact::Layout,
+				SdStyleInterpolation::Float,
+				true);
+			propertyRegistry.Register<&SdBoxStyle::minWidth>(
+				SdStyleFieldImpact::Layout,
+				SdStyleInterpolation::Float,
+				true);
+			propertyRegistry.Register<&SdBoxStyle::minHeight>(
+				SdStyleFieldImpact::Layout,
+				SdStyleInterpolation::Float,
+				true);
+			propertyRegistry.Register<&SdBoxStyle::padding>(
+				SdStyleFieldImpact::Layout,
+				SdStyleInterpolation::Float,
+				true);
 			propertyRegistry.Register<&SdBoxStyle::color>(
 				SdStyleFieldImpact::Paint,
 				SdStyleInterpolation::Color);
@@ -881,6 +901,12 @@ namespace Sodium
 				.Set(&SdBoxStyle::opacity, 1.0f)
 				.Set(&SdBoxStyle::fontSize, ThemeMetric("font.button"))
 				.Set(&SdBoxStyle::lineHeight, 0.0f);
+			const float mediumSpacing = theme.GetMetricVariable(SdThemeVariableLiteral("spacing.medium"));
+			typedStyleSheet.RuleForTarget<SdWidgetRootStyle>(SdWidgetTargetIds::Panel)
+				.Cascade(SdCascadeLayer::UserAgent)
+				.Set(&SdBoxStyle::width, SdLength::Pixels(240.0f))
+				.Set(&SdBoxStyle::height, SdLength::Pixels(120.0f))
+				.Set(&SdBoxStyle::padding, SdStyleValue::FromSpacing({ mediumSpacing, mediumSpacing, mediumSpacing, mediumSpacing }));
 
 			AddDefaultRootBackgroundRule(SdWidgetTargetIds::Default, SdStyleInteractionState::Normal, SdLayerPriority::Content, "background");
 			AddDefaultRootBackgroundRule(SdWidgetTargetIds::Panel, SdStyleInteractionState::Normal, SdLayerPriority::Content, "panel.bg");

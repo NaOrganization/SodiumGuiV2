@@ -252,38 +252,18 @@ namespace Sodium
 
 		struct Style final
 		{
-			SdSpacing padding = { 10.0f, 10.0f, 10.0f, 10.0f };
-			float width = 240.0f;
-			float height = 120.0f;
 			float childSpacing = 6.0f;
-			float radius = 5.0f;
-			float opacity = 1.0f;
 
 			static Style Default(const SdStyleContext& context)
 			{
 				Style style = {};
-				style.padding = {
-					context.theme.GetMetricVariable(SdThemeVariableLiteral("spacing.medium")),
-					context.theme.GetMetricVariable(SdThemeVariableLiteral("spacing.medium")),
-					context.theme.GetMetricVariable(SdThemeVariableLiteral("spacing.medium")),
-					context.theme.GetMetricVariable(SdThemeVariableLiteral("spacing.medium"))
-				};
-				style.width = 240.0f;
-				style.height = 120.0f;
 				style.childSpacing = context.theme.GetMetricVariable(SdThemeVariableLiteral("spacing.small"));
-				style.radius = context.theme.GetMetricVariable(SdThemeVariableLiteral("radius.small"));
-				style.opacity = 1.0f;
 				return style;
 			}
 
 			static void Describe(SdStyleContract<Style>& contract)
 			{
-				contract.Layout(&Style::padding);
-				contract.Layout(&Style::width);
-				contract.Layout(&Style::height);
 				contract.Layout(&Style::childSpacing);
-				contract.Paint(&Style::radius).InterpolatesAsFloat();
-				contract.Composite(&Style::opacity).InterpolatesAsFloat();
 			}
 		};
 
@@ -303,31 +283,38 @@ namespace Sodium
 		void OnLayout(SdLayoutContext& context)
 		{
 			const Style& style = context.RootResolvedStyle<SdPanel>();
+			const SdBoxStyle& rootStyle = context.RootStyleNode().resolvedStyle;
+			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(rootStyle, context.constraints.maxSize, { 240.0f, 120.0f });
 			context.SetDesiredSize({
-				std::max(0.0f, style.width),
-				std::max(0.0f, style.height)
+				std::max(0.0f, usedStyle.width),
+				std::max(0.0f, usedStyle.height)
 			});
 			context.widgetState.arrangeChildren = true;
 			context.widgetState.clipChildren = true;
-			context.widgetState.childPadding = style.padding;
+			context.widgetState.childPadding = {
+				usedStyle.padding.left,
+				usedStyle.padding.top,
+				usedStyle.padding.right,
+				usedStyle.padding.bottom
+			};
 			context.widgetState.childSpacing = std::max(0.0f, style.childSpacing);
 		}
 
 		void OnPaint(SdPaintContext& context)
 		{
-			const Style& style = context.RootPresentationStyle<SdPanel>();
 			const SdBoxStyle& presentation = context.RootStyleNode().presentationStyle;
+			const float radius = SdResolveLength(presentation.radius, context.animatedRect.Width());
 			context.renderList.AddRectFilled(
 				context.animatedRect,
-				BasicWidgetDetail::ApplyOpacity(presentation.backgroundColor, context.opacity * style.opacity),
+				BasicWidgetDetail::ApplyOpacity(presentation.backgroundColor, context.opacity * presentation.opacity),
 				context.clipRect,
-				style.radius);
+				radius);
 			context.renderList.AddRect(
 				context.animatedRect,
-				BasicWidgetDetail::ApplyOpacity(presentation.border.left.color, context.opacity * style.opacity),
+				BasicWidgetDetail::ApplyOpacity(presentation.border.left.color, context.opacity * presentation.opacity),
 				context.clipRect,
 				1.0f,
-				style.radius);
+				radius);
 		}
 
 	private:
