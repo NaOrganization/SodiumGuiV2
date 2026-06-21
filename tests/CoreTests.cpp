@@ -837,6 +837,13 @@ namespace
 		SdStyleResolveRequest request = {};
 		request.targetTag = Detail::SdTypeHash<RegistryDispatchWidget>();
 		request.classes = SdSpan<const SdStyleClassId>(classes, 1);
+		Check(!compiled.GetBuckets().empty(), "compiled stylesheet builds selector buckets");
+		Check(
+			compiled.CountCandidateRules(
+				std::type_index(typeid(RegistryDispatchStyle)),
+				request.targetTag,
+				SdStylePart::Root()) == 3,
+			"compiled stylesheet bucket returns target root candidates");
 
 		const RegistryDispatchStyle resolved = SdStyleResolver::ResolveStyle<RegistryDispatchStyle>(
 			compiled,
@@ -867,6 +874,13 @@ namespace
 		styleSystem.RootRule(SdText::TargetTypeId)
 			.Transition(&SdWidgetRootStyle::display, std::chrono::milliseconds(90), std::chrono::milliseconds(15), SdAnimationEasing::Linear, SdTransitionBehavior::AllowDiscrete);
 		Check(!styleSystem.GetCompiledStyleSheet().GetRules().empty(), "style system exposes compiled stylesheet with part rules");
+		Check(
+			styleSystem.GetCompiledStyleSheet().CountCandidateRules(
+				std::type_index(typeid(SdWidgetPartStyle)),
+				SdButton::TargetTypeId,
+				SdButton::Parts::Label)
+				< styleSystem.GetCompiledStyleSheet().GetRules().size(),
+			"compiled stylesheet narrows part selector candidates");
 		SdTransition partTransition = {};
 		SdTransition delayedRootTransition = {};
 		SdTransition discreteRootTransition = {};

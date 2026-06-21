@@ -903,12 +903,12 @@ namespace Sodium
 
 			std::vector<AppliedDeclaration> applied = {};
 			const std::type_index styleType = std::type_index(typeid(TStyle));
-			for (const SdCompiledStyleRule& rule : compiledStyleSheet.GetRules())
+			compiledStyleSheet.ForEachCandidateRule(styleType, targetTag, part, [&](const SdCompiledStyleRule& rule)
 			{
 				if (rule.selector.styleType != styleType)
-					continue;
+					return;
 				if (!SdStyleResolver::SelectorMatches(rule.selector, request))
-					continue;
+					return;
 
 				for (const SdCompiledDeclaration& declaration : rule.declarations)
 				{
@@ -947,7 +947,7 @@ namespace Sodium
 					if (!replaced)
 						applied.push_back(candidate);
 				}
-			}
+			});
 
 			const SdStyleContract<TStyle>& contract = GetStyleContract<TStyle>();
 			for (const AppliedDeclaration& declaration : applied)
@@ -994,12 +994,12 @@ namespace Sodium
 			SdCascadeLayer currentLayer = SdCascadeLayer::UserAgent;
 			SdStyleSpecificity currentSpecificity = {};
 			SdUInt32 currentSourceOrder = 0;
-			for (const SdCompiledStyleRule& rule : compiledStyleSheet.GetRules())
+			compiledStyleSheet.ForEachCandidateRule(styleType, targetTypeId, part, [&](const SdCompiledStyleRule& rule)
 			{
 				if (rule.selector.styleType != styleType)
-					continue;
+					return;
 				if (!SdStyleResolver::SelectorMatches(rule.selector, request))
-					continue;
+					return;
 
 				for (const SdCompiledTransition& candidate : rule.transitions)
 				{
@@ -1024,7 +1024,7 @@ namespace Sodium
 						found = true;
 					}
 				}
-			}
+			});
 			return found;
 		}
 

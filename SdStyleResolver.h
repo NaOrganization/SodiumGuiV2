@@ -94,12 +94,12 @@ namespace Sodium
 			};
 
 			std::vector<AppliedDeclaration> applied = {};
-			for (const SdCompiledStyleRule& rule : sheet.GetRules())
+			sheet.ForEachCandidateRule(std::type_index(typeid(TStyle)), request.targetTag, request.part, [&](const SdCompiledStyleRule& rule)
 			{
 				if (rule.selector.styleType != std::type_index(typeid(TStyle)))
-					continue;
+					return;
 				if (!SelectorMatches(rule.selector, request))
-					continue;
+					return;
 
 				for (const SdCompiledDeclaration& declaration : rule.declarations)
 				{
@@ -139,7 +139,7 @@ namespace Sodium
 					if (!replaced)
 						applied.push_back(candidate);
 				}
-			}
+			});
 
 			for (const AppliedDeclaration& declaration : applied)
 			{

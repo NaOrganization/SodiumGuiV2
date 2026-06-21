@@ -3,6 +3,7 @@
 #include "SdStyleProperty.h"
 
 #include <typeindex>
+#include <unordered_map>
 #include <vector>
 
 namespace Sodium
@@ -72,25 +73,149 @@ namespace Sodium
 		std::vector<SdCompiledTransition> transitions = {};
 	};
 
+	struct SdCompiledRuleBucketKey final
+	{
+		std::type_index styleType = std::type_index(typeid(void));
+		SdStyleId targetTag = SdWidgetTargetIds::Global;
+		SdStylePart part = SdStylePart::Root();
+		bool matchPart = false;
+
+		friend bool operator==(const SdCompiledRuleBucketKey& left, const SdCompiledRuleBucketKey& right) noexcept
+		{
+			return left.styleType == right.styleType
+				&& left.targetTag == right.targetTag
+				&& left.part == right.part
+				&& left.matchPart == right.matchPart;
+		}
+	};
+
+	struct SdCompiledRuleBucketKeyHash final
+	{
+		SdSize operator()(const SdCompiledRuleBucketKey& key) const noexcept
+		{
+			SdSize hash = key.styleType.hash_code();
+			hash ^= static_cast<SdSize>(key.targetTag + 0x9e3779b97f4a7c15ull + (hash << 6) + (hash >> 2));
+			hash ^= static_cast<SdSize>(key.part.value + 0x9e3779b97f4a7c15ull + (hash << 6) + (hash >> 2));
+			hash ^= static_cast<SdSize>((key.matchPart ? 1u : 0u) + 0x9e3779b97f4a7c15ull + (hash << 6) + (hash >> 2));
+			return hash;
+		}
+	};
+
+	struct SdCompiledRuleBucket final
+	{
+		SdCompiledRuleBucketKey key = {};
+		std::vector<SdUInt32> ruleIndices = {};
+	};
+
 	class SdCompiledStyleSheet final
 	{
 	private:
 		std::vector<SdCompiledStyleRule> rules = {};
+		std::vector<SdCompiledRuleBucket> buckets = {};
+		std::unordered_map<SdCompiledRuleBucketKey, SdSize, SdCompiledRuleBucketKeyHash> bucketIndexByKey = {};
+
+		static SdCompiledRuleBucketKey MakeBucketKey(const SdCompiledSelector& selector) noexcept
+		{
+			return {
+				selector.styleType,
+				selector.targetTag,
+				selector.matchPart ? selector.part : SdStylePart::Root(),
+				selector.matchPart
+			};
+		}
+
+		const SdCompiledRuleBucket* FindBucket(const SdCompiledRuleBucketKey& key) const noexcept
+		{
+			const auto it = bucketIndexByKey.find(key);
+			if (it == bucketIndexByKey.end())
+				return nullptr;
+			return &buckets[it->second];
+		}
+
+		void AddRuleToBucket(SdUInt32 ruleIndex)
+		{
+			const SdCompiledRuleBucketKey key = MakeBucketKey(rules[ruleIndex].selector);
+			auto it = bucketIndexByKey.find(key);
+			if (it == bucketIndexByKey.end())
+			{
+				SdCompiledRuleBucket bucket = {};
+				bucket.key = key;
+				bucket.ruleIndices.push_back(ruleIndex);
+				buckets.push_back(std::move(bucket));
+				bucketIndexByKey.emplace(key, buckets.size() - 1);
+				return;
+			}
+			buckets[it->second].ruleIndices.push_back(ruleIndex);
+		}
 
 	public:
 		void Clear()
 		{
 			rules.clear();
+			buckets.clear();
+			bucketIndexByKey.clear();
 		}
 
 		void AddRule(const SdCompiledStyleRule& rule)
 		{
 			rules.push_back(rule);
+			AddRuleToBucket(static_cast<SdUInt32>(rules.size() - 1));
 		}
 
 		const std::vector<SdCompiledStyleRule>& GetRules() const noexcept
 		{
 			return rules;
+		}
+
+		const std::vector<SdCompiledRuleBucket>& GetBuckets() const noexcept
+		{
+			return buckets;
+		}
+
+		template<class TCallback>
+		void ForEachCandidateRule(
+			std::type_index styleType,
+			SdStyleId targetTag,
+			SdStylePart part,
+			TCallback&& callback) const
+		{
+			const std::vector<SdUInt32>* visitedBuckets[4] = {};
+			SdSize visitedBucketCount = 0;
+
+			const auto visitBucket = [&](SdStyleId bucketTargetTag, SdStylePart bucketPart, bool matchPart)
+			{
+				const SdCompiledRuleBucketKey key{ styleType, bucketTargetTag, bucketPart, matchPart };
+				const SdCompiledRuleBucket* bucket = FindBucket(key);
+				if (!bucket)
+					return;
+				for (SdSize index = 0; index < visitedBucketCount; ++index)
+				{
+					if (visitedBuckets[index] == &bucket->ruleIndices)
+						return;
+				}
+
+				visitedBuckets[visitedBucketCount++] = &bucket->ruleIndices;
+				for (SdUInt32 ruleIndex : bucket->ruleIndices)
+					callback(rules[ruleIndex]);
+			};
+
+			visitBucket(targetTag, SdStylePart::Root(), false);
+			visitBucket(targetTag, part, true);
+			if (targetTag != SdWidgetTargetIds::Global)
+			{
+				visitBucket(SdWidgetTargetIds::Global, SdStylePart::Root(), false);
+				visitBucket(SdWidgetTargetIds::Global, part, true);
+			}
+		}
+
+		SdSize CountCandidateRules(std::type_index styleType, SdStyleId targetTag, SdStylePart part) const
+		{
+			SdSize count = 0;
+			ForEachCandidateRule(styleType, targetTag, part, [&count](const SdCompiledStyleRule&)
+			{
+				++count;
+			});
+			return count;
 		}
 	};
 
