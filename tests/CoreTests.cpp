@@ -1146,8 +1146,9 @@ namespace
 		bool hasLayoutCache = false;
 		bool hasStyleCache = false;
 		bool hasExtendedAnimationChannels = false;
-		bool hasStyleAnimationTarget = false;
+		bool hasStyleNodeAnimationTarget = false;
 		const SdWidgetRootStyle buttonStyle = instance.GetStyleSystem().ResolveRootStyle(TestDrawWidget::TargetTypeId, SdStyleInteractionState::Normal);
+		const SdPropertyId backgroundPropertyId = Detail::SdStylePropertyId(&SdBoxStyle::backgroundColor);
 		for (const auto& [id, record] : instance.GetStateStorage().GetWidgetRecords())
 		{
 			(void)id;
@@ -1157,18 +1158,21 @@ namespace
 				|| (record.animation.styleColorR != 0 && record.animation.scrollOffset != 0);
 			if (record.state.targetTypeId == TestDrawWidget::TargetTypeId)
 			{
-				const SdAnimationChannel& red = instance.GetContext().animationSystem.GetChannel(record.animation.styleBackgroundR);
-				const SdAnimationChannel& green = instance.GetContext().animationSystem.GetChannel(record.animation.styleBackgroundG);
-				const SdAnimationChannel& blue = instance.GetContext().animationSystem.GetChannel(record.animation.styleBackgroundB);
-				hasStyleAnimationTarget = red.target == static_cast<float>(buttonStyle.backgroundColor.r)
-					&& green.target == static_cast<float>(buttonStyle.backgroundColor.g)
-					&& blue.target == static_cast<float>(buttonStyle.backgroundColor.b);
+				for (const SdPropertyAnimationChannel& channel : instance.GetContext().styleAnimationChannels.GetChannels())
+				{
+					if (channel.styleNodeId == record.rootStyleNodeId
+						&& channel.propertyId == backgroundPropertyId
+						&& channel.targetValue.kind == SdStyleValueKind::Color)
+					{
+						hasStyleNodeAnimationTarget = channel.targetValue.color == buttonStyle.backgroundColor;
+					}
+				}
 			}
 		}
 		Check(hasLayoutCache, "state storage owns layout cache");
 		Check(hasStyleCache, "state storage owns presentation style cache");
 		Check(hasExtendedAnimationChannels, "widget records own extended animation channel references");
-		Check(hasStyleAnimationTarget, "style color animation targets presentation background");
+		Check(hasStyleNodeAnimationTarget, "style node animation targets presentation background");
 
 		const SdWidgetPartStyle normalContent = instance.GetStyleSystem().ResolvePartStyle(
 			TestDrawWidget::TargetTypeId,
@@ -1210,7 +1214,6 @@ namespace
 		bool hasRootBorderStyleNodeAnimation = false;
 		bool hasRootBorderFromStyleNodeAnimation = false;
 		const SdPropertyId colorPropertyId = Detail::SdStylePropertyId(&SdBoxStyle::color);
-		const SdPropertyId backgroundPropertyId = Detail::SdStylePropertyId(&SdBoxStyle::backgroundColor);
 		const SdPropertyId borderPropertyId = Detail::SdStylePropertyId(&SdBoxStyle::border);
 		for (const auto& [id, record] : instance.GetStateStorage().GetWidgetRecords())
 		{

@@ -32,40 +32,6 @@ namespace Sodium
 				record.state.animationActive = true;
 		}
 
-		inline SdUInt8 ClampColorByte(float value) noexcept
-		{
-			return static_cast<SdUInt8>(std::clamp(value, 0.0f, 255.0f));
-		}
-
-		inline SdColor ReadStyleColorChannels(
-			SdAnimationSystem& animationSystem,
-			SdAnimationChannelId red,
-			SdAnimationChannelId green,
-			SdAnimationChannelId blue,
-			SdAnimationChannelId alpha,
-			SdColor fallback) noexcept
-		{
-			return {
-				ClampColorByte(animationSystem.GetValue(red, static_cast<float>(fallback.r))),
-				ClampColorByte(animationSystem.GetValue(green, static_cast<float>(fallback.g))),
-				ClampColorByte(animationSystem.GetValue(blue, static_cast<float>(fallback.b))),
-				ClampColorByte(animationSystem.GetValue(alpha, static_cast<float>(fallback.a)))
-			};
-		}
-
-		inline bool IsAnyStyleColorChannelActive(
-			SdAnimationSystem& animationSystem,
-			SdAnimationChannelId red,
-			SdAnimationChannelId green,
-			SdAnimationChannelId blue,
-			SdAnimationChannelId alpha) noexcept
-		{
-			return animationSystem.IsActive(red)
-				|| animationSystem.IsActive(green)
-				|| animationSystem.IsActive(blue)
-				|| animationSystem.IsActive(alpha);
-		}
-
 		inline void SetStyleColorPropertyChannelTarget(
 			SdStyleAnimationChannels& channels,
 			SdStyleNodeId styleNodeId,
@@ -88,6 +54,15 @@ namespace Sodium
 				channel.currentValue = channel.targetValue;
 		}
 
+		inline SdColor GetStyleColorPropertyChannelValue(
+			SdStyleAnimationChannels& channels,
+			SdStyleNodeId styleNodeId,
+			SdPropertyId propertyId,
+			SdColor fallback)
+		{
+			SdPropertyAnimationChannel& channel = channels.Ensure(styleNodeId, propertyId);
+			return channel.currentValue.kind == SdStyleValueKind::Color ? channel.currentValue.color : fallback;
+		}
 	}
 
 	inline void SdInstance::SetWidgetStyleIdentity(SdWidgetRecord& record, SdSpan<const SdStyleClassId> styleClasses, SdStyleScopeId styleScope)
@@ -190,53 +165,16 @@ namespace Sodium
 		const SdPropertyId colorPropertyId = Detail::SdStylePropertyId(&SdBoxStyle::color);
 		const SdPropertyId backgroundPropertyId = Detail::SdStylePropertyId(&SdBoxStyle::backgroundColor);
 		const SdPropertyId borderPropertyId = Detail::SdStylePropertyId(&SdBoxStyle::border);
-		const auto setChannel = [this, immediate](SdAnimationChannelId channelId, float target)
-		{
-			if (immediate)
-			{
-				context.animationSystem.SetImmediate(channelId, target);
-				return;
-			}
-			context.animationSystem.SetTarget(channelId, target, GetDefaultTransition());
-		};
-		const auto setColorChannels = [&setChannel](SdAnimationChannelId red, SdAnimationChannelId green, SdAnimationChannelId blue, SdAnimationChannelId alpha, SdColor color)
-		{
-			setChannel(red, static_cast<float>(color.r));
-			setChannel(green, static_cast<float>(color.g));
-			setChannel(blue, static_cast<float>(color.b));
-			setChannel(alpha, static_cast<float>(color.a));
-		};
-
-		setColorChannels(
-			record.animation.styleColorR,
-			record.animation.styleColorG,
-			record.animation.styleColorB,
-			record.animation.styleColorA,
-			style.color);
-		setColorChannels(
-			record.animation.styleBackgroundR,
-			record.animation.styleBackgroundG,
-			record.animation.styleBackgroundB,
-			record.animation.styleBackgroundA,
-			style.backgroundColor);
-		setColorChannels(
-			record.animation.styleBorderR,
-			record.animation.styleBorderG,
-			record.animation.styleBorderB,
-			record.animation.styleBorderA,
-			style.border.left.color);
 
 		const SdTransition transition = GetDefaultTransition();
 		Detail::SetStyleColorPropertyChannelTarget(
 			context.styleAnimationChannels,
 			record.rootStyleNodeId,
 			colorPropertyId,
-			Detail::ReadStyleColorChannels(
-				context.animationSystem,
-				record.animation.styleColorR,
-				record.animation.styleColorG,
-				record.animation.styleColorB,
-				record.animation.styleColorA,
+			Detail::GetStyleColorPropertyChannelValue(
+				context.styleAnimationChannels,
+				record.rootStyleNodeId,
+				colorPropertyId,
 				style.color),
 			style.color,
 			transition,
@@ -245,12 +183,10 @@ namespace Sodium
 			context.styleAnimationChannels,
 			record.rootStyleNodeId,
 			backgroundPropertyId,
-			Detail::ReadStyleColorChannels(
-				context.animationSystem,
-				record.animation.styleBackgroundR,
-				record.animation.styleBackgroundG,
-				record.animation.styleBackgroundB,
-				record.animation.styleBackgroundA,
+			Detail::GetStyleColorPropertyChannelValue(
+				context.styleAnimationChannels,
+				record.rootStyleNodeId,
+				backgroundPropertyId,
 				style.backgroundColor),
 			style.backgroundColor,
 			transition,
@@ -259,12 +195,10 @@ namespace Sodium
 			context.styleAnimationChannels,
 			record.rootStyleNodeId,
 			borderPropertyId,
-			Detail::ReadStyleColorChannels(
-				context.animationSystem,
-				record.animation.styleBorderR,
-				record.animation.styleBorderG,
-				record.animation.styleBorderB,
-				record.animation.styleBorderA,
+			Detail::GetStyleColorPropertyChannelValue(
+				context.styleAnimationChannels,
+				record.rootStyleNodeId,
+				borderPropertyId,
 				style.border.left.color),
 			style.border.left.color,
 			transition,
@@ -274,38 +208,22 @@ namespace Sodium
 	inline void SdInstance::ApplyWidgetStyleAnimation(SdWidgetRecord& record)
 	{
 		SdWidgetRootStyle presentationStyle = record.styleCache.resolvedStyle;
-		record.state.animationActive = record.state.animationActive
-			|| Detail::IsAnyStyleColorChannelActive(
-				context.animationSystem,
-				record.animation.styleColorR,
-				record.animation.styleColorG,
-				record.animation.styleColorB,
-				record.animation.styleColorA)
-			|| Detail::IsAnyStyleColorChannelActive(
-				context.animationSystem,
-				record.animation.styleBackgroundR,
-				record.animation.styleBackgroundG,
-				record.animation.styleBackgroundB,
-				record.animation.styleBackgroundA)
-			|| Detail::IsAnyStyleColorChannelActive(
-				context.animationSystem,
-				record.animation.styleBorderR,
-				record.animation.styleBorderG,
-				record.animation.styleBorderB,
-				record.animation.styleBorderA);
 		SdPropertyAnimationChannel& colorChannel = context.styleAnimationChannels.Ensure(
 			record.rootStyleNodeId,
 			Detail::SdStylePropertyId(&SdBoxStyle::color));
+		record.state.animationActive = record.state.animationActive || colorChannel.active;
 		if (colorChannel.currentValue.kind == SdStyleValueKind::Color)
 			presentationStyle.color = colorChannel.currentValue.color;
 		SdPropertyAnimationChannel& backgroundChannel = context.styleAnimationChannels.Ensure(
 			record.rootStyleNodeId,
 			Detail::SdStylePropertyId(&SdBoxStyle::backgroundColor));
+		record.state.animationActive = record.state.animationActive || backgroundChannel.active;
 		if (backgroundChannel.currentValue.kind == SdStyleValueKind::Color)
 			presentationStyle.backgroundColor = backgroundChannel.currentValue.color;
 		SdPropertyAnimationChannel& borderChannel = context.styleAnimationChannels.Ensure(
 			record.rootStyleNodeId,
 			Detail::SdStylePropertyId(&SdBoxStyle::border));
+		record.state.animationActive = record.state.animationActive || borderChannel.active;
 		if (borderChannel.currentValue.kind == SdStyleValueKind::Color)
 			presentationStyle.border = SdBorder::All(
 				record.styleCache.resolvedStyle.border.left.width,

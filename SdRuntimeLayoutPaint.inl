@@ -164,7 +164,6 @@ namespace Sodium
 		}
 
 		context.animationSystem.Update(context.frame.deltaTime, false, false, true, true, false, false);
-		context.animationSystem.Update(context.frame.deltaTime, false, false, false, false, true, false);
 		context.styleAnimationChannels.Update(context.frame.deltaTime);
 		for (SdWidgetId id : liveIds)
 		{
