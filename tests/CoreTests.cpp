@@ -1426,7 +1426,9 @@ namespace
 
 		Check(instance.GetDiagnostics().submittedWidgetCount == 3, "nested declaration submits container children");
 		Check(instance.GetLayoutSystem().GetNodes().size() == 3, "layout node exists for each declared widget");
+		Check(instance.GetBoxTree().GetBoxCount() == 3, "box tree node exists for each declared widget");
 		Check(instance.GetDiagnostics().layoutNodeCount == 3, "diagnostics expose layout node count");
+		Check(instance.GetDiagnostics().boxNodeCount == 3, "diagnostics expose box node count");
 		Check(instance.GetDiagnostics().activeAnimationChannelCount > 0, "enter animation channels are active");
 		bool hasLayoutCache = false;
 		bool hasStyleCache = false;
@@ -1811,6 +1813,7 @@ namespace
 		Check(static_cast<const void*>(&context.stateStorage) == static_cast<const void*>(&instance.GetStateStorage()), "context owns state storage");
 		Check(static_cast<const void*>(&context.styleSystem) == static_cast<const void*>(&instance.GetStyleSystem()), "context owns style system");
 		Check(static_cast<const void*>(&context.layoutSystem) == static_cast<const void*>(&instance.GetLayoutSystem()), "context owns layout system");
+		Check(static_cast<const void*>(&context.boxTree) == static_cast<const void*>(&instance.GetBoxTree()), "context owns box tree");
 		Check(static_cast<const void*>(&context.renderSystem) == static_cast<const void*>(&instance.GetRenderSystem()), "context owns render system");
 		Check(static_cast<const void*>(&context.renderStats) == static_cast<const void*>(&instance.GetRenderStats()), "context owns render stats");
 

@@ -437,5 +437,10 @@ namespace Sodium
 		{
 			return boxes;
 		}
+
+		SdSize GetBoxCount() const noexcept
+		{
+			return boxes.size();
+		}
 	};
 }

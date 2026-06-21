@@ -23,6 +23,7 @@ namespace Sodium
 		SdUInt32 deadWidgetCount = 0;
 		SdUInt32 removedWidgetCount = 0;
 		SdUInt32 layoutNodeCount = 0;
+		SdUInt32 boxNodeCount = 0;
 		SdUInt32 hitTestRecordCount = 0;
 		SdUInt32 layerDrawChannelCount = 0;
 		SdUInt32 activeAnimationChannelCount = 0;
@@ -48,6 +49,7 @@ namespace Sodium
 			deadWidgetCount = 0;
 			removedWidgetCount = 0;
 			layoutNodeCount = 0;
+			boxNodeCount = 0;
 			hitTestRecordCount = 0;
 			layerDrawChannelCount = 0;
 			activeAnimationChannelCount = 0;
@@ -83,6 +85,7 @@ namespace Sodium
 		SdStyleAnimationChannels styleAnimationChannels = {};
 		SdStyleSystem styleSystem = {};
 		SdLayoutSystem layoutSystem = {};
+		SdBoxTree boxTree = {};
 		SdLayerSystem layerSystem = {};
 		SdInteractionSystem interactionSystem = {};
 		SdRenderSystem renderSystem = {};
@@ -200,6 +203,7 @@ namespace Sodium
 		const SdRenderSharedData& GetRenderSharedData() const noexcept { return context.renderSharedData; }
 		const SdInteractionSystem& GetInteractionSystem() const noexcept { return context.interactionSystem; }
 		const SdLayoutSystem& GetLayoutSystem() const noexcept { return context.layoutSystem; }
+		const SdBoxTree& GetBoxTree() const noexcept { return context.boxTree; }
 		const SdLayerSystem& GetLayerSystem() const noexcept { return context.layerSystem; }
 		const SdAnimationSystem& GetAnimationSystem() const noexcept { return context.animationSystem; }
 		const SdStateStorage& GetStateStorage() const noexcept { return context.stateStorage; }

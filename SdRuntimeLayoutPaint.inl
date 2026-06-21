@@ -83,6 +83,9 @@ namespace Sodium
 		};
 
 		context.layoutSystem.BeginFrame(liveIds.size());
+		context.boxTree.Clear();
+		std::unordered_map<SdWidgetId, SdUInt32> boxIndexByWidgetId = {};
+		boxIndexByWidgetId.reserve(liveIds.size());
 		for (SdWidgetId id : liveIds)
 		{
 			SdWidgetRecord& record = widgets[id];
@@ -142,8 +145,16 @@ namespace Sodium
 				record.state.arrangeChildren || styleArrangesChildren,
 				record.state.clipChildren || styleClipsChildren
 			});
+
+			SdUInt32 parentBoxIndex = SdInvalidIndex<SdUInt32>;
+			const auto parentBoxIt = boxIndexByWidgetId.find(record.parentId);
+			if (record.parentId != 0 && parentBoxIt != boxIndexByWidgetId.end())
+				parentBoxIndex = parentBoxIt->second;
+			const SdUInt32 boxIndex = context.boxTree.AddBox(record.rootStyleNodeId, parentBoxIndex, record.styleCache.resolvedStyle, result.desiredSize);
+			boxIndexByWidgetId[id] = boxIndex;
 		}
 
+		context.boxTree.Layout(displayRect);
 		context.layoutSystem.Measure(displaySize);
 		context.layoutSystem.Arrange(displayRect);
 		const std::vector<SdLayoutNode>& layoutNodes = context.layoutSystem.GetNodes();
