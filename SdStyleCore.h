@@ -215,6 +215,8 @@ namespace Sodium
 		SdColor color = SdColorWhite;
 		SdColor backgroundColor = SdColorTransparent;
 		float opacity = 1.0f;
+		float fontSize = 16.0f;
+		float lineHeight = 0.0f;
 		SdFlexDirection flexDirection = SdFlexDirection::Column;
 		SdJustifyContent justifyContent = SdJustifyContent::FlexStart;
 		SdAlignItems alignItems = SdAlignItems::Stretch;

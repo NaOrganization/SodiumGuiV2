@@ -38,8 +38,6 @@ namespace SodiumDynamicExample
 	{
 		const auto themeTransition = 360ms;
 		const Sodium::SdAnimationEasing easing = Sodium::SdAnimationEasing::OutCubic;
-		styleSystem.Rule<Sodium::SdText>()
-			.Transition(&Sodium::SdText::Style::color, themeTransition, easing);
 		styleSystem.Rule<Sodium::SdPanel>()
 			.Transition(&Sodium::SdPanel::Style::radius, themeTransition, easing);
 		styleSystem.Rule<Sodium::SdButton>()
@@ -288,10 +286,6 @@ namespace SodiumDynamicExample
 
 				Sodium::SdText::Style inlineTextStyle = {};
 				inlineTextStyle.padding = { 2.0f, 1.0f, 2.0f, 1.0f };
-				inlineTextStyle.fontSize = 14.0f;
-				inlineTextStyle.lineHeight = 18.0f;
-				inlineTextStyle.color = { 255, 228, 170, 255 };
-				inlineTextStyle.opacity = 0.90f;
 				context.ui.DeclareStyledKeyed<Sodium::SdText>("overlay_inline_style", &inlineTextStyle, "Inline target style");
 
 				Sodium::SdPanel::Style panelStyle = {};
@@ -422,21 +416,21 @@ namespace SodiumDynamicExample
 
 			Sodium::SdStyleSystem& styleSystem = gui.GetStyleSystem();
 			ConfigureBuiltInThemeTransitions(styleSystem);
+			styleSystem.RootRule(Sodium::SdText::TargetTypeId)
+				.Scope(kOverlayTextScope)
+				.Set(&Sodium::SdBoxStyle::fontSize, 15.0f)
+				.Set(&Sodium::SdBoxStyle::lineHeight, 19.0f);
 			styleSystem.Rule<Sodium::SdText>()
 				.Scope(kOverlayTextScope)
-				.Set(&Sodium::SdText::Style::fontSize, 15.0f)
-				.Set(&Sodium::SdText::Style::lineHeight, 19.0f)
 				.Set(&Sodium::SdText::Style::padding, Sodium::SdSpacing{ 2.0f, 0.0f, 2.0f, 0.0f });
-			styleSystem.Rule<Sodium::SdText>()
+			styleSystem.RootRule(Sodium::SdText::TargetTypeId)
 				.Scope(kOverlayTextScope)
 				.Class(kOverlayAccentTextClass)
-				.Set(&Sodium::SdText::Style::color, Sodium::ThemeColor("accent"))
-				.Transition(&Sodium::SdText::Style::color, 180ms, Sodium::SdAnimationEasing::OutCubic);
-			styleSystem.Rule<Sodium::SdText>()
+				.Set(&Sodium::SdBoxStyle::color, Sodium::ThemeColor("accent"));
+			styleSystem.RootRule(Sodium::SdText::TargetTypeId)
 				.Scope(kOverlayTextScope)
 				.Class(kOverlayMutedTextClass)
-				.Set(&Sodium::SdText::Style::color, Sodium::SdColor{ 178, 196, 214, 255 })
-				.Transition(&Sodium::SdText::Style::color, 180ms, Sodium::SdAnimationEasing::OutCubic);
+				.Set(&Sodium::SdBoxStyle::color, Sodium::SdColor{ 178, 196, 214, 255 });
 			styleConfigured = true;
 		}
 

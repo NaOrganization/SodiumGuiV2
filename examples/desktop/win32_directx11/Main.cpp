@@ -37,8 +37,6 @@ namespace
 	{
 		const auto themeTransition = std::chrono::milliseconds(360);
 		const Sodium::SdAnimationEasing easing = Sodium::SdAnimationEasing::OutCubic;
-		styleSystem.Rule<Sodium::SdText>()
-			.Transition(&Sodium::SdText::Style::color, themeTransition, easing);
 		styleSystem.Rule<Sodium::SdPanel>()
 			.Transition(&Sodium::SdPanel::Style::radius, themeTransition, easing);
 		styleSystem.Rule<Sodium::SdButton>()
@@ -265,10 +263,6 @@ namespace
 
 				Sodium::SdText::Style inlineTextStyle = {};
 				inlineTextStyle.padding = { 2.0f, 1.0f, 2.0f, 1.0f };
-				inlineTextStyle.fontSize = 15.0f;
-				inlineTextStyle.lineHeight = 20.0f;
-				inlineTextStyle.color = { 255, 226, 160, 255 };
-				inlineTextStyle.opacity = 0.92f;
 				context.ui.DeclareStyledKeyed<Sodium::SdText>("style_inline", &inlineTextStyle, "Inline target style text");
 
 				if (!context.input.IsKeyHeld(Sodium::SdKeyCode::W))
@@ -417,21 +411,21 @@ namespace
 		{
 			Sodium::SdStyleSystem& styleSystem = gui.GetStyleSystem();
 			ConfigureBuiltInThemeTransitions(styleSystem);
+			styleSystem.RootRule(Sodium::SdText::TargetTypeId)
+				.Scope(kExampleDemoTextScope)
+				.Set(&Sodium::SdBoxStyle::fontSize, 17.0f)
+				.Set(&Sodium::SdBoxStyle::lineHeight, 22.0f);
 			styleSystem.Rule<Sodium::SdText>()
 				.Scope(kExampleDemoTextScope)
-				.Set(&Sodium::SdText::Style::fontSize, 17.0f)
-				.Set(&Sodium::SdText::Style::lineHeight, 22.0f)
 				.Set(&Sodium::SdText::Style::padding, Sodium::SdSpacing{ 2.0f, 0.0f, 2.0f, 0.0f });
-			styleSystem.Rule<Sodium::SdText>()
+			styleSystem.RootRule(Sodium::SdText::TargetTypeId)
 				.Scope(kExampleDemoTextScope)
 				.Class(kExampleAccentTextClass)
-				.Set(&Sodium::SdText::Style::color, Sodium::ThemeColor("accent"))
-				.Transition(&Sodium::SdText::Style::color, std::chrono::milliseconds(220), Sodium::SdAnimationEasing::OutCubic);
-			styleSystem.Rule<Sodium::SdText>()
+				.Set(&Sodium::SdBoxStyle::color, Sodium::ThemeColor("accent"));
+			styleSystem.RootRule(Sodium::SdText::TargetTypeId)
 				.Scope(kExampleDemoTextScope)
 				.Class(kExampleWarningTextClass)
-				.Set(&Sodium::SdText::Style::color, Sodium::SdColor{ 255, 176, 92, 255 })
-				.Transition(&Sodium::SdText::Style::color, std::chrono::milliseconds(220), Sodium::SdAnimationEasing::OutCubic);
+				.Set(&Sodium::SdBoxStyle::color, Sodium::SdColor{ 255, 176, 92, 255 });
 		}
 
 		void ApplyGlobalTheme()

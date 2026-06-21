@@ -142,28 +142,17 @@ namespace Sodium
 			static constexpr SdStyleId Color = SdStylePropertyIds::Color;
 			static constexpr SdStyleId Opacity = SdStylePropertyIds::Opacity;
 			SdSpacing padding = {};
-			float fontSize = 16.0f;
-			float lineHeight = 0.0f;
-			SdColor color = SdColorWhite;
-			float opacity = 1.0f;
 
 			static Style Default(const SdStyleContext& context)
 			{
+				(void)context;
 				Style style = {};
-				style.fontSize = 16.0f;
-				style.lineHeight = 0.0f;
-				style.color = context.theme.GetColorVariable(SdThemeVariableLiteral("text"));
-				style.opacity = 1.0f;
 				return style;
 			}
 
 			static void Describe(SdStyleContract<Style>& contract)
 			{
 				contract.Layout(&Style::padding);
-				contract.Layout(&Style::fontSize);
-				contract.Layout(&Style::lineHeight);
-				contract.Paint(&Style::color).InterpolatesAsColor();
-				contract.Composite(&Style::opacity).InterpolatesAsFloat();
 			}
 		};
 
@@ -223,7 +212,8 @@ namespace Sodium
 		{
 			const State& state = context.State<State>();
 			const Style& style = context.RootResolvedStyle<SdText>();
-			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle(state.textStyle, style.fontSize, style.lineHeight);
+			const SdBoxStyle& rootStyle = context.RootStyleNode().resolvedStyle;
+			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle(state.textStyle, rootStyle.fontSize, rootStyle.lineHeight);
 			SdVec2 desiredSize = BasicWidgetDetail::MeasureText(context, state.text, textStyle);
 
 			desiredSize.y = std::max(desiredSize.y, BasicWidgetDetail::ResolveLineHeight(textStyle));
@@ -242,11 +232,12 @@ namespace Sodium
 			if (state.text.empty())
 				return;
 
-			const Style& style = context.RootPresentationStyle<SdText>();
-			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle(state.textStyle, style.fontSize, style.lineHeight);
+			const Style& style = context.RootResolvedStyle<SdText>();
+			const SdBoxStyle& presentation = context.RootStyleNode().presentationStyle;
+			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle(state.textStyle, presentation.fontSize, presentation.lineHeight);
 			const SdColor color = BasicWidgetDetail::ApplyOpacity(
-				style.color,
-				context.opacity * style.opacity);
+				presentation.color,
+				context.opacity * presentation.opacity);
 			const SdVec2 position = {
 				context.animatedRect.min.x + style.padding.left,
 				context.animatedRect.min.y + style.padding.top

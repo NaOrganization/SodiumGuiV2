@@ -863,6 +863,12 @@ namespace Sodium
 			propertyRegistry.Register<&SdBoxStyle::opacity>(
 				SdStyleFieldImpact::Composite,
 				SdStyleInterpolation::Float);
+			propertyRegistry.Register<&SdBoxStyle::fontSize>(
+				SdStyleFieldImpact::Layout,
+				SdStyleInterpolation::Float);
+			propertyRegistry.Register<&SdBoxStyle::lineHeight>(
+				SdStyleFieldImpact::Layout,
+				SdStyleInterpolation::Float);
 		}
 
 		void InstallDefaultUserAgentStyleSheet(bool touchRevision = true)
@@ -872,7 +878,9 @@ namespace Sodium
 				.Set(&SdBoxStyle::color, ThemeColor("text"))
 				.Set(&SdBoxStyle::border, ThemeColor("border"))
 				.Set(&SdBoxStyle::radius, ThemeMetric("radius.small"))
-				.Set(&SdBoxStyle::opacity, 1.0f);
+				.Set(&SdBoxStyle::opacity, 1.0f)
+				.Set(&SdBoxStyle::fontSize, ThemeMetric("font.button"))
+				.Set(&SdBoxStyle::lineHeight, 0.0f);
 
 			AddDefaultRootBackgroundRule(SdWidgetTargetIds::Default, SdStyleInteractionState::Normal, SdLayerPriority::Content, "background");
 			AddDefaultRootBackgroundRule(SdWidgetTargetIds::Panel, SdStyleInteractionState::Normal, SdLayerPriority::Content, "panel.bg");
