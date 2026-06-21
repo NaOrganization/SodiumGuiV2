@@ -630,7 +630,8 @@ namespace Sodium
 			const SdBoxStyle& trackPresentation = context.Part(Parts::Track).presentationStyle;
 			const SdBoxStyle& fillPresentation = context.Part(Parts::Fill).presentationStyle;
 			const SdBoxStyle& thumbPresentation = context.Part(Parts::Thumb).presentationStyle;
-			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(presentation, context.animatedRect.Size(), { 180.0f, 30.0f });
+			const SdRect paintRect = BasicWidgetDetail::PaintRect(context);
+			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(presentation, paintRect.Size(), { 180.0f, 30.0f });
 			const float labelGap = std::max(0.0f, usedStyle.gap);
 			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, labelPresentation.fontSize, labelPresentation.lineHeight);
 			const float lineHeight = BasicWidgetDetail::ResolveLineHeight(textStyle);
@@ -642,19 +643,19 @@ namespace Sodium
 			const SdColor thumbBorder = BasicWidgetDetail::ApplyOpacity(thumbPresentation.border.left.color, context.opacity * thumbPresentation.opacity);
 			const float radius = SdResolveLength(trackPresentation.radius, usedStyle.width, SdResolveLength(presentation.radius, usedStyle.width));
 
-			float trackStartX = context.animatedRect.min.x + usedStyle.padding.left;
+			float trackStartX = paintRect.min.x + usedStyle.padding.left;
 			if (!state.label.empty())
 			{
 				const SdVec2 labelSize = BasicWidgetDetail::MeasureText(context.instance, state.label, textStyle);
 				const SdVec2 labelPosition = {
 					trackStartX,
-					context.animatedRect.min.y + std::max(usedStyle.padding.top, (context.animatedRect.Height() - lineHeight) * 0.5f)
+					paintRect.min.y + std::max(usedStyle.padding.top, (paintRect.Height() - lineHeight) * 0.5f)
 				};
 				context.renderList.AddText(state.label, textStyle, labelPosition, textColor, context.clipRect);
 				trackStartX += labelSize.x + labelGap;
 			}
 
-			const float trackCenterY = context.animatedRect.min.y + (context.animatedRect.Height() * 0.5f);
+			const float trackCenterY = paintRect.min.y + (paintRect.Height() * 0.5f);
 			const SdRect trackRect = {
 				trackStartX,
 				trackCenterY - (style.trackHeight * 0.5f),
