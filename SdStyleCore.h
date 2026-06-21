@@ -347,6 +347,7 @@ namespace Sodium
 		SdBoxStyle resolvedStyle = {};
 		SdBoxStyle presentationStyle = {};
 		SdUsedBox usedBox = {};
+		SdUsedBox layoutBox = {};
 	};
 
 	inline SdStyleValue SdStyleValueFromLength(SdLength value) noexcept

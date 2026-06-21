@@ -1244,6 +1244,7 @@ namespace
 		bool hasUsedBox = false;
 		bool hasPartUsedBox = false;
 		bool hasShadowBox = false;
+		bool hasLayoutBoxFromShadowBox = false;
 		for (const auto& [id, record] : instance.GetStateStorage().GetWidgetRecords())
 		{
 			(void)id;
@@ -1258,11 +1259,16 @@ namespace
 				hasPartUsedBox = content.usedBox.borderBox.Width() == root.usedBox.borderBox.Width()
 					&& label.usedBox.contentBox.Height() == root.usedBox.contentBox.Height();
 				hasShadowBox = box && box->borderBox.Width() > 0.0f && box->contentBox.Width() <= box->borderBox.Width();
+				hasLayoutBoxFromShadowBox = box
+					&& root.layoutBox.borderBox.min.x == box->borderBox.min.x
+					&& root.layoutBox.contentBox.max.y == box->contentBox.max.y
+					&& content.layoutBox.borderBox.Width() == root.layoutBox.borderBox.Width();
 			}
 		}
 		Check(hasUsedBox, "runtime writes used geometry to root style node");
 		Check(hasPartUsedBox, "runtime writes used geometry to part style nodes");
 		Check(hasShadowBox, "runtime shadow box tree indexes root style nodes");
+		Check(hasLayoutBoxFromShadowBox, "runtime writes shadow box geometry to style nodes");
 
 		SdInstance panelInstance;
 		panelInstance.BeginFrame({ 320.0f, 200.0f });
@@ -1368,6 +1374,7 @@ namespace
 		manualInstance.ui.Declare<TestManualLayoutWidget>();
 		PumpFrame(manualInstance);
 		bool manualShadowBoxUsesAbsoluteRect = false;
+		bool manualLayoutBoxUsesAbsoluteRect = false;
 		for (const auto& [id, record] : manualInstance.GetStateStorage().GetWidgetRecords())
 		{
 			(void)id;
@@ -1378,9 +1385,13 @@ namespace
 					&& box->usedStyleValues.position == SdPosition::Absolute
 					&& box->borderBox.min.x == record.state.manualRect.min.x
 					&& box->borderBox.max.y == record.state.manualRect.max.y;
+				const SdStyleNode& root = manualInstance.GetRootStyleNode(record.state.id);
+				manualLayoutBoxUsesAbsoluteRect = root.layoutBox.borderBox.min.x == record.state.manualRect.min.x
+					&& root.layoutBox.borderBox.max.y == record.state.manualRect.max.y;
 			}
 		}
 		Check(manualShadowBoxUsesAbsoluteRect, "runtime maps manual layout widgets to absolute shadow boxes");
+		Check(manualLayoutBoxUsesAbsoluteRect, "runtime writes manual shadow geometry to style node layout box");
 	}
 
 	void TestIdAndKeySemantics()
