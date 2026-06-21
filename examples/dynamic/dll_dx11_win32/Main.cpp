@@ -308,9 +308,7 @@ namespace SodiumDynamicExample
 					Sodium::SdSpan<const Sodium::SdStyleClassId>(scrollClasses, 1),
 					kOverlayScrollScope
 				};
-				Sodium::SdScrollView::Style scrollStyle = {};
-				scrollStyle.childSpacing = 3.0f;
-				context.ui.DeclareStyledKeyed<Sodium::SdScrollView>("overlay_scroll", scrollIdentity, &scrollStyle, [](Sodium::SdUi& ui)
+				context.ui.DeclareStyledKeyed<Sodium::SdScrollView>("overlay_scroll", scrollIdentity, [](Sodium::SdUi& ui)
 				{
 					ui.Declare<Sodium::SdText>("SdScrollView row");
 					ui.Declare<Sodium::SdButton>("Child button");
@@ -432,7 +430,8 @@ namespace SodiumDynamicExample
 				.Class(kOverlayBasicScrollClass)
 				.Set(&Sodium::SdBoxStyle::width, Sodium::SdLength::Pixels(472.0f))
 				.Set(&Sodium::SdBoxStyle::height, Sodium::SdLength::Pixels(74.0f))
-				.Set(&Sodium::SdBoxStyle::padding, Sodium::SdStyleValue::FromSpacing({ 8.0f, 8.0f, 8.0f, 8.0f }));
+				.Set(&Sodium::SdBoxStyle::padding, Sodium::SdStyleValue::FromSpacing({ 8.0f, 8.0f, 8.0f, 8.0f }))
+				.Set(&Sodium::SdBoxStyle::gap, Sodium::SdLength::Pixels(3.0f));
 			styleConfigured = true;
 		}
 

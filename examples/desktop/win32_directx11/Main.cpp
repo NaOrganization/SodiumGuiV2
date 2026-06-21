@@ -306,9 +306,7 @@ namespace
 					Sodium::SdSpan<const Sodium::SdStyleClassId>(scrollClasses, 1),
 					kExampleDemoScrollScope
 				};
-				Sodium::SdScrollView::Style scrollStyle = {};
-				scrollStyle.childSpacing = 3.0f;
-				context.ui.DeclareStyledKeyed<Sodium::SdScrollView>("basic_scroll", scrollIdentity, &scrollStyle, [](Sodium::SdUi& ui)
+				context.ui.DeclareStyledKeyed<Sodium::SdScrollView>("basic_scroll", scrollIdentity, [](Sodium::SdUi& ui)
 				{
 					ui.Declare<Sodium::SdText>("SdScrollView clips children and reacts to wheel input");
 					ui.Declare<Sodium::SdButton>("Focusable child");
@@ -427,7 +425,8 @@ namespace
 				.Class(kExampleBasicScrollClass)
 				.Set(&Sodium::SdBoxStyle::width, Sodium::SdLength::Pixels(492.0f))
 				.Set(&Sodium::SdBoxStyle::height, Sodium::SdLength::Pixels(86.0f))
-				.Set(&Sodium::SdBoxStyle::padding, Sodium::SdStyleValue::FromSpacing({ 8.0f, 8.0f, 8.0f, 8.0f }));
+				.Set(&Sodium::SdBoxStyle::padding, Sodium::SdStyleValue::FromSpacing({ 8.0f, 8.0f, 8.0f, 8.0f }))
+				.Set(&Sodium::SdBoxStyle::gap, Sodium::SdLength::Pixels(3.0f));
 		}
 
 		void ApplyGlobalTheme()

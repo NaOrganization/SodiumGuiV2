@@ -1164,21 +1164,18 @@ namespace Sodium
 
 		struct Style final
 		{
-			float childSpacing = 6.0f;
 			float scrollbarWidth = 5.0f;
 
 			static Style Default(const SdStyleContext& context)
 			{
+				(void)context;
 				Style style = {};
-				const float smallSpacing = context.theme.GetMetricVariable(SdThemeVariableLiteral("spacing.small"));
-				style.childSpacing = smallSpacing;
 				style.scrollbarWidth = 5.0f;
 				return style;
 			}
 
 			static void Describe(SdStyleContract<Style>& contract)
 			{
-				contract.Layout(&Style::childSpacing);
 				contract.Layout(&Style::scrollbarWidth);
 			}
 		};
@@ -1217,7 +1214,7 @@ namespace Sodium
 				usedStyle.padding.right,
 				usedStyle.padding.bottom
 			};
-			context.widgetState.childSpacing = std::max(0.0f, style.childSpacing);
+			context.widgetState.childSpacing = std::max(0.0f, usedStyle.gap);
 		}
 
 		void OnPaint(SdPaintContext& context)
