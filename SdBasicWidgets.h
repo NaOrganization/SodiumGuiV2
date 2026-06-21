@@ -137,9 +137,9 @@ namespace Sodium
 	{
 		struct Style final
 		{
-			static constexpr SdStyleTokenTag TokenTag = SdStyleTargetTags::Text;
-			static constexpr SdStyleTokenTag Color = SdStylePropertyTags::Color;
-			static constexpr SdStyleTokenTag Opacity = SdStylePropertyTags::Opacity;
+			static constexpr SdStyleTokenTag TargetTypeId = SdWidgetTargetIds::Text;
+			static constexpr SdStyleTokenTag Color = SdStylePropertyIds::Color;
+			static constexpr SdStyleTokenTag Opacity = SdStylePropertyIds::Opacity;
 			SdSpacing padding = {};
 			float fontSize = 16.0f;
 			float lineHeight = 0.0f;
@@ -213,7 +213,7 @@ namespace Sodium
 
 			state.text.assign(resolvedText.data(), resolvedText.size());
 			state.textStyle = textStyle;
-			context.widgetState.styleTokenTag = Style::TokenTag;
+			context.widgetState.targetTypeId = Style::TargetTypeId;
 			context.widgetState.inputEnabled = false;
 			context.widgetState.layoutWeight = 1.0f;
 		}
@@ -221,7 +221,7 @@ namespace Sodium
 		void OnLayout(SdLayoutContext& context)
 		{
 			const State& state = context.State<State>();
-			const Style& style = context.TargetStyle<SdText>();
+			const Style& style = context.RootResolvedStyle<SdText>();
 			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle(state.textStyle, style.fontSize, style.lineHeight);
 			SdVec2 desiredSize = BasicWidgetDetail::MeasureText(context, state.text, textStyle);
 
@@ -241,7 +241,7 @@ namespace Sodium
 			if (state.text.empty())
 				return;
 
-			const Style& style = context.ComputedStyle<SdText>();
+			const Style& style = context.RootPresentationStyle<SdText>();
 			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle(state.textStyle, style.fontSize, style.lineHeight);
 			const SdColor color = BasicWidgetDetail::ApplyOpacity(
 				style.color,
@@ -258,7 +258,7 @@ namespace Sodium
 	{
 		struct Style final
 		{
-			static constexpr SdStyleTokenTag TokenTag = SdStyleTargetTags::Panel;
+			static constexpr SdStyleTokenTag TargetTypeId = SdWidgetTargetIds::Panel;
 			SdSpacing padding = { 10.0f, 10.0f, 10.0f, 10.0f };
 			float width = 240.0f;
 			float height = 120.0f;
@@ -309,7 +309,7 @@ namespace Sodium
 
 		void OnLayout(SdLayoutContext& context)
 		{
-			const Style& style = context.TargetStyle<SdPanel>();
+			const Style& style = context.RootResolvedStyle<SdPanel>();
 			context.SetDesiredSize({
 				std::max(0.0f, style.width),
 				std::max(0.0f, style.height)
@@ -322,15 +322,16 @@ namespace Sodium
 
 		void OnPaint(SdPaintContext& context)
 		{
-			const Style& style = context.ComputedStyle<SdPanel>();
+			const Style& style = context.RootPresentationStyle<SdPanel>();
+			const SdBoxStyle& presentation = context.RootStyleNode().presentationStyle;
 			context.renderList.AddRectFilled(
 				context.animatedRect,
-				BasicWidgetDetail::ApplyOpacity(context.style.background, context.opacity * style.opacity),
+				BasicWidgetDetail::ApplyOpacity(presentation.backgroundColor, context.opacity * style.opacity),
 				context.clipRect,
 				style.radius);
 			context.renderList.AddRect(
 				context.animatedRect,
-				BasicWidgetDetail::ApplyOpacity(context.style.border, context.opacity * style.opacity),
+				BasicWidgetDetail::ApplyOpacity(presentation.border.left.color, context.opacity * style.opacity),
 				context.clipRect,
 				1.0f,
 				style.radius);
@@ -339,7 +340,7 @@ namespace Sodium
 	private:
 		static void Configure(SdUpdateContext& context)
 		{
-			context.widgetState.styleTokenTag = Style::TokenTag;
+			context.widgetState.targetTypeId = Style::TargetTypeId;
 			context.widgetState.inputEnabled = false;
 			context.widgetState.layoutWeight = 1.0f;
 		}
@@ -356,7 +357,7 @@ namespace Sodium
 
 		struct Style final
 		{
-			static constexpr SdStyleTokenTag TokenTag = SdStyleTargetTags::Button;
+			static constexpr SdStyleTokenTag TargetTypeId = SdWidgetTargetIds::Button;
 			SdSpacing padding = { 10.0f, 6.0f, 10.0f, 6.0f };
 			float minWidth = 82.0f;
 			float minHeight = 30.0f;
@@ -423,7 +424,7 @@ namespace Sodium
 		void OnLayout(SdLayoutContext& context)
 		{
 			const State& state = context.State<State>();
-			const Style& style = context.TargetStyle<SdButton>();
+			const Style& style = context.RootResolvedStyle<SdButton>();
 			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, style.fontSize, style.lineHeight);
 			SdVec2 textSize = BasicWidgetDetail::MeasureText(context, state.label, textStyle);
 			textSize.y = std::max(textSize.y, BasicWidgetDetail::ResolveLineHeight(textStyle));
@@ -437,7 +438,7 @@ namespace Sodium
 		void OnPaint(SdPaintContext& context)
 		{
 			const State& state = context.State<State>();
-			const Style& style = context.ComputedStyle<SdButton>();
+			const Style& style = context.RootPresentationStyle<SdButton>();
 			const SdBoxStyle& presentation = context.RootStyleNode().presentationStyle;
 			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, style.fontSize, style.lineHeight);
 			const float lineHeight = BasicWidgetDetail::ResolveLineHeight(textStyle);
@@ -458,7 +459,7 @@ namespace Sodium
 	private:
 		static void Configure(SdUpdateContext& context)
 		{
-			context.widgetState.styleTokenTag = Style::TokenTag;
+			context.widgetState.targetTypeId = Style::TargetTypeId;
 			context.widgetState.inputEnabled = true;
 			context.widgetState.layoutWeight = 1.0f;
 			context.EnsurePart(Parts::Content);
@@ -471,7 +472,7 @@ namespace Sodium
 	{
 		struct Style final
 		{
-			static constexpr SdStyleTokenTag TokenTag = SdStyleTargetTags::CheckBox;
+			static constexpr SdStyleTokenTag TargetTypeId = SdWidgetTargetIds::CheckBox;
 			SdSpacing padding = { 8.0f, 5.0f, 8.0f, 5.0f };
 			float boxSize = 18.0f;
 			float gap = 8.0f;
@@ -553,7 +554,7 @@ namespace Sodium
 		void OnLayout(SdLayoutContext& context)
 		{
 			const State& state = context.State<State>();
-			const Style& style = context.TargetStyle<SdCheckBox>();
+			const Style& style = context.RootResolvedStyle<SdCheckBox>();
 			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, style.fontSize, style.lineHeight);
 			SdVec2 textSize = BasicWidgetDetail::MeasureText(context, state.label, textStyle);
 			textSize.y = std::max(textSize.y, BasicWidgetDetail::ResolveLineHeight(textStyle));
@@ -567,7 +568,8 @@ namespace Sodium
 		void OnPaint(SdPaintContext& context)
 		{
 			const State& state = context.State<State>();
-			const Style& style = context.ComputedStyle<SdCheckBox>();
+			const Style& style = context.RootPresentationStyle<SdCheckBox>();
+			const SdBoxStyle& presentation = context.RootStyleNode().presentationStyle;
 			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, style.fontSize, style.lineHeight);
 			const float lineHeight = BasicWidgetDetail::ResolveLineHeight(textStyle);
 			const float boxY = context.animatedRect.min.y + (context.animatedRect.Height() - style.boxSize) * 0.5f;
@@ -577,9 +579,9 @@ namespace Sodium
 				context.animatedRect.min.x + style.padding.left + style.boxSize,
 				boxY + style.boxSize
 			};
-			const SdColor background = BasicWidgetDetail::ApplyOpacity(context.style.background, context.opacity * style.opacity);
-			const SdColor border = BasicWidgetDetail::ApplyOpacity(context.style.border, context.opacity * style.opacity);
-			const SdColor textColor = BasicWidgetDetail::ApplyOpacity(context.style.color, context.opacity * style.opacity);
+			const SdColor background = BasicWidgetDetail::ApplyOpacity(presentation.backgroundColor, context.opacity * style.opacity);
+			const SdColor border = BasicWidgetDetail::ApplyOpacity(presentation.border.left.color, context.opacity * style.opacity);
+			const SdColor textColor = BasicWidgetDetail::ApplyOpacity(presentation.color, context.opacity * style.opacity);
 			const SdColor accent = BasicWidgetDetail::ApplyOpacity(
 				context.instance.GetStyleSystem().GetTheme().GetColor(SdStyleToken::ColorAccent),
 				context.opacity * style.opacity);
@@ -605,7 +607,7 @@ namespace Sodium
 	private:
 		static void Configure(SdUpdateContext& context)
 		{
-			context.widgetState.styleTokenTag = Style::TokenTag;
+			context.widgetState.targetTypeId = Style::TargetTypeId;
 			context.widgetState.inputEnabled = true;
 			context.widgetState.layoutWeight = 1.0f;
 		}
@@ -617,7 +619,7 @@ namespace Sodium
 	{
 		struct Style final
 		{
-			static constexpr SdStyleTokenTag TokenTag = SdStyleTargetTags::Slider;
+			static constexpr SdStyleTokenTag TargetTypeId = SdWidgetTargetIds::Slider;
 			SdSpacing padding = { 8.0f, 8.0f, 8.0f, 8.0f };
 			float width = 180.0f;
 			float height = 30.0f;
@@ -704,7 +706,7 @@ namespace Sodium
 		void OnLayout(SdLayoutContext& context)
 		{
 			const State& state = context.State<State>();
-			const Style& style = context.TargetStyle<SdSliderFloat>();
+			const Style& style = context.RootResolvedStyle<SdSliderFloat>();
 			SdVec2 labelSize = {};
 			if (!state.label.empty())
 			{
@@ -721,12 +723,13 @@ namespace Sodium
 		void OnPaint(SdPaintContext& context)
 		{
 			const State& state = context.State<State>();
-			const Style& style = context.ComputedStyle<SdSliderFloat>();
+			const Style& style = context.RootPresentationStyle<SdSliderFloat>();
+			const SdBoxStyle& presentation = context.RootStyleNode().presentationStyle;
 			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, style.fontSize, style.lineHeight);
 			const float lineHeight = BasicWidgetDetail::ResolveLineHeight(textStyle);
-			const SdColor textColor = BasicWidgetDetail::ApplyOpacity(context.style.color, context.opacity * style.opacity);
-			const SdColor trackColor = BasicWidgetDetail::ApplyOpacity(context.style.background, context.opacity * style.opacity);
-			const SdColor border = BasicWidgetDetail::ApplyOpacity(context.style.border, context.opacity * style.opacity);
+			const SdColor textColor = BasicWidgetDetail::ApplyOpacity(presentation.color, context.opacity * style.opacity);
+			const SdColor trackColor = BasicWidgetDetail::ApplyOpacity(presentation.backgroundColor, context.opacity * style.opacity);
+			const SdColor border = BasicWidgetDetail::ApplyOpacity(presentation.border.left.color, context.opacity * style.opacity);
 			const SdColor accent = BasicWidgetDetail::ApplyOpacity(
 				context.instance.GetStyleSystem().GetTheme().GetColor(SdStyleToken::ColorAccent),
 				context.opacity * style.opacity);
@@ -763,14 +766,14 @@ namespace Sodium
 	private:
 		static void Configure(SdUpdateContext& context)
 		{
-			context.widgetState.styleTokenTag = Style::TokenTag;
+			context.widgetState.targetTypeId = Style::TargetTypeId;
 			context.widgetState.inputEnabled = true;
 			context.widgetState.layoutWeight = 1.0f;
 		}
 
 		static float PositionToValue(SdUpdateContext& context, float x, float minValue, float maxValue)
 		{
-			const Style& style = context.instance.GetTargetStyle<SdSliderFloat>(context.id);
+			const Style& style = context.instance.GetResolvedStyle<SdSliderFloat>(context.id);
 			const float trackMin = context.widgetState.targetRect.min.x + style.padding.left;
 			const float trackMax = trackMin + std::max(1.0f, style.width);
 			const float t = std::clamp((x - trackMin) / (trackMax - trackMin), 0.0f, 1.0f);
@@ -791,7 +794,7 @@ namespace Sodium
 
 		struct Style final
 		{
-			static constexpr SdStyleTokenTag TokenTag = SdStyleTargetTags::TextInput;
+			static constexpr SdStyleTokenTag TargetTypeId = SdWidgetTargetIds::TextInput;
 			SdSpacing padding = { 9.0f, 6.0f, 9.0f, 6.0f };
 			float width = 220.0f;
 			float minHeight = 32.0f;
@@ -870,7 +873,7 @@ namespace Sodium
 					state.changed = true;
 				}
 
-				const Style& style = context.instance.GetTargetStyle<SdTextInput>(context.id);
+				const Style& style = context.instance.GetResolvedStyle<SdTextInput>(context.id);
 				const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, style.fontSize, style.lineHeight);
 				const float lineHeight = BasicWidgetDetail::ResolveLineHeight(textStyle);
 				const SdVec2 textSize = BasicWidgetDetail::MeasureText(context, value, textStyle);
@@ -905,7 +908,7 @@ namespace Sodium
 
 		void OnLayout(SdLayoutContext& context)
 		{
-			const Style& style = context.TargetStyle<SdTextInput>();
+			const Style& style = context.RootResolvedStyle<SdTextInput>();
 			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, style.fontSize, style.lineHeight);
 			const float lineHeight = BasicWidgetDetail::ResolveLineHeight(textStyle);
 			context.SetDesiredSize({
@@ -917,7 +920,7 @@ namespace Sodium
 		void OnPaint(SdPaintContext& context)
 		{
 			const State& state = context.State<State>();
-			const Style& style = context.ComputedStyle<SdTextInput>();
+			const Style& style = context.RootPresentationStyle<SdTextInput>();
 			const SdBoxStyle& presentation = context.RootStyleNode().presentationStyle;
 			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, style.fontSize, style.lineHeight);
 			const float lineHeight = BasicWidgetDetail::ResolveLineHeight(textStyle);
@@ -962,7 +965,7 @@ namespace Sodium
 	private:
 		static void Configure(SdUpdateContext& context)
 		{
-			context.widgetState.styleTokenTag = Style::TokenTag;
+			context.widgetState.targetTypeId = Style::TargetTypeId;
 			context.widgetState.inputEnabled = true;
 			context.widgetState.layoutWeight = 1.0f;
 			context.EnsurePart(Parts::Field);
@@ -994,7 +997,7 @@ namespace Sodium
 
 		struct Style final
 		{
-			static constexpr SdStyleTokenTag TokenTag = SdStyleTargetTags::Window;
+			static constexpr SdStyleTokenTag TargetTypeId = SdWidgetTargetIds::Window;
 			SdSpacing padding = { 12.0f, 40.0f, 12.0f, 12.0f };
 			float width = 420.0f;
 			float height = 260.0f;
@@ -1096,7 +1099,7 @@ namespace Sodium
 		void OnLayout(SdLayoutContext& context)
 		{
 			State& state = context.State<State>();
-			const Style& style = context.TargetStyle<SdWindow>();
+			const Style& style = context.RootResolvedStyle<SdWindow>();
 			if (!state.initialized)
 			{
 				const SdVec2 size = {
@@ -1122,7 +1125,7 @@ namespace Sodium
 			if (!state.open)
 				return;
 
-			const Style& style = context.ComputedStyle<SdWindow>();
+			const Style& style = context.RootPresentationStyle<SdWindow>();
 			const SdBoxStyle& presentation = context.RootStyleNode().presentationStyle;
 			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, style.fontSize, style.lineHeight);
 			const float lineHeight = BasicWidgetDetail::ResolveLineHeight(textStyle);
@@ -1195,7 +1198,7 @@ namespace Sodium
 			state.title.assign(title.data(), title.size());
 			state.options = options;
 			state.open = open;
-			context.widgetState.styleTokenTag = Style::TokenTag;
+			context.widgetState.targetTypeId = Style::TargetTypeId;
 			context.widgetState.layerPriority = SdLayerPriority::Floating;
 			context.widgetState.inputEnabled = open;
 			context.widgetState.layoutWeight = open ? 1.0f : 0.0f;
@@ -1210,7 +1213,7 @@ namespace Sodium
 				return;
 			}
 
-			const Style& style = context.instance.GetTargetStyle<SdWindow>(context.id);
+			const Style& style = context.instance.GetResolvedStyle<SdWindow>(context.id);
 			if (!state.initialized)
 			{
 				const SdVec2 size = {
@@ -1246,7 +1249,7 @@ namespace Sodium
 	{
 		struct Style final
 		{
-			static constexpr SdStyleTokenTag TokenTag = SdStyleTargetTags::ImageViewer;
+			static constexpr SdStyleTokenTag TargetTypeId = SdWidgetTargetIds::ImageViewer;
 			SdSpacing padding = {};
 			float width = 160.0f;
 			float height = 120.0f;
@@ -1298,7 +1301,7 @@ namespace Sodium
 			state.size = size;
 			state.uvRect = uvRect;
 			state.tint = tint;
-			context.widgetState.styleTokenTag = Style::TokenTag;
+			context.widgetState.targetTypeId = Style::TargetTypeId;
 			context.widgetState.inputEnabled = false;
 			context.widgetState.layoutWeight = 1.0f;
 		}
@@ -1306,7 +1309,7 @@ namespace Sodium
 		void OnLayout(SdLayoutContext& context)
 		{
 			const State& state = context.State<State>();
-			const Style& style = context.TargetStyle<SdImageViewer>();
+			const Style& style = context.RootResolvedStyle<SdImageViewer>();
 			const SdVec2 imageSize = {
 				state.size.x > 0.0f ? state.size.x : style.width,
 				state.size.y > 0.0f ? state.size.y : style.height
@@ -1320,14 +1323,15 @@ namespace Sodium
 		void OnPaint(SdPaintContext& context)
 		{
 			const State& state = context.State<State>();
-			const Style& style = context.ComputedStyle<SdImageViewer>();
-			const SdColor background = BasicWidgetDetail::ApplyOpacity(context.style.background, context.opacity * style.opacity);
+			const Style& style = context.RootPresentationStyle<SdImageViewer>();
+			const SdBoxStyle& presentation = context.RootStyleNode().presentationStyle;
+			const SdColor background = BasicWidgetDetail::ApplyOpacity(presentation.backgroundColor, context.opacity * style.opacity);
 			const SdColor tint = BasicWidgetDetail::ApplyOpacity(state.tint, context.opacity * style.opacity);
 			context.renderList.AddRectFilled(context.animatedRect, background, context.clipRect, style.radius);
 			const SdRect imageRect = BasicWidgetDetail::InsetRect(context.animatedRect, style.padding);
 			if (state.texture.IsValid())
 				context.renderList.AddImage(state.texture, imageRect, state.uvRect, tint, context.clipRect);
-			context.renderList.AddRect(context.animatedRect, context.style.border, context.clipRect, 1.0f, style.radius);
+			context.renderList.AddRect(context.animatedRect, presentation.border.left.color, context.clipRect, 1.0f, style.radius);
 		}
 	};
 
@@ -1335,7 +1339,7 @@ namespace Sodium
 	{
 		struct Style final
 		{
-			static constexpr SdStyleTokenTag TokenTag = SdStyleTargetTags::ScrollView;
+			static constexpr SdStyleTokenTag TargetTypeId = SdWidgetTargetIds::ScrollView;
 			SdSpacing padding = { 8.0f, 8.0f, 8.0f, 8.0f };
 			float width = 240.0f;
 			float height = 160.0f;
@@ -1380,7 +1384,7 @@ namespace Sodium
 		void OnUpdate(SdUpdateContext& context, TContent&& content)
 		{
 			State& state = context.State<State>();
-			context.widgetState.styleTokenTag = Style::TokenTag;
+			context.widgetState.targetTypeId = Style::TargetTypeId;
 			context.widgetState.inputEnabled = true;
 			context.widgetState.layoutWeight = 1.0f;
 			if (context.IsHovered())
@@ -1392,7 +1396,7 @@ namespace Sodium
 
 		void OnLayout(SdLayoutContext& context)
 		{
-			const Style& style = context.TargetStyle<SdScrollView>();
+			const Style& style = context.RootResolvedStyle<SdScrollView>();
 			context.SetDesiredSize({ std::max(0.0f, style.width), std::max(0.0f, style.height) });
 			context.widgetState.arrangeChildren = true;
 			context.widgetState.clipChildren = true;
@@ -1403,9 +1407,10 @@ namespace Sodium
 		void OnPaint(SdPaintContext& context)
 		{
 			const State& state = context.State<State>();
-			const Style& style = context.ComputedStyle<SdScrollView>();
-			const SdColor background = BasicWidgetDetail::ApplyOpacity(context.style.background, context.opacity * style.opacity);
-			const SdColor border = BasicWidgetDetail::ApplyOpacity(context.style.border, context.opacity * style.opacity);
+			const Style& style = context.RootPresentationStyle<SdScrollView>();
+			const SdBoxStyle& presentation = context.RootStyleNode().presentationStyle;
+			const SdColor background = BasicWidgetDetail::ApplyOpacity(presentation.backgroundColor, context.opacity * style.opacity);
+			const SdColor border = BasicWidgetDetail::ApplyOpacity(presentation.border.left.color, context.opacity * style.opacity);
 			const SdColor accent = BasicWidgetDetail::ApplyOpacity(
 				context.instance.GetStyleSystem().GetTheme().GetColor(SdStyleToken::ColorAccent),
 				context.opacity * style.opacity);
@@ -1432,7 +1437,7 @@ namespace Sodium
 	{
 		struct Style final
 		{
-			static constexpr SdStyleTokenTag TokenTag = SdStyleTargetTags::Popup;
+			static constexpr SdStyleTokenTag TargetTypeId = SdWidgetTargetIds::Popup;
 			SdSpacing padding = { 8.0f, 8.0f, 8.0f, 8.0f };
 			float width = 220.0f;
 			float height = 140.0f;
@@ -1492,7 +1497,7 @@ namespace Sodium
 		void OnLayout(SdLayoutContext& context)
 		{
 			const State& state = context.State<State>();
-			const Style& style = context.TargetStyle<SdPopup>();
+			const Style& style = context.RootResolvedStyle<SdPopup>();
 			context.widgetState.manualLayout = true;
 			context.widgetState.manualRect = state.open
 				? BasicWidgetDetail::MakeRect(state.position, { style.width, style.height })
@@ -1509,19 +1514,20 @@ namespace Sodium
 			const State& state = context.State<State>();
 			if (!state.open)
 				return;
-			const Style& style = context.ComputedStyle<SdPopup>();
+			const Style& style = context.RootPresentationStyle<SdPopup>();
+			const SdBoxStyle& presentation = context.RootStyleNode().presentationStyle;
 			context.renderList.AddRectFilled(
 				context.animatedRect,
-				BasicWidgetDetail::ApplyOpacity(context.style.background, context.opacity * style.opacity),
+				BasicWidgetDetail::ApplyOpacity(presentation.backgroundColor, context.opacity * style.opacity),
 				context.clipRect,
 				style.radius);
-			context.renderList.AddRect(context.animatedRect, context.style.border, context.clipRect, 1.0f, style.radius);
+			context.renderList.AddRect(context.animatedRect, presentation.border.left.color, context.clipRect, 1.0f, style.radius);
 		}
 
 	protected:
 		static void Configure(SdUpdateContext& context, bool open)
 		{
-			context.widgetState.styleTokenTag = Style::TokenTag;
+			context.widgetState.targetTypeId = Style::TargetTypeId;
 			context.widgetState.layerPriority = SdLayerPriority::Popup;
 			context.widgetState.inputEnabled = open;
 			context.widgetState.layoutWeight = open ? 1.0f : 0.0f;
@@ -1532,7 +1538,7 @@ namespace Sodium
 	{
 		struct Style final
 		{
-			static constexpr SdStyleTokenTag TokenTag = SdStyleTargetTags::ContextMenu;
+			static constexpr SdStyleTokenTag TargetTypeId = SdWidgetTargetIds::ContextMenu;
 			SdSpacing padding = { 8.0f, 8.0f, 8.0f, 8.0f };
 			float width = 220.0f;
 			float height = 140.0f;
@@ -1577,7 +1583,7 @@ namespace Sodium
 			State& state = context.State<State>();
 			state.open = open;
 			state.position = position;
-			context.widgetState.styleTokenTag = Style::TokenTag;
+			context.widgetState.targetTypeId = Style::TargetTypeId;
 			context.widgetState.layerPriority = SdLayerPriority::Popup;
 			context.widgetState.inputEnabled = open;
 			context.widgetState.layoutWeight = open ? 1.0f : 0.0f;
@@ -1588,7 +1594,7 @@ namespace Sodium
 		void OnLayout(SdLayoutContext& context)
 		{
 			const State& state = context.State<State>();
-			const Style& style = context.TargetStyle<SdContextMenu>();
+			const Style& style = context.RootResolvedStyle<SdContextMenu>();
 			context.widgetState.manualLayout = true;
 			context.widgetState.manualRect = state.open
 				? BasicWidgetDetail::MakeRect(state.position, { style.width, style.height })
@@ -1605,13 +1611,14 @@ namespace Sodium
 			const State& state = context.State<State>();
 			if (!state.open)
 				return;
-			const Style& style = context.ComputedStyle<SdContextMenu>();
+			const Style& style = context.RootPresentationStyle<SdContextMenu>();
+			const SdBoxStyle& presentation = context.RootStyleNode().presentationStyle;
 			context.renderList.AddRectFilled(
 				context.animatedRect,
-				BasicWidgetDetail::ApplyOpacity(context.style.background, context.opacity * style.opacity),
+				BasicWidgetDetail::ApplyOpacity(presentation.backgroundColor, context.opacity * style.opacity),
 				context.clipRect,
 				style.radius);
-			context.renderList.AddRect(context.animatedRect, context.style.border, context.clipRect, 1.0f, style.radius);
+			context.renderList.AddRect(context.animatedRect, presentation.border.left.color, context.clipRect, 1.0f, style.radius);
 		}
 	};
 
@@ -1619,7 +1626,7 @@ namespace Sodium
 	{
 		struct Style final
 		{
-			static constexpr SdStyleTokenTag TokenTag = SdStyleTargetTags::Tooltip;
+			static constexpr SdStyleTokenTag TargetTypeId = SdWidgetTargetIds::Tooltip;
 			SdSpacing padding = { 7.0f, 5.0f, 7.0f, 5.0f };
 			float fontSize = 16.0f;
 			float lineHeight = 0.0f;
@@ -1661,7 +1668,7 @@ namespace Sodium
 			state.visible = visible;
 			state.position = position;
 			state.text.assign(text.data(), text.size());
-			context.widgetState.styleTokenTag = Style::TokenTag;
+			context.widgetState.targetTypeId = Style::TargetTypeId;
 			context.widgetState.layerPriority = SdLayerPriority::Overlay;
 			context.widgetState.inputEnabled = false;
 			context.widgetState.layoutWeight = visible ? 1.0f : 0.0f;
@@ -1670,7 +1677,7 @@ namespace Sodium
 		void OnLayout(SdLayoutContext& context)
 		{
 			const State& state = context.State<State>();
-			const Style& style = context.TargetStyle<SdTooltip>();
+			const Style& style = context.RootResolvedStyle<SdTooltip>();
 			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, style.fontSize, style.lineHeight);
 			const SdVec2 textSize = BasicWidgetDetail::MeasureText(context, state.text, textStyle);
 			const SdVec2 size = state.visible
@@ -1686,11 +1693,12 @@ namespace Sodium
 			const State& state = context.State<State>();
 			if (!state.visible)
 				return;
-			const Style& style = context.ComputedStyle<SdTooltip>();
+			const Style& style = context.RootPresentationStyle<SdTooltip>();
+			const SdBoxStyle& presentation = context.RootStyleNode().presentationStyle;
 			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, style.fontSize, style.lineHeight);
-			const SdColor background = BasicWidgetDetail::ApplyOpacity(context.style.background, context.opacity * style.opacity);
-			const SdColor border = BasicWidgetDetail::ApplyOpacity(context.style.border, context.opacity * style.opacity);
-			const SdColor color = BasicWidgetDetail::ApplyOpacity(context.style.color, context.opacity * style.opacity);
+			const SdColor background = BasicWidgetDetail::ApplyOpacity(presentation.backgroundColor, context.opacity * style.opacity);
+			const SdColor border = BasicWidgetDetail::ApplyOpacity(presentation.border.left.color, context.opacity * style.opacity);
+			const SdColor color = BasicWidgetDetail::ApplyOpacity(presentation.color, context.opacity * style.opacity);
 			context.renderList.AddRectFilled(context.animatedRect, background, context.clipRect, style.radius);
 			context.renderList.AddRect(context.animatedRect, border, context.clipRect, 1.0f, style.radius);
 			context.renderList.AddText(

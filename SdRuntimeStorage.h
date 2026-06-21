@@ -262,10 +262,10 @@ namespace Sodium
 
 	struct SdStyleCache final
 	{
-		SdComputedStyle computed = {};
-		SdComputedStyle presentation = {};
+		SdWidgetRootStyle resolvedStyle = {};
+		SdWidgetRootStyle presentationStyle = {};
 		SdStyleNodeId rootStyleNodeId = SdInvalidStyleNodeId;
-		SdStyleTokenTag styleTokenTag = SdStyleTargetTags::Default;
+		SdStyleTokenTag targetTypeId = SdWidgetTargetIds::Default;
 		SdStyleInteractionState interactionState = SdStyleInteractionState::Normal;
 		SdLayerPriority layerPriority = SdLayerPriority::Content;
 		SdUInt64 styleIdentityRevision = 0;
@@ -288,11 +288,11 @@ namespace Sodium
 
 	struct SdTypedStyleRecord final
 	{
-		Detail::SdObjectHandle targetStyle = {};
-		Detail::SdObjectHandle computedStyle = {};
+		Detail::SdObjectHandle resolvedStyle = {};
+		Detail::SdObjectHandle presentationStyle = {};
 		Detail::SdObjectHandle inlineStyle = {};
 		std::type_index styleType = std::type_index(typeid(void));
-		SdStyleTokenTag styleTokenTag = SdStyleTargetTags::Default;
+		SdStyleTokenTag targetTypeId = SdWidgetTargetIds::Default;
 		SdStyleInteractionState interactionState = SdStyleInteractionState::Normal;
 		SdLayerPriority layerPriority = SdLayerPriority::Content;
 		SdUInt64 styleIdentityRevision = 0;
@@ -306,7 +306,6 @@ namespace Sodium
 	struct SdWidgetRecord final
 	{
 		SdWidgetState state = {};
-		SdComputedStyle style = {};
 		SdStyleNode rootStyleNode = {};
 		SdStyleNodeId rootStyleNodeId = SdInvalidStyleNodeId;
 		std::vector<SdStyleNodeId> partStyleNodeIds = {};
@@ -411,8 +410,8 @@ namespace Sodium
 			record.userStates.clear();
 			for (auto& [type, styleRecord] : record.typedStyles)
 			{
-				objectStore.Destroy(styleRecord.targetStyle);
-				objectStore.Destroy(styleRecord.computedStyle);
+				objectStore.Destroy(styleRecord.resolvedStyle);
+				objectStore.Destroy(styleRecord.presentationStyle);
 				objectStore.Destroy(styleRecord.inlineStyle);
 			}
 			record.typedStyles.clear();
@@ -709,53 +708,53 @@ namespace Sodium
 		}
 
 		template<class TStyle>
-		TStyle& GetOrCreateTargetStyle(SdTypedStyleRecord& styleRecord, const TStyle& initialStyle)
+		TStyle& GetOrCreateResolvedStyle(SdTypedStyleRecord& styleRecord, const TStyle& initialStyle)
 		{
-			if (!styleRecord.targetStyle.IsValid())
+			if (!styleRecord.resolvedStyle.IsValid())
 			{
-				styleRecord.targetStyle = objectStore.Create<TStyle>(initialStyle);
+				styleRecord.resolvedStyle = objectStore.Create<TStyle>(initialStyle);
 				stats.liveObjectCount = objectStore.GetLiveObjectCount();
 			}
-			if (TStyle* style = objectStore.Get<TStyle>(styleRecord.targetStyle))
+			if (TStyle* style = objectStore.Get<TStyle>(styleRecord.resolvedStyle))
 				return *style;
-			objectStore.Destroy(styleRecord.targetStyle);
-			styleRecord.targetStyle = objectStore.Create<TStyle>(initialStyle);
+			objectStore.Destroy(styleRecord.resolvedStyle);
+			styleRecord.resolvedStyle = objectStore.Create<TStyle>(initialStyle);
 			stats.liveObjectCount = objectStore.GetLiveObjectCount();
-			return *objectStore.Get<TStyle>(styleRecord.targetStyle);
+			return *objectStore.Get<TStyle>(styleRecord.resolvedStyle);
 		}
 
 		template<class TStyle>
-		TStyle& GetOrCreateComputedStyle(SdTypedStyleRecord& styleRecord, const TStyle& initialStyle)
+		TStyle& GetOrCreatePresentationStyle(SdTypedStyleRecord& styleRecord, const TStyle& initialStyle)
 		{
-			if (!styleRecord.computedStyle.IsValid())
+			if (!styleRecord.presentationStyle.IsValid())
 			{
-				styleRecord.computedStyle = objectStore.Create<TStyle>(initialStyle);
+				styleRecord.presentationStyle = objectStore.Create<TStyle>(initialStyle);
 				stats.liveObjectCount = objectStore.GetLiveObjectCount();
 			}
-			if (TStyle* style = objectStore.Get<TStyle>(styleRecord.computedStyle))
+			if (TStyle* style = objectStore.Get<TStyle>(styleRecord.presentationStyle))
 				return *style;
-			objectStore.Destroy(styleRecord.computedStyle);
-			styleRecord.computedStyle = objectStore.Create<TStyle>(initialStyle);
+			objectStore.Destroy(styleRecord.presentationStyle);
+			styleRecord.presentationStyle = objectStore.Create<TStyle>(initialStyle);
 			stats.liveObjectCount = objectStore.GetLiveObjectCount();
-			return *objectStore.Get<TStyle>(styleRecord.computedStyle);
+			return *objectStore.Get<TStyle>(styleRecord.presentationStyle);
 		}
 
 		template<class TStyle>
-		TStyle* FindTargetStyle(SdWidgetRecord& record) noexcept
+		TStyle* FindResolvedStyle(SdWidgetRecord& record) noexcept
 		{
 			auto it = record.typedStyles.find(std::type_index(typeid(TStyle)));
 			if (it == record.typedStyles.end())
 				return nullptr;
-			return objectStore.Get<TStyle>(it->second.targetStyle);
+			return objectStore.Get<TStyle>(it->second.resolvedStyle);
 		}
 
 		template<class TStyle>
-		TStyle* FindComputedStyle(SdWidgetRecord& record) noexcept
+		TStyle* FindPresentationStyle(SdWidgetRecord& record) noexcept
 		{
 			auto it = record.typedStyles.find(std::type_index(typeid(TStyle)));
 			if (it == record.typedStyles.end())
 				return nullptr;
-			return objectStore.Get<TStyle>(it->second.computedStyle);
+			return objectStore.Get<TStyle>(it->second.presentationStyle);
 		}
 
 		template<class TStyle>

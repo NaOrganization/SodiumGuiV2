@@ -6,7 +6,7 @@ namespace Sodium
 {
 	struct SdStyleResolveRequest final
 	{
-		SdStyleTokenTag targetTag = SdStyleTargetTags::Default;
+		SdStyleTokenTag targetTag = SdWidgetTargetIds::Default;
 		SdStylePart part = SdStylePart::Root();
 		SdPseudoState pseudoState = {};
 		SdLayerPriority layerPriority = SdLayerPriority::Content;
@@ -28,7 +28,7 @@ namespace Sodium
 
 		static bool SelectorMatches(const SdCompiledSelector& selector, const SdStyleResolveRequest& request) noexcept
 		{
-			if (selector.targetTag != SdStyleTargetTags::Global && selector.targetTag != request.targetTag)
+			if (selector.targetTag != SdWidgetTargetIds::Global && selector.targetTag != request.targetTag)
 				return false;
 			if (selector.matchPart && selector.part != request.part)
 				return false;

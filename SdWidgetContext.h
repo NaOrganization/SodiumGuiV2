@@ -36,7 +36,7 @@ namespace Sodium
 		SdWidgetId id = 0;
 		SdWidgetLifePhase lifePhase = SdWidgetLifePhase::Entering;
 		SdLayerPriority layerPriority = SdLayerPriority::Content;
-		SdStyleTokenTag styleTokenTag = SdStyleTargetTags::Default;
+		SdStyleTokenTag targetTypeId = SdWidgetTargetIds::Default;
 		bool submittedThisFrame = false;
 		bool inputEnabled = true;
 		bool manualLayout = false;
@@ -66,7 +66,6 @@ namespace Sodium
 		SdWidgetId id = 0;
 		SdWidgetId parentId = 0;
 		SdWidgetState& widgetState;
-		SdComputedStyle& style;
 		SdThemeView theme = {};
 		SdResolvedKey resolvedKey = 0;
 
@@ -75,12 +74,6 @@ namespace Sodium
 
 		template<class T>
 		T& Model();
-
-		template<class TWidget>
-		const typename TWidget::Style& TargetStyle();
-
-		template<class TWidget>
-		const typename TWidget::Style& ComputedStyle();
 
 		const SdStyleNode& RootStyleNode() const;
 		const SdStyleNode& Part(SdStylePart part) const;

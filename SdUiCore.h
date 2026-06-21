@@ -103,7 +103,7 @@ namespace Sodium
 		SdStyleScopeId scope = 0;
 	};
 
-	namespace SdStyleTargetTags
+	namespace SdWidgetTargetIds
 	{
 		inline constexpr SdStyleTokenTag Global = SdStyleTokenTagLiteral("Sodium.Style.Target.Global");
 		inline constexpr SdStyleTokenTag Default = SdStyleTokenTagLiteral("Sodium.Style.Target.Default");
@@ -121,7 +121,7 @@ namespace Sodium
 		inline constexpr SdStyleTokenTag Tooltip = SdStyleTokenTagLiteral("Sodium.Style.Target.Tooltip");
 	}
 
-	namespace SdStylePropertyTags
+	namespace SdStylePropertyIds
 	{
 		inline constexpr SdStyleTokenTag Color = SdStyleTokenTagLiteral("Sodium.Style.Property.Color");
 		inline constexpr SdStyleTokenTag Background = SdStyleTokenTagLiteral("Sodium.Style.Property.Background");
@@ -270,113 +270,8 @@ namespace Sodium
 		SdStyleValue value = {};
 	};
 
-	// Compatibility path for the pre-style-node property bag. New runtime paint
-	// paths should use SdStyleNode::presentationStyle instead.
-	struct SdComputedStyle final
-	{
-		SdColor color = SdColorWhite;
-		SdColor background = SdColorTransparent;
-		SdColor border = SdColorTransparent;
-		SdSpacing padding = {};
-		float width = 0.0f;
-		float height = 0.0f;
-		float radius = 0.0f;
-		float opacity = 1.0f;
-		std::vector<SdStyleDeclaration> properties = {};
-
-		void SetValue(SdStyleTokenTag propertyTag, SdStyleValue value)
-		{
-			for (SdStyleDeclaration& declaration : properties)
-			{
-				if (declaration.propertyTag == propertyTag)
-				{
-					declaration.value = value;
-					ApplyKnownProperty(propertyTag, value);
-					return;
-				}
-			}
-
-			properties.push_back({ propertyTag, value });
-			ApplyKnownProperty(propertyTag, value);
-		}
-
-		const SdStyleValue* FindValue(SdStyleTokenTag propertyTag) const noexcept
-		{
-			for (const SdStyleDeclaration& declaration : properties)
-			{
-				if (declaration.propertyTag == propertyTag)
-					return &declaration.value;
-			}
-			return nullptr;
-		}
-
-		SdColor GetColor(SdStyleTokenTag propertyTag, SdColor fallback = SdColorTransparent) const noexcept
-		{
-			const SdStyleValue* value = FindValue(propertyTag);
-			if (!value || value->kind != SdStyleValueKind::Color)
-				return fallback;
-			return value->color;
-		}
-
-		float GetFloat(SdStyleTokenTag propertyTag, float fallback = 0.0f) const noexcept
-		{
-			const SdStyleValue* value = FindValue(propertyTag);
-			if (!value || value->kind != SdStyleValueKind::Float)
-				return fallback;
-			return value->number;
-		}
-
-		SdSpacing GetSpacing(SdStyleTokenTag propertyTag, SdSpacing fallback = {}) const noexcept
-		{
-			const SdStyleValue* value = FindValue(propertyTag);
-			if (!value || value->kind != SdStyleValueKind::Spacing)
-				return fallback;
-			return value->spacing;
-		}
-
-		SdVec2 GetVec2(SdStyleTokenTag propertyTag, SdVec2 fallback = {}) const noexcept
-		{
-			const SdStyleValue* value = FindValue(propertyTag);
-			if (!value || value->kind != SdStyleValueKind::Vec2)
-				return fallback;
-			return value->vec2;
-		}
-
-	private:
-		void ApplyKnownProperty(SdStyleTokenTag propertyTag, const SdStyleValue& value) noexcept
-		{
-			if (value.kind == SdStyleValueKind::Color)
-			{
-				if (propertyTag == SdStylePropertyTags::Color)
-					color = value.color;
-				else if (propertyTag == SdStylePropertyTags::Background)
-					background = value.color;
-				else if (propertyTag == SdStylePropertyTags::Border)
-					border = value.color;
-				return;
-			}
-
-			if (value.kind == SdStyleValueKind::Float)
-			{
-				if (propertyTag == SdStylePropertyTags::Width)
-					width = value.number;
-				else if (propertyTag == SdStylePropertyTags::Height)
-					height = value.number;
-				else if (propertyTag == SdStylePropertyTags::Radius)
-					radius = value.number;
-				else if (propertyTag == SdStylePropertyTags::Opacity)
-					opacity = value.number;
-				return;
-			}
-
-			if (value.kind == SdStyleValueKind::Spacing && propertyTag == SdStylePropertyTags::Padding)
-				padding = value.spacing;
-		}
-	};
-
 	struct SdThemeView final
 	{
-		SdComputedStyle defaults = {};
 	};
 
 	enum class SdAnimationEasing : SdUInt8

@@ -112,7 +112,7 @@ namespace Sodium
 		void UpdateWidgetAnimation(SdWidgetRecord& record);
 		void SetWidgetStyleIdentity(SdWidgetRecord& record, SdSpan<const SdStyleClassId> styleClasses, SdStyleScopeId styleScope);
 		void ResolveWidgetStyle(SdWidgetRecord& record, SdStyleInteractionState interactionState, SdLayerPriority layerPriority);
-		void SetWidgetStyleAnimationTarget(SdWidgetRecord& record, const SdComputedStyle& style, bool immediate);
+		void SetWidgetStyleAnimationTarget(SdWidgetRecord& record, const SdWidgetRootStyle& style, bool immediate);
 		void ApplyWidgetStyleAnimation(SdWidgetRecord& record);
 		void SolveLayoutAndPaint();
 		SdUInt32 RemoveDeadWidgets();
@@ -210,12 +210,6 @@ namespace Sodium
 
 		template<class TWidget>
 		void AdvanceTypedWidgetStyleAnimations(SdWidgetRecord& record, SdDuration deltaTime);
-
-		template<class TWidget>
-		const typename TWidget::Style& GetTargetStyle(SdWidgetId widgetId);
-
-		template<class TWidget>
-		const typename TWidget::Style& GetComputedStyle(SdWidgetId widgetId);
 
 		template<class TWidget>
 		const typename TWidget::Style& GetResolvedStyle(SdWidgetId widgetId);

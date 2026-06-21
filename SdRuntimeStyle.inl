@@ -62,13 +62,12 @@ namespace Sodium
 	{
 		if (!record.state.styleDirty
 			&& record.styleCache.valid
-			&& record.styleCache.styleTokenTag == record.state.styleTokenTag
+			&& record.styleCache.targetTypeId == record.state.targetTypeId
 			&& record.styleCache.interactionState == interactionState
 			&& record.styleCache.layerPriority == layerPriority
 			&& record.styleCache.styleIdentityRevision == record.styleIdentityRevision
 			&& record.styleCache.styleRevision == context.styleSystem.GetRevision())
 		{
-			record.style = record.styleCache.computed;
 			ApplyWidgetStyleAnimation(record);
 			if (record.styleCallback)
 				record.styleCallback(*this, record, interactionState, layerPriority);
@@ -76,34 +75,39 @@ namespace Sodium
 		}
 
 		const bool firstStyle = !record.styleCache.valid;
-		record.style = context.styleSystem.Resolve(record.state.styleTokenTag, interactionState, layerPriority, record.styleClasses, record.styleScope);
+		const SdWidgetRootStyle resolvedStyle = context.styleSystem.ResolveRootStyle(
+			record.state.targetTypeId,
+			interactionState,
+			layerPriority,
+			record.styleClasses,
+			record.styleScope);
 		SdStyleNode& rootNode = context.stateStorage.EnsureRootStyleNode(record, record.state.id);
-		record.styleCache.computed = record.style;
-		record.styleCache.presentation = record.style;
+		record.styleCache.resolvedStyle = resolvedStyle;
+		record.styleCache.presentationStyle = resolvedStyle;
 		record.styleCache.rootStyleNodeId = rootNode.styleNodeId;
 		rootNode.widgetId = record.state.id;
 		rootNode.kind = SdStyleNodeKind::Root;
 		rootNode.part = SdStylePart::Root();
 		rootNode.scopeId = record.styleScope;
 		rootNode.pseudoState = SdPseudoState::FromInteraction(interactionState);
-		rootNode.specifiedStyle = SdPresentationStyleFromLegacyComputed(record.style);
-		rootNode.resolvedStyle = rootNode.specifiedStyle;
-		rootNode.presentationStyle = rootNode.resolvedStyle;
+		rootNode.specifiedStyle = resolvedStyle;
+		rootNode.resolvedStyle = resolvedStyle;
+		rootNode.presentationStyle = resolvedStyle;
 		record.rootStyleNode = rootNode;
-		record.styleCache.styleTokenTag = record.state.styleTokenTag;
+		record.styleCache.targetTypeId = record.state.targetTypeId;
 		record.styleCache.interactionState = interactionState;
 		record.styleCache.layerPriority = layerPriority;
 		record.styleCache.styleIdentityRevision = record.styleIdentityRevision;
 		record.styleCache.styleRevision = context.styleSystem.GetRevision();
 		record.styleCache.valid = true;
 		record.state.styleDirty = false;
-		SetWidgetStyleAnimationTarget(record, record.styleCache.computed, firstStyle);
+		SetWidgetStyleAnimationTarget(record, record.styleCache.resolvedStyle, firstStyle);
 		ApplyWidgetStyleAnimation(record);
 		if (record.styleCallback)
 			record.styleCallback(*this, record, interactionState, layerPriority);
 	}
 
-	inline void SdInstance::SetWidgetStyleAnimationTarget(SdWidgetRecord& record, const SdComputedStyle& style, bool immediate)
+	inline void SdInstance::SetWidgetStyleAnimationTarget(SdWidgetRecord& record, const SdWidgetRootStyle& style, bool immediate)
 	{
 		const auto setChannel = [this, immediate](SdAnimationChannelId channelId, float target)
 		{
@@ -133,13 +137,13 @@ namespace Sodium
 			record.animation.styleBackgroundG,
 			record.animation.styleBackgroundB,
 			record.animation.styleBackgroundA,
-			style.background);
+			style.backgroundColor);
 		setColorChannels(
 			record.animation.styleBorderR,
 			record.animation.styleBorderG,
 			record.animation.styleBorderB,
 			record.animation.styleBorderA,
-			style.border);
+			style.border.left.color);
 	}
 
 	inline void SdInstance::ApplyWidgetStyleAnimation(SdWidgetRecord& record)
@@ -165,24 +169,27 @@ namespace Sodium
 				|| context.animationSystem.IsActive(alpha);
 		};
 
-		record.style.color = readColorChannels(
+		SdWidgetRootStyle presentationStyle = record.styleCache.resolvedStyle;
+		presentationStyle.color = readColorChannels(
 			record.animation.styleColorR,
 			record.animation.styleColorG,
 			record.animation.styleColorB,
 			record.animation.styleColorA,
-			record.style.color);
-		record.style.background = readColorChannels(
+			record.styleCache.resolvedStyle.color);
+		presentationStyle.backgroundColor = readColorChannels(
 			record.animation.styleBackgroundR,
 			record.animation.styleBackgroundG,
 			record.animation.styleBackgroundB,
 			record.animation.styleBackgroundA,
-			record.style.background);
-		record.style.border = readColorChannels(
+			record.styleCache.resolvedStyle.backgroundColor);
+		presentationStyle.border = SdBorder::All(
+			record.styleCache.resolvedStyle.border.left.width,
+			readColorChannels(
 			record.animation.styleBorderR,
 			record.animation.styleBorderG,
 			record.animation.styleBorderB,
 			record.animation.styleBorderA,
-			record.style.border);
+				record.styleCache.resolvedStyle.border.left.color));
 
 		record.state.animationActive = record.state.animationActive
 			|| anyColorChannelActive(
@@ -200,10 +207,10 @@ namespace Sodium
 				record.animation.styleBorderG,
 				record.animation.styleBorderB,
 				record.animation.styleBorderA);
-		record.styleCache.presentation = record.style;
+		record.styleCache.presentationStyle = presentationStyle;
 		if (SdStyleNode* rootNode = context.stateStorage.FindStyleNodeById(record.rootStyleNodeId))
 		{
-			rootNode->presentationStyle = SdPresentationStyleFromLegacyComputed(record.style);
+			rootNode->presentationStyle = presentationStyle;
 			record.rootStyleNode = *rootNode;
 		}
 	}
@@ -216,7 +223,7 @@ namespace Sodium
 			using Style = typename TWidget::Style;
 			SdTypedStyleRecord& styleRecord = context.stateStorage.GetOrCreateTypedStyleRecord<Style>(record);
 			if (styleRecord.valid
-				&& styleRecord.styleTokenTag == record.state.styleTokenTag
+				&& styleRecord.targetTypeId == record.state.targetTypeId
 				&& styleRecord.interactionState == interactionState
 				&& styleRecord.layerPriority == layerPriority
 				&& styleRecord.styleIdentityRevision == record.styleIdentityRevision
@@ -227,21 +234,21 @@ namespace Sodium
 			}
 
 			const Style* inlineStyle = context.stateStorage.FindInlineStyle<Style>(styleRecord);
-			const Style resolvedTarget = context.styleSystem.ResolveTargetStyle<TWidget>(
+			const Style resolvedStyleValue = context.styleSystem.ResolveTypedStyle<TWidget>(
 				interactionState,
 				layerPriority,
 				record.styleClasses,
 				record.styleScope,
 				inlineStyle);
 			const bool firstStyle = !styleRecord.valid;
-			Style& targetStyle = context.stateStorage.GetOrCreateTargetStyle(styleRecord, resolvedTarget);
-			Style& computedStyle = context.stateStorage.GetOrCreateComputedStyle(styleRecord, resolvedTarget);
+			Style& resolvedStyle = context.stateStorage.GetOrCreateResolvedStyle(styleRecord, resolvedStyleValue);
+			Style& presentationStyle = context.stateStorage.GetOrCreatePresentationStyle(styleRecord, resolvedStyleValue);
 			if (firstStyle)
 			{
-				targetStyle = resolvedTarget;
-				computedStyle = resolvedTarget;
+				resolvedStyle = resolvedStyleValue;
+				presentationStyle = resolvedStyleValue;
 				styleRecord.animationChannels.clear();
-				styleRecord.styleTokenTag = record.state.styleTokenTag;
+				styleRecord.targetTypeId = record.state.targetTypeId;
 				styleRecord.interactionState = interactionState;
 				styleRecord.layerPriority = layerPriority;
 				styleRecord.styleIdentityRevision = record.styleIdentityRevision;
@@ -251,12 +258,12 @@ namespace Sodium
 				return;
 			}
 
-			const Style oldTargetStyle = targetStyle;
-			targetStyle = resolvedTarget;
+			const Style oldResolvedStyle = resolvedStyle;
+			resolvedStyle = resolvedStyleValue;
 			const auto& contract = context.styleSystem.GetContract<TWidget>();
 			if (contract.GetFields().empty())
 			{
-				computedStyle = resolvedTarget;
+				presentationStyle = resolvedStyleValue;
 			}
 			else
 			{
@@ -264,7 +271,7 @@ namespace Sodium
 				{
 					if (!field.equals || !field.copy)
 						continue;
-					if (field.equals(&oldTargetStyle, &targetStyle))
+					if (field.equals(&oldResolvedStyle, &resolvedStyle))
 						continue;
 
 					SdTransition transition = {};
@@ -289,24 +296,24 @@ namespace Sodium
 						channel.interpolation = field.interpolation;
 						channel.transition = transition;
 						channel.elapsed = {};
-						channel.startValue = field.readValue(&computedStyle);
-						channel.targetValue = field.readValue(&targetStyle);
+						channel.startValue = field.readValue(&presentationStyle);
+						channel.targetValue = field.readValue(&resolvedStyle);
 						channel.currentValue = channel.startValue;
 						channel.active = !Detail::StyleValuesEqual(channel.startValue, channel.targetValue);
 						if (!channel.active)
-							field.writeValue(&computedStyle, channel.targetValue, context.styleSystem.GetTheme());
+							field.writeValue(&presentationStyle, channel.targetValue, context.styleSystem.GetTheme());
 						Detail::MarkTypedStyleFieldImpact(record, field.impact, channel.active);
 					}
 					else
 					{
 						if (SdTypedStyleAnimationChannel* channel = Detail::FindTypedStyleAnimationChannel(styleRecord, field.fieldId))
 							channel->active = false;
-						field.copy(&computedStyle, &targetStyle);
+						field.copy(&presentationStyle, &resolvedStyle);
 						Detail::MarkTypedStyleFieldImpact(record, field.impact, false);
 					}
 				}
 			}
-			styleRecord.styleTokenTag = record.state.styleTokenTag;
+			styleRecord.targetTypeId = record.state.targetTypeId;
 			styleRecord.interactionState = interactionState;
 			styleRecord.layerPriority = layerPriority;
 			styleRecord.styleIdentityRevision = record.styleIdentityRevision;
@@ -327,8 +334,8 @@ namespace Sodium
 				return;
 
 			SdTypedStyleRecord& styleRecord = styleIt->second;
-			Style* computedStyle = context.stateStorage.FindComputedStyle<Style>(record);
-			if (!computedStyle)
+			Style* presentationStyle = context.stateStorage.FindPresentationStyle<Style>(record);
+			if (!presentationStyle)
 				return;
 
 			const auto& contract = context.styleSystem.GetContract<TWidget>();
@@ -351,12 +358,12 @@ namespace Sodium
 				const float t = std::clamp(elapsedSeconds / durationSeconds, 0.0f, 1.0f);
 				const float eased = SdApplyEasing(t, channel.transition.easing);
 				channel.currentValue = Detail::InterpolateStyleValue(channel.startValue, channel.targetValue, channel.interpolation, eased);
-				field->writeValue(computedStyle, channel.currentValue, context.styleSystem.GetTheme());
+				field->writeValue(presentationStyle, channel.currentValue, context.styleSystem.GetTheme());
 				channel.active = t < 1.0f && !Detail::StyleValuesEqual(channel.currentValue, channel.targetValue);
 				if (!channel.active)
 				{
 					channel.currentValue = channel.targetValue;
-					field->writeValue(computedStyle, channel.targetValue, context.styleSystem.GetTheme());
+					field->writeValue(presentationStyle, channel.targetValue, context.styleSystem.GetTheme());
 				}
 
 				Detail::MarkTypedStyleFieldImpact(record, channel.impact, channel.active);

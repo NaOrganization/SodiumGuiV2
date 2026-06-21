@@ -33,7 +33,7 @@ namespace Sodium
 	struct SdCompiledSelector final
 	{
 		std::type_index styleType = std::type_index(typeid(void));
-		SdStyleTokenTag targetTag = SdStyleTargetTags::Global;
+		SdStyleTokenTag targetTag = SdWidgetTargetIds::Global;
 		SdStylePart part = SdStylePart::Root();
 		SdPseudoState pseudoState = {};
 		SdLayerPriority layerPriority = SdLayerPriority::Content;
@@ -162,47 +162,47 @@ namespace Sodium
 			return *this;
 		}
 
-		template<class TField>
-		SdStyleSheetRuleBuilder& Set(TField TStyle::* member, TField value)
+		template<class TOwner, class TField>
+		SdStyleSheetRuleBuilder& Set(TField TOwner::* member, TField value)
 		{
 			return SetValue(member, Detail::MakePropertyValue(value), false);
 		}
 
-		template<class TField>
-		SdStyleSheetRuleBuilder& Set(TField TStyle::* member, SdStyleValue value)
+		template<class TOwner, class TField>
+		SdStyleSheetRuleBuilder& Set(TField TOwner::* member, SdStyleValue value)
 		{
 			return SetValue(member, value, false);
 		}
 
-		template<class TField>
-		SdStyleSheetRuleBuilder& SetImportant(TField TStyle::* member, TField value)
+		template<class TOwner, class TField>
+		SdStyleSheetRuleBuilder& SetImportant(TField TOwner::* member, TField value)
 		{
 			return SetValue(member, Detail::MakePropertyValue(value), true);
 		}
 
-		template<class TField>
-		SdStyleSheetRuleBuilder& SetImportant(TField TStyle::* member, SdStyleValue value)
+		template<class TOwner, class TField>
+		SdStyleSheetRuleBuilder& SetImportant(TField TOwner::* member, SdStyleValue value)
 		{
 			return SetValue(member, value, true);
 		}
 
-		template<class TField>
-		SdStyleSheetRuleBuilder& SetColorToken(TField TStyle::* member, SdStyleToken token)
+		template<class TOwner, class TField>
+		SdStyleSheetRuleBuilder& SetColorToken(TField TOwner::* member, SdStyleToken token)
 		{
 			static_assert(std::is_same_v<TField, SdColor>, "SetColorToken requires an SdColor style field.");
 			return SetValue(member, SdStyleValue::FromColorToken(token), false);
 		}
 
-		template<class TField>
-		SdStyleSheetRuleBuilder& SetMetricToken(TField TStyle::* member, SdStyleToken token)
+		template<class TOwner, class TField>
+		SdStyleSheetRuleBuilder& SetMetricToken(TField TOwner::* member, SdStyleToken token)
 		{
 			static_assert(std::is_same_v<TField, float>, "SetMetricToken requires a float style field.");
 			return SetValue(member, SdStyleValue::FromMetricToken(token), false);
 		}
 
 	private:
-		template<class TField>
-		SdStyleSheetRuleBuilder& SetValue(TField TStyle::* member, SdStyleValue value, bool important)
+		template<class TOwner, class TField>
+		SdStyleSheetRuleBuilder& SetValue(TField TOwner::* member, SdStyleValue value, bool important)
 		{
 			SdCompiledDeclaration declaration = {};
 			declaration.styleType = std::type_index(typeid(TStyle));
@@ -225,8 +225,8 @@ namespace Sodium
 		{
 			SdCompiledStyleRule rule = {};
 			rule.selector.styleType = std::type_index(typeid(TStyle));
-			if constexpr (requires { TWidget::Style::TokenTag; })
-				rule.selector.targetTag = TWidget::Style::TokenTag;
+			if constexpr (requires { TWidget::Style::TargetTypeId; })
+				rule.selector.targetTag = TWidget::Style::TargetTypeId;
 			else
 				rule.selector.targetTag = SdStyleTokenTagLiteral(typeid(TWidget).name());
 			rule.selector.part = part;
@@ -240,6 +240,19 @@ namespace Sodium
 		}
 
 	public:
+		template<class TStyle>
+		SdStyleSheetRuleBuilder<TStyle> RuleForTarget(SdStyleTokenTag targetTag)
+		{
+			struct TargetStyleWidget final
+			{
+				using Style = TStyle;
+			};
+
+			SdCompiledStyleRule& rule = AddRule<TargetStyleWidget, TStyle>(SdStylePart::Root());
+			rule.selector.targetTag = targetTag;
+			return SdStyleSheetRuleBuilder<TStyle>(rule);
+		}
+
 		template<class TWidget>
 		SdStyleSheetRuleBuilder<typename TWidget::Style> Rule()
 		{

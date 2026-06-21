@@ -34,7 +34,6 @@ namespace Sodium
 			id,
 			parentId,
 			record.state,
-			record.style,
 			instance.context.theme,
 			record.resolvedKey
 		};
@@ -52,7 +51,6 @@ namespace Sodium
 			id,
 			parentId,
 			record.state,
-			record.style,
 			instance.context.theme,
 			record.resolvedKey,
 			instance.context.input.GetSnapshot(),

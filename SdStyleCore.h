@@ -351,37 +351,4 @@ namespace Sodium
 		SdBoxStyle presentationStyle = {};
 		SdUsedBox usedBox = {};
 	};
-
-	inline SdWidgetRootStyle SdPresentationStyleFromLegacyComputed(const SdComputedStyle& computed)
-	{
-		SdWidgetRootStyle style = {};
-		style.color = computed.color;
-		style.backgroundColor = computed.background;
-		style.border = SdBorder::All(SdLength::Pixels(1.0f), computed.border);
-		style.padding = SdBoxEdges::FromSpacing(computed.padding);
-		style.width = computed.width > 0.0f ? SdLength::Pixels(computed.width) : SdLength::Auto();
-		style.height = computed.height > 0.0f ? SdLength::Pixels(computed.height) : SdLength::Auto();
-		style.radius = SdLength::Pixels(computed.radius);
-		style.opacity = computed.opacity;
-		return style;
-	}
-
-	inline SdComputedStyle SdLegacyComputedFromPresentationStyle(const SdWidgetRootStyle& style)
-	{
-		SdComputedStyle computed = {};
-		computed.color = style.color;
-		computed.background = style.backgroundColor;
-		computed.border = style.border.left.color;
-		computed.padding = {
-			style.padding.left.unit == SdLengthUnit::Pixels ? style.padding.left.value : 0.0f,
-			style.padding.top.unit == SdLengthUnit::Pixels ? style.padding.top.value : 0.0f,
-			style.padding.right.unit == SdLengthUnit::Pixels ? style.padding.right.value : 0.0f,
-			style.padding.bottom.unit == SdLengthUnit::Pixels ? style.padding.bottom.value : 0.0f
-		};
-		computed.width = style.width.unit == SdLengthUnit::Pixels ? style.width.value : 0.0f;
-		computed.height = style.height.unit == SdLengthUnit::Pixels ? style.height.value : 0.0f;
-		computed.radius = style.radius.unit == SdLengthUnit::Pixels ? style.radius.value : 0.0f;
-		computed.opacity = style.opacity;
-		return computed;
-	}
 }

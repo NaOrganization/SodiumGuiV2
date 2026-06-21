@@ -15,43 +15,31 @@ namespace Sodium
 	}
 
 	template<class TWidget>
-	const typename TWidget::Style& SdInstance::GetTargetStyle(SdWidgetId widgetId)
-	{
-		SdWidgetRecord* record = context.stateStorage.FindWidgetRecord(widgetId);
-		assert(record);
-		using Style = typename TWidget::Style;
-		if (Style* style = context.stateStorage.FindTargetStyle<Style>(*record))
-			return *style;
-		ResolveTypedWidgetStyle<TWidget>(*record, SdStyleInteractionState::Normal, record->state.layerPriority);
-		Style* style = context.stateStorage.FindTargetStyle<Style>(*record);
-		assert(style);
-		return *style;
-	}
-
-	template<class TWidget>
-	const typename TWidget::Style& SdInstance::GetComputedStyle(SdWidgetId widgetId)
-	{
-		SdWidgetRecord* record = context.stateStorage.FindWidgetRecord(widgetId);
-		assert(record);
-		using Style = typename TWidget::Style;
-		if (Style* style = context.stateStorage.FindComputedStyle<Style>(*record))
-			return *style;
-		ResolveTypedWidgetStyle<TWidget>(*record, SdStyleInteractionState::Normal, record->state.layerPriority);
-		Style* style = context.stateStorage.FindComputedStyle<Style>(*record);
-		assert(style);
-		return *style;
-	}
-
-	template<class TWidget>
 	const typename TWidget::Style& SdInstance::GetResolvedStyle(SdWidgetId widgetId)
 	{
-		return GetTargetStyle<TWidget>(widgetId);
+		SdWidgetRecord* record = context.stateStorage.FindWidgetRecord(widgetId);
+		assert(record);
+		using Style = typename TWidget::Style;
+		if (Style* style = context.stateStorage.FindResolvedStyle<Style>(*record))
+			return *style;
+		ResolveTypedWidgetStyle<TWidget>(*record, SdStyleInteractionState::Normal, record->state.layerPriority);
+		Style* style = context.stateStorage.FindResolvedStyle<Style>(*record);
+		assert(style);
+		return *style;
 	}
 
 	template<class TWidget>
 	const typename TWidget::Style& SdInstance::GetPresentationStyle(SdWidgetId widgetId)
 	{
-		return GetComputedStyle<TWidget>(widgetId);
+		SdWidgetRecord* record = context.stateStorage.FindWidgetRecord(widgetId);
+		assert(record);
+		using Style = typename TWidget::Style;
+		if (Style* style = context.stateStorage.FindPresentationStyle<Style>(*record))
+			return *style;
+		ResolveTypedWidgetStyle<TWidget>(*record, SdStyleInteractionState::Normal, record->state.layerPriority);
+		Style* style = context.stateStorage.FindPresentationStyle<Style>(*record);
+		assert(style);
+		return *style;
 	}
 
 	inline const SdStyleNode& SdInstance::GetRootStyleNode(SdWidgetId widgetId) const
@@ -90,18 +78,6 @@ namespace Sodium
 	{
 		assert(resolvedKey != 0);
 		return instance.GetOrCreateModel<T>(resolvedKey);
-	}
-
-	template<class TWidget>
-	const typename TWidget::Style& SdWidgetContextBase::TargetStyle()
-	{
-		return instance.GetTargetStyle<TWidget>(id);
-	}
-
-	template<class TWidget>
-	const typename TWidget::Style& SdWidgetContextBase::ComputedStyle()
-	{
-		return instance.GetComputedStyle<TWidget>(id);
 	}
 
 	inline const SdStyleNode& SdWidgetContextBase::RootStyleNode() const

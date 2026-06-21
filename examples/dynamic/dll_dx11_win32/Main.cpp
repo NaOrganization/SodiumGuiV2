@@ -347,30 +347,32 @@ namespace SodiumDynamicExample
 				context.widgetState.clipChildren = true;
 				context.widgetState.childPadding = { 14.0f, 96.0f, 14.0f, 10.0f };
 				context.widgetState.childSpacing = 5.0f;
-				context.widgetState.styleTokenTag = Sodium::SdStyleTargetTags::Panel;
+				context.widgetState.targetTypeId = Sodium::SdWidgetTargetIds::Panel;
 			}
 
 			void OnPaint(Sodium::SdPaintContext& context)
 			{
 				const State& state = context.State<State>();
 				const Sodium::SdRect rect = context.animatedRect;
+				const Sodium::SdBoxStyle& presentation = context.RootStyleNode().presentationStyle;
 				const Sodium::SdColor background = Sodium::SdColor(
-					context.style.background.r,
-					context.style.background.g,
-					context.style.background.b,
-					static_cast<Sodium::SdUInt8>(context.style.background.a * context.opacity));
+					presentation.backgroundColor.r,
+					presentation.backgroundColor.g,
+					presentation.backgroundColor.b,
+					static_cast<Sodium::SdUInt8>(presentation.backgroundColor.a * context.opacity));
 				const Sodium::SdColor border = Sodium::SdColor(
-					context.style.border.r,
-					context.style.border.g,
-					context.style.border.b,
-					static_cast<Sodium::SdUInt8>(context.style.border.a * context.opacity));
+					presentation.border.left.color.r,
+					presentation.border.left.color.g,
+					presentation.border.left.color.b,
+					static_cast<Sodium::SdUInt8>(presentation.border.left.color.a * context.opacity));
 				const Sodium::SdColor text = Sodium::SdColor(
-					context.style.color.r,
-					context.style.color.g,
-					context.style.color.b,
-					static_cast<Sodium::SdUInt8>(context.style.color.a * context.opacity));
-				context.renderList.AddRectFilled(rect, background, context.clipRect, context.style.radius);
-				context.renderList.AddRect(rect, border, context.clipRect, 1.0f, context.style.radius);
+					presentation.color.r,
+					presentation.color.g,
+					presentation.color.b,
+					static_cast<Sodium::SdUInt8>(presentation.color.a * context.opacity));
+				const float radius = Sodium::SdResolveLength(presentation.radius, rect.Width());
+				context.renderList.AddRectFilled(rect, background, context.clipRect, radius);
+				context.renderList.AddRect(rect, border, context.clipRect, 1.0f, radius);
 
 				char line[160] = {};
 				std::snprintf(line, sizeof(line), "SodiumGUI DLL overlay smoke");
@@ -428,7 +430,7 @@ namespace SodiumDynamicExample
 			styleSystem.Rule<Sodium::SdText>()
 				.Scope(kOverlayTextScope)
 				.Class(kOverlayAccentTextClass)
-				.SetColorToken(&Sodium::SdText::Style::color, Sodium::SdStyleToken::ColorAccent)
+				.Set(&Sodium::SdText::Style::color, Sodium::ThemeColor("accent"))
 				.Transition(&Sodium::SdText::Style::color, 180ms, Sodium::SdAnimationEasing::OutCubic);
 			styleSystem.Rule<Sodium::SdText>()
 				.Scope(kOverlayTextScope)
@@ -450,39 +452,41 @@ namespace SodiumDynamicExample
 			Sodium::SdStyleSystem& styleSystem = gui.GetStyleSystem();
 			if (controls.lightTheme)
 			{
-				styleSystem.SetColor(Sodium::SdStyleToken::ColorText, { 28, 34, 42, 255 });
-				styleSystem.SetColor(Sodium::SdStyleToken::ColorBackground, { 236, 241, 246, 255 });
-				styleSystem.SetColor(Sodium::SdStyleToken::ColorWindowBg, { 250, 252, 255, 245 });
-				styleSystem.SetColor(Sodium::SdStyleToken::ColorPanelBg, { 226, 234, 242, 242 });
-				styleSystem.SetColor(Sodium::SdStyleToken::ColorButton, { 214, 228, 241, 255 });
-				styleSystem.SetColor(Sodium::SdStyleToken::ColorButtonHovered, { 190, 215, 238, 255 });
-				styleSystem.SetColor(Sodium::SdStyleToken::ColorButtonPressed, { 158, 198, 230, 255 });
-				styleSystem.SetColor(Sodium::SdStyleToken::ColorAccent, { 30, 132, 112, 255 });
-				styleSystem.SetColor(Sodium::SdStyleToken::ColorBorder, { 126, 145, 164, 255 });
-				styleSystem.SetColor(Sodium::SdStyleToken::ColorBorderStrong, { 82, 102, 122, 255 });
-				styleSystem.SetColor(Sodium::SdStyleToken::ColorDanger, { 180, 70, 76, 255 });
-				styleSystem.SetColor(Sodium::SdStyleToken::ColorSelection, { 30, 132, 112, 90 });
+				styleSystem.SetColorVariable("text", { 28, 34, 42, 255 });
+				styleSystem.SetColorVariable("button.text", { 28, 34, 42, 255 });
+				styleSystem.SetColorVariable("background", { 236, 241, 246, 255 });
+				styleSystem.SetColorVariable("window.bg", { 250, 252, 255, 245 });
+				styleSystem.SetColorVariable("panel.bg", { 226, 234, 242, 242 });
+				styleSystem.SetColorVariable("button.bg", { 214, 228, 241, 255 });
+				styleSystem.SetColorVariable("button.bg.hover", { 190, 215, 238, 255 });
+				styleSystem.SetColorVariable("button.bg.pressed", { 158, 198, 230, 255 });
+				styleSystem.SetColorVariable("accent", { 30, 132, 112, 255 });
+				styleSystem.SetColorVariable("border", { 126, 145, 164, 255 });
+				styleSystem.SetColorVariable("border.strong", { 82, 102, 122, 255 });
+				styleSystem.SetColorVariable("danger", { 180, 70, 76, 255 });
+				styleSystem.SetColorVariable("selection", { 30, 132, 112, 90 });
 			}
 			else
 			{
-				styleSystem.SetColor(Sodium::SdStyleToken::ColorText, Sodium::SdColorWhite);
-				styleSystem.SetColor(Sodium::SdStyleToken::ColorBackground, { 24, 30, 39, 242 });
-				styleSystem.SetColor(Sodium::SdStyleToken::ColorWindowBg, { 24, 30, 39, 242 });
-				styleSystem.SetColor(Sodium::SdStyleToken::ColorPanelBg, { 35, 42, 52, 235 });
-				styleSystem.SetColor(Sodium::SdStyleToken::ColorButton, { 48, 72, 96, 255 });
-				styleSystem.SetColor(Sodium::SdStyleToken::ColorButtonHovered, { 62, 100, 138, 255 });
-				styleSystem.SetColor(Sodium::SdStyleToken::ColorButtonPressed, { 68, 118, 160, 255 });
-				styleSystem.SetColor(Sodium::SdStyleToken::ColorAccent, { 82, 170, 128, 255 });
-				styleSystem.SetColor(Sodium::SdStyleToken::ColorBorder, { 91, 109, 128, 255 });
-				styleSystem.SetColor(Sodium::SdStyleToken::ColorBorderStrong, { 128, 154, 180, 255 });
-				styleSystem.SetColor(Sodium::SdStyleToken::ColorDanger, { 164, 66, 66, 255 });
-				styleSystem.SetColor(Sodium::SdStyleToken::ColorSelection, { 82, 170, 128, 96 });
+				styleSystem.SetColorVariable("text", Sodium::SdColorWhite);
+				styleSystem.SetColorVariable("button.text", Sodium::SdColorWhite);
+				styleSystem.SetColorVariable("background", { 24, 30, 39, 242 });
+				styleSystem.SetColorVariable("window.bg", { 24, 30, 39, 242 });
+				styleSystem.SetColorVariable("panel.bg", { 35, 42, 52, 235 });
+				styleSystem.SetColorVariable("button.bg", { 48, 72, 96, 255 });
+				styleSystem.SetColorVariable("button.bg.hover", { 62, 100, 138, 255 });
+				styleSystem.SetColorVariable("button.bg.pressed", { 68, 118, 160, 255 });
+				styleSystem.SetColorVariable("accent", { 82, 170, 128, 255 });
+				styleSystem.SetColorVariable("border", { 91, 109, 128, 255 });
+				styleSystem.SetColorVariable("border.strong", { 128, 154, 180, 255 });
+				styleSystem.SetColorVariable("danger", { 164, 66, 66, 255 });
+				styleSystem.SetColorVariable("selection", { 82, 170, 128, 96 });
 			}
 
-			styleSystem.SetMetric(Sodium::SdStyleToken::SpacingSmall, controls.compactTheme ? 4.0f : 6.0f);
-			styleSystem.SetMetric(Sodium::SdStyleToken::SpacingMedium, controls.compactTheme ? 7.0f : 10.0f);
-			styleSystem.SetMetric(Sodium::SdStyleToken::RadiusSmall, controls.compactTheme ? 3.0f : 5.0f);
-			styleSystem.SetMetric(Sodium::SdStyleToken::DurationFast, 0.36f);
+			styleSystem.SetMetricVariable("spacing.small", controls.compactTheme ? 4.0f : 6.0f);
+			styleSystem.SetMetricVariable("spacing.medium", controls.compactTheme ? 7.0f : 10.0f);
+			styleSystem.SetMetricVariable("radius.small", controls.compactTheme ? 3.0f : 5.0f);
+			styleSystem.SetMetricVariable("duration.fast", 0.36f);
 			appliedLightTheme = controls.lightTheme;
 			appliedCompactTheme = controls.compactTheme;
 			themeInitialized = true;

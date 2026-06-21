@@ -87,8 +87,8 @@ namespace Sodium
 
 			SdLayoutResult result = {};
 			result.desiredSize = {
-				record.style.width > 0.0f ? record.style.width : 160.0f,
-				record.style.height > 0.0f ? record.style.height : 28.0f
+				SdResolveLength(record.styleCache.resolvedStyle.width, displaySize.x, 160.0f),
+				SdResolveLength(record.styleCache.resolvedStyle.height, displaySize.y, 28.0f)
 			};
 
 			SdLayoutConstraints constraints = {};
@@ -99,7 +99,6 @@ namespace Sodium
 				id,
 				record.parentId,
 				record.state,
-				record.style,
 				context.theme,
 				record.resolvedKey,
 				constraints,
@@ -210,7 +209,6 @@ namespace Sodium
 				id,
 				record.parentId,
 				record.state,
-				record.style,
 				context.theme,
 				record.resolvedKey,
 				renderList,

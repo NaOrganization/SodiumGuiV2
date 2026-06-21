@@ -37,15 +37,7 @@ namespace Sodium
 			metrics[static_cast<SdSize>(SdStyleToken::SpacingMedium)] = 10.0f;
 			metrics[static_cast<SdSize>(SdStyleToken::RadiusSmall)] = 5.0f;
 			metrics[static_cast<SdSize>(SdStyleToken::DurationFast)] = 0.16f;
-			colorVariables[SdThemeVariableLiteral("text")] = colors[static_cast<SdSize>(SdStyleToken::ColorText)];
-			colorVariables[SdThemeVariableLiteral("background")] = colors[static_cast<SdSize>(SdStyleToken::ColorBackground)];
-			colorVariables[SdThemeVariableLiteral("button.bg")] = colors[static_cast<SdSize>(SdStyleToken::ColorButton)];
-			colorVariables[SdThemeVariableLiteral("button.bg.hover")] = colors[static_cast<SdSize>(SdStyleToken::ColorButtonHovered)];
-			colorVariables[SdThemeVariableLiteral("button.text")] = colors[static_cast<SdSize>(SdStyleToken::ColorText)];
-			colorVariables[SdThemeVariableLiteral("danger")] = colors[static_cast<SdSize>(SdStyleToken::ColorDanger)];
-			metricVariables[SdThemeVariableLiteral("spacing.small")] = metrics[static_cast<SdSize>(SdStyleToken::SpacingSmall)];
-			metricVariables[SdThemeVariableLiteral("spacing.medium")] = metrics[static_cast<SdSize>(SdStyleToken::SpacingMedium)];
-			metricVariables[SdThemeVariableLiteral("radius.small")] = metrics[static_cast<SdSize>(SdStyleToken::RadiusSmall)];
+			PublishLegacyTokenVariables();
 			metricVariables[SdThemeVariableLiteral("font.button")] = 16.0f;
 		}
 
@@ -62,11 +54,13 @@ namespace Sodium
 		void SetColorVariable(SdThemeVariableId variableId, SdColor color)
 		{
 			colorVariables[variableId] = color;
+			SyncLegacyColorToken(variableId, color);
 		}
 
 		void SetMetricVariable(SdThemeVariableId variableId, float value)
 		{
 			metricVariables[variableId] = value;
+			SyncLegacyMetricToken(variableId, value);
 		}
 
 		SdColor GetColorVariable(SdThemeVariableId variableId, SdColor fallback = SdColorTransparent) const noexcept
@@ -80,61 +74,67 @@ namespace Sodium
 			auto it = metricVariables.find(variableId);
 			return it == metricVariables.end() ? fallback : it->second;
 		}
-	};
 
-	struct SdStyleRule final
-	{
-		SdStyleTokenTag targetTag = SdStyleTargetTags::Global;
-		SdStyleInteractionState interactionState = SdStyleInteractionState::Normal;
-		SdLayerPriority layerPriority = SdLayerPriority::Content;
-		SdStyleClassId classId = 0;
-		SdStyleScopeId scopeId = 0;
-		bool matchLayer = false;
-		bool matchClass = false;
-		bool matchScope = false;
-		std::vector<SdStyleDeclaration> declarations = {};
-
-		void SetValue(SdStyleTokenTag propertyTag, SdStyleValue value)
+	private:
+		void PublishLegacyTokenVariables()
 		{
-			for (SdStyleDeclaration& declaration : declarations)
-			{
-				if (declaration.propertyTag == propertyTag)
-				{
-					declaration.value = value;
-					return;
-				}
-			}
-			declarations.push_back({ propertyTag, value });
+			colorVariables[SdThemeVariableLiteral("text")] = colors[static_cast<SdSize>(SdStyleToken::ColorText)];
+			colorVariables[SdThemeVariableLiteral("background")] = colors[static_cast<SdSize>(SdStyleToken::ColorBackground)];
+			colorVariables[SdThemeVariableLiteral("window.bg")] = colors[static_cast<SdSize>(SdStyleToken::ColorWindowBg)];
+			colorVariables[SdThemeVariableLiteral("panel.bg")] = colors[static_cast<SdSize>(SdStyleToken::ColorPanelBg)];
+			colorVariables[SdThemeVariableLiteral("button.bg")] = colors[static_cast<SdSize>(SdStyleToken::ColorButton)];
+			colorVariables[SdThemeVariableLiteral("button.bg.hover")] = colors[static_cast<SdSize>(SdStyleToken::ColorButtonHovered)];
+			colorVariables[SdThemeVariableLiteral("button.bg.pressed")] = colors[static_cast<SdSize>(SdStyleToken::ColorButtonPressed)];
+			colorVariables[SdThemeVariableLiteral("button.text")] = colors[static_cast<SdSize>(SdStyleToken::ColorText)];
+			colorVariables[SdThemeVariableLiteral("accent")] = colors[static_cast<SdSize>(SdStyleToken::ColorAccent)];
+			colorVariables[SdThemeVariableLiteral("border")] = colors[static_cast<SdSize>(SdStyleToken::ColorBorder)];
+			colorVariables[SdThemeVariableLiteral("border.strong")] = colors[static_cast<SdSize>(SdStyleToken::ColorBorderStrong)];
+			colorVariables[SdThemeVariableLiteral("danger")] = colors[static_cast<SdSize>(SdStyleToken::ColorDanger)];
+			colorVariables[SdThemeVariableLiteral("selection")] = colors[static_cast<SdSize>(SdStyleToken::ColorSelection)];
+			metricVariables[SdThemeVariableLiteral("spacing.small")] = metrics[static_cast<SdSize>(SdStyleToken::SpacingSmall)];
+			metricVariables[SdThemeVariableLiteral("spacing.medium")] = metrics[static_cast<SdSize>(SdStyleToken::SpacingMedium)];
+			metricVariables[SdThemeVariableLiteral("radius.small")] = metrics[static_cast<SdSize>(SdStyleToken::RadiusSmall)];
+			metricVariables[SdThemeVariableLiteral("duration.fast")] = metrics[static_cast<SdSize>(SdStyleToken::DurationFast)];
 		}
 
-		void SetColor(SdStyleTokenTag propertyTag, SdColor value)
+		void SyncLegacyColorToken(SdThemeVariableId variableId, SdColor color)
 		{
-			SetValue(propertyTag, SdStyleValue::FromColor(value));
+			if (variableId == SdThemeVariableLiteral("text") || variableId == SdThemeVariableLiteral("button.text"))
+				colors[static_cast<SdSize>(SdStyleToken::ColorText)] = color;
+			else if (variableId == SdThemeVariableLiteral("background"))
+				colors[static_cast<SdSize>(SdStyleToken::ColorBackground)] = color;
+			else if (variableId == SdThemeVariableLiteral("window.bg"))
+				colors[static_cast<SdSize>(SdStyleToken::ColorWindowBg)] = color;
+			else if (variableId == SdThemeVariableLiteral("panel.bg"))
+				colors[static_cast<SdSize>(SdStyleToken::ColorPanelBg)] = color;
+			else if (variableId == SdThemeVariableLiteral("button.bg"))
+				colors[static_cast<SdSize>(SdStyleToken::ColorButton)] = color;
+			else if (variableId == SdThemeVariableLiteral("button.bg.hover"))
+				colors[static_cast<SdSize>(SdStyleToken::ColorButtonHovered)] = color;
+			else if (variableId == SdThemeVariableLiteral("button.bg.pressed"))
+				colors[static_cast<SdSize>(SdStyleToken::ColorButtonPressed)] = color;
+			else if (variableId == SdThemeVariableLiteral("accent"))
+				colors[static_cast<SdSize>(SdStyleToken::ColorAccent)] = color;
+			else if (variableId == SdThemeVariableLiteral("border"))
+				colors[static_cast<SdSize>(SdStyleToken::ColorBorder)] = color;
+			else if (variableId == SdThemeVariableLiteral("border.strong"))
+				colors[static_cast<SdSize>(SdStyleToken::ColorBorderStrong)] = color;
+			else if (variableId == SdThemeVariableLiteral("danger"))
+				colors[static_cast<SdSize>(SdStyleToken::ColorDanger)] = color;
+			else if (variableId == SdThemeVariableLiteral("selection"))
+				colors[static_cast<SdSize>(SdStyleToken::ColorSelection)] = color;
 		}
 
-		void SetFloat(SdStyleTokenTag propertyTag, float value)
+		void SyncLegacyMetricToken(SdThemeVariableId variableId, float value)
 		{
-			SetValue(propertyTag, SdStyleValue::FromFloat(value));
-		}
-
-		void SetSpacing(SdStyleTokenTag propertyTag, SdSpacing value)
-		{
-			SetValue(propertyTag, SdStyleValue::FromSpacing(value));
-		}
-
-		void SetVec2(SdStyleTokenTag propertyTag, SdVec2 value)
-		{
-			SetValue(propertyTag, SdStyleValue::FromVec2(value));
-		}
-
-		void SetColorToken(SdStyleTokenTag propertyTag, SdStyleToken token)
-		{
-			SetValue(propertyTag, SdStyleValue::FromColorToken(token));
-		}
-
-		void SetMetricToken(SdStyleTokenTag propertyTag, SdStyleToken token)
-		{
-			SetValue(propertyTag, SdStyleValue::FromMetricToken(token));
+			if (variableId == SdThemeVariableLiteral("spacing.small"))
+				metrics[static_cast<SdSize>(SdStyleToken::SpacingSmall)] = value;
+			else if (variableId == SdThemeVariableLiteral("spacing.medium"))
+				metrics[static_cast<SdSize>(SdStyleToken::SpacingMedium)] = value;
+			else if (variableId == SdThemeVariableLiteral("radius.small"))
+				metrics[static_cast<SdSize>(SdStyleToken::RadiusSmall)] = value;
+			else if (variableId == SdThemeVariableLiteral("duration.fast"))
+				metrics[static_cast<SdSize>(SdStyleToken::DurationFast)] = value;
 		}
 	};
 
@@ -522,7 +522,7 @@ namespace Sodium
 	struct SdTypedStyleRule final
 	{
 		std::type_index styleType = std::type_index(typeid(void));
-		SdStyleTokenTag targetTag = SdStyleTargetTags::Global;
+		SdStyleTokenTag targetTag = SdWidgetTargetIds::Global;
 		SdStyleInteractionState interactionState = SdStyleInteractionState::Normal;
 		SdLayerPriority layerPriority = SdLayerPriority::Content;
 		SdStyleClassId classId = 0;
@@ -674,7 +674,6 @@ namespace Sodium
 
 	private:
 		SdTheme theme = {};
-		std::vector<SdStyleRule> rules = {};
 		std::vector<SdTypedStyleRule> typedRules = {};
 		SdStyleSheet typedStyleSheet = {};
 		SdCompiledStyleSheet compiledStyleSheet = {};
@@ -684,7 +683,8 @@ namespace Sodium
 	public:
 		SdStyleSystem()
 		{
-			AddDefaultRules();
+			RegisterRootProperties();
+			InstallDefaultUserAgentStyleSheet();
 		}
 
 		const SdTheme& GetTheme() const noexcept
@@ -700,12 +700,14 @@ namespace Sodium
 		void SetColor(SdStyleToken token, SdColor color)
 		{
 			theme.colors[static_cast<SdSize>(token)] = color;
+			PublishThemeVariableForToken(token);
 			Touch();
 		}
 
 		void SetMetric(SdStyleToken token, float value)
 		{
 			theme.metrics[static_cast<SdSize>(token)] = value;
+			PublishThemeVariableForToken(token);
 			Touch();
 		}
 
@@ -733,35 +735,20 @@ namespace Sodium
 
 		void ClearRules()
 		{
-			rules.clear();
 			typedRules.clear();
 			typedStyleSheet.Clear();
 			compiledStyleSheet.Clear();
+			InstallDefaultUserAgentStyleSheet(false);
 			Touch();
-		}
-
-		void AddRule(const SdStyleRule& rule)
-		{
-			rules.push_back(rule);
-			Touch();
-		}
-
-		SdComputedStyle Resolve(
-			SdStyleTokenTag targetTag,
-			SdStyleInteractionState interactionState,
-			SdLayerPriority layerPriority = SdLayerPriority::Content,
-			SdSpan<const SdStyleClassId> styleClasses = {},
-			SdStyleScopeId styleScope = 0) const
-		{
-			SdComputedStyle result = {};
-			SetBaseValues(result);
-			ApplyMatchingRules(result, targetTag, interactionState, layerPriority, styleClasses, styleScope, true);
-			ApplyMatchingRules(result, targetTag, interactionState, layerPriority, styleClasses, styleScope, false);
-			return result;
 		}
 
 		template<class TWidget>
 		SdStyleRuleBuilder<TWidget> Rule();
+
+		SdStyleSystemSheetRuleBuilder<SdWidgetRootStyle> RootRule(SdStyleTokenTag targetTypeId)
+		{
+			return SdStyleSystemSheetRuleBuilder<SdWidgetRootStyle>(*this, typedStyleSheet.RuleForTarget<SdWidgetRootStyle>(targetTypeId));
+		}
 
 		template<class TWidget>
 		SdStyleSystemSheetRuleBuilder<SdWidgetPartStyle> Part(SdStylePart part)
@@ -769,14 +756,32 @@ namespace Sodium
 			return SdStyleSystemSheetRuleBuilder<SdWidgetPartStyle>(*this, typedStyleSheet.Part<TWidget>(part));
 		}
 
+		SdWidgetRootStyle ResolveRootStyle(
+			SdStyleTokenTag targetTypeId,
+			SdStyleInteractionState interactionState,
+			SdLayerPriority layerPriority = SdLayerPriority::Content,
+			SdSpan<const SdStyleClassId> styleClasses = {},
+			SdStyleScopeId styleScope = 0) const
+		{
+			SdWidgetRootStyle result = BuildDefaultRootStyle();
+			return ApplyCompiledTypedRules(
+				result,
+				targetTypeId,
+				SdStylePart::Root(),
+				interactionState,
+				layerPriority,
+				styleClasses,
+				styleScope);
+		}
+
 		template<class TWidget>
-		typename TWidget::Style ResolveTargetStyle(
+		typename TWidget::Style ResolveTypedStyle(
 			SdStyleInteractionState interactionState,
 			SdLayerPriority layerPriority = SdLayerPriority::Content,
 			const typename TWidget::Style* inlineStyle = nullptr) const;
 
 		template<class TWidget>
-		typename TWidget::Style ResolveTargetStyle(
+		typename TWidget::Style ResolveTypedStyle(
 			SdStyleInteractionState interactionState,
 			SdLayerPriority layerPriority,
 			SdSpan<const SdStyleClassId> styleClasses,
@@ -806,11 +811,70 @@ namespace Sodium
 		}
 
 	private:
+		void PublishThemeVariableForToken(SdStyleToken token)
+		{
+			switch (token)
+			{
+			case SdStyleToken::ColorText:
+				theme.SetColorVariable(SdThemeVariableLiteral("text"), theme.GetColor(token));
+				theme.SetColorVariable(SdThemeVariableLiteral("button.text"), theme.GetColor(token));
+				break;
+			case SdStyleToken::ColorBackground:
+				theme.SetColorVariable(SdThemeVariableLiteral("background"), theme.GetColor(token));
+				break;
+			case SdStyleToken::ColorWindowBg:
+				theme.SetColorVariable(SdThemeVariableLiteral("window.bg"), theme.GetColor(token));
+				break;
+			case SdStyleToken::ColorPanelBg:
+				theme.SetColorVariable(SdThemeVariableLiteral("panel.bg"), theme.GetColor(token));
+				break;
+			case SdStyleToken::ColorButton:
+				theme.SetColorVariable(SdThemeVariableLiteral("button.bg"), theme.GetColor(token));
+				break;
+			case SdStyleToken::ColorButtonHovered:
+				theme.SetColorVariable(SdThemeVariableLiteral("button.bg.hover"), theme.GetColor(token));
+				break;
+			case SdStyleToken::ColorButtonPressed:
+				theme.SetColorVariable(SdThemeVariableLiteral("button.bg.pressed"), theme.GetColor(token));
+				break;
+			case SdStyleToken::ColorAccent:
+				theme.SetColorVariable(SdThemeVariableLiteral("accent"), theme.GetColor(token));
+				break;
+			case SdStyleToken::ColorBorder:
+				theme.SetColorVariable(SdThemeVariableLiteral("border"), theme.GetColor(token));
+				break;
+			case SdStyleToken::ColorBorderStrong:
+				theme.SetColorVariable(SdThemeVariableLiteral("border.strong"), theme.GetColor(token));
+				break;
+			case SdStyleToken::ColorDanger:
+				theme.SetColorVariable(SdThemeVariableLiteral("danger"), theme.GetColor(token));
+				break;
+			case SdStyleToken::ColorSelection:
+				theme.SetColorVariable(SdThemeVariableLiteral("selection"), theme.GetColor(token));
+				break;
+			case SdStyleToken::SpacingSmall:
+				theme.SetMetricVariable(SdThemeVariableLiteral("spacing.small"), theme.GetMetric(token));
+				break;
+			case SdStyleToken::SpacingMedium:
+				theme.SetMetricVariable(SdThemeVariableLiteral("spacing.medium"), theme.GetMetric(token));
+				break;
+			case SdStyleToken::RadiusSmall:
+				theme.SetMetricVariable(SdThemeVariableLiteral("radius.small"), theme.GetMetric(token));
+				break;
+			case SdStyleToken::DurationFast:
+				theme.SetMetricVariable(SdThemeVariableLiteral("duration.fast"), theme.GetMetric(token));
+				break;
+			case SdStyleToken::Count:
+			default:
+				break;
+			}
+		}
+
 		template<class TWidget>
 		static constexpr SdStyleTokenTag GetTargetTag() noexcept
 		{
-			if constexpr (requires { TWidget::Style::TokenTag; })
-				return TWidget::Style::TokenTag;
+			if constexpr (requires { TWidget::Style::TargetTypeId; })
+				return TWidget::Style::TargetTypeId;
 			else
 				return Detail::SdTypeHash<TWidget>();
 		}
@@ -824,6 +888,17 @@ namespace Sodium
 				return Style::Default(styleContext);
 			else
 				return {};
+		}
+
+		SdWidgetRootStyle BuildDefaultRootStyle() const
+		{
+			SdWidgetRootStyle style = {};
+			style.color = theme.GetColor(SdStyleToken::ColorText);
+			style.backgroundColor = theme.GetColor(SdStyleToken::ColorBackground);
+			style.border = SdBorder::All(SdLength::Pixels(1.0f), theme.GetColor(SdStyleToken::ColorBorder));
+			style.radius = SdLength::Pixels(theme.GetMetric(SdStyleToken::RadiusSmall));
+			style.opacity = 1.0f;
+			return style;
 		}
 
 		SdTypedStyleRule& AddTypedRule(std::type_index styleType, SdStyleTokenTag targetTag)
@@ -918,59 +993,71 @@ namespace Sodium
 				revision = 1;
 		}
 
-		void AddDefaultRules()
+		void RegisterRootProperties()
 		{
-			SdStyleRule global = {};
-			global.targetTag = SdStyleTargetTags::Global;
-			global.SetColorToken(SdStylePropertyTags::Color, SdStyleToken::ColorText);
-			global.SetColorToken(SdStylePropertyTags::Border, SdStyleToken::ColorBorder);
-			global.SetMetricToken(SdStylePropertyTags::Radius, SdStyleToken::RadiusSmall);
-			global.SetFloat(SdStylePropertyTags::Opacity, 1.0f);
-			AddRule(global);
-
-			AddBackgroundRule(SdStyleTargetTags::Default, SdStyleInteractionState::Normal, SdLayerPriority::Content, SdStyleToken::ColorBackground);
-			AddBackgroundRule(SdStyleTargetTags::Panel, SdStyleInteractionState::Normal, SdLayerPriority::Content, SdStyleToken::ColorPanelBg);
-			AddBackgroundRule(SdStyleTargetTags::Button, SdStyleInteractionState::Normal, SdLayerPriority::Content, SdStyleToken::ColorButton);
-			AddBackgroundRule(SdStyleTargetTags::Button, SdStyleInteractionState::Hovered, SdLayerPriority::Content, SdStyleToken::ColorButtonHovered);
-			AddBackgroundRule(SdStyleTargetTags::Button, SdStyleInteractionState::Pressed, SdLayerPriority::Content, SdStyleToken::ColorButtonPressed);
-			AddBackgroundRule(SdStyleTargetTags::CheckBox, SdStyleInteractionState::Normal, SdLayerPriority::Content, SdStyleToken::ColorPanelBg);
-			AddBackgroundRule(SdStyleTargetTags::CheckBox, SdStyleInteractionState::Hovered, SdLayerPriority::Content, SdStyleToken::ColorButtonHovered);
-			AddBackgroundRule(SdStyleTargetTags::Window, SdStyleInteractionState::Normal, SdLayerPriority::Floating, SdStyleToken::ColorWindowBg, true);
-			AddBackgroundRule(SdStyleTargetTags::ImageViewer, SdStyleInteractionState::Normal, SdLayerPriority::Content, SdStyleToken::ColorPanelBg);
-			AddBackgroundRule(SdStyleTargetTags::Slider, SdStyleInteractionState::Normal, SdLayerPriority::Content, SdStyleToken::ColorPanelBg);
-			AddBackgroundRule(SdStyleTargetTags::Slider, SdStyleInteractionState::Hovered, SdLayerPriority::Content, SdStyleToken::ColorButtonHovered);
-			AddBackgroundRule(SdStyleTargetTags::Slider, SdStyleInteractionState::Pressed, SdLayerPriority::Content, SdStyleToken::ColorButtonPressed);
-			AddBackgroundRule(SdStyleTargetTags::TextInput, SdStyleInteractionState::Normal, SdLayerPriority::Content, SdStyleToken::ColorPanelBg);
-			AddBackgroundRule(SdStyleTargetTags::TextInput, SdStyleInteractionState::Focused, SdLayerPriority::Content, SdStyleToken::ColorButton);
-			AddBackgroundRule(SdStyleTargetTags::ScrollView, SdStyleInteractionState::Normal, SdLayerPriority::Content, SdStyleToken::ColorPanelBg);
-			AddBackgroundRule(SdStyleTargetTags::Popup, SdStyleInteractionState::Normal, SdLayerPriority::Popup, SdStyleToken::ColorWindowBg, true);
-			AddBackgroundRule(SdStyleTargetTags::ContextMenu, SdStyleInteractionState::Normal, SdLayerPriority::Popup, SdStyleToken::ColorWindowBg, true);
-			AddBackgroundRule(SdStyleTargetTags::Tooltip, SdStyleInteractionState::Normal, SdLayerPriority::Overlay, SdStyleToken::ColorPanelBg, true);
+			propertyRegistry.Register<&SdBoxStyle::color>(
+				SdStyleFieldImpact::Paint,
+				SdStyleInterpolation::Color);
+			propertyRegistry.Register<&SdBoxStyle::backgroundColor>(
+				SdStyleFieldImpact::Paint,
+				SdStyleInterpolation::Color);
+			propertyRegistry.Register<&SdBoxStyle::border>(
+				SdStyleFieldImpact::Paint,
+				SdStyleInterpolation::Color);
+			propertyRegistry.Register<&SdBoxStyle::radius>(
+				SdStyleFieldImpact::Paint,
+				SdStyleInterpolation::Float);
+			propertyRegistry.Register<&SdBoxStyle::opacity>(
+				SdStyleFieldImpact::Composite,
+				SdStyleInterpolation::Float);
 		}
 
-		void AddBackgroundRule(
+		void InstallDefaultUserAgentStyleSheet(bool touchRevision = true)
+		{
+			auto global = typedStyleSheet.RuleForTarget<SdWidgetRootStyle>(SdWidgetTargetIds::Global);
+			global.Cascade(SdCascadeLayer::UserAgent)
+				.Set(&SdBoxStyle::color, ThemeColor("text"))
+				.Set(&SdBoxStyle::border, ThemeColor("border"))
+				.Set(&SdBoxStyle::radius, ThemeMetric("radius.small"))
+				.Set(&SdBoxStyle::opacity, 1.0f);
+
+			AddDefaultRootBackgroundRule(SdWidgetTargetIds::Default, SdStyleInteractionState::Normal, SdLayerPriority::Content, "background");
+			AddDefaultRootBackgroundRule(SdWidgetTargetIds::Panel, SdStyleInteractionState::Normal, SdLayerPriority::Content, "panel.bg");
+			AddDefaultRootBackgroundRule(SdWidgetTargetIds::Button, SdStyleInteractionState::Normal, SdLayerPriority::Content, "button.bg");
+			AddDefaultRootBackgroundRule(SdWidgetTargetIds::Button, SdStyleInteractionState::Hovered, SdLayerPriority::Content, "button.bg.hover");
+			AddDefaultRootBackgroundRule(SdWidgetTargetIds::Button, SdStyleInteractionState::Pressed, SdLayerPriority::Content, "button.bg.pressed");
+			AddDefaultRootBackgroundRule(SdWidgetTargetIds::CheckBox, SdStyleInteractionState::Normal, SdLayerPriority::Content, "panel.bg");
+			AddDefaultRootBackgroundRule(SdWidgetTargetIds::CheckBox, SdStyleInteractionState::Hovered, SdLayerPriority::Content, "button.bg.hover");
+			AddDefaultRootBackgroundRule(SdWidgetTargetIds::Window, SdStyleInteractionState::Normal, SdLayerPriority::Floating, "window.bg", true);
+			AddDefaultRootBackgroundRule(SdWidgetTargetIds::ImageViewer, SdStyleInteractionState::Normal, SdLayerPriority::Content, "panel.bg");
+			AddDefaultRootBackgroundRule(SdWidgetTargetIds::Slider, SdStyleInteractionState::Normal, SdLayerPriority::Content, "panel.bg");
+			AddDefaultRootBackgroundRule(SdWidgetTargetIds::Slider, SdStyleInteractionState::Hovered, SdLayerPriority::Content, "button.bg.hover");
+			AddDefaultRootBackgroundRule(SdWidgetTargetIds::Slider, SdStyleInteractionState::Pressed, SdLayerPriority::Content, "button.bg.pressed");
+			AddDefaultRootBackgroundRule(SdWidgetTargetIds::TextInput, SdStyleInteractionState::Normal, SdLayerPriority::Content, "panel.bg");
+			AddDefaultRootBackgroundRule(SdWidgetTargetIds::TextInput, SdStyleInteractionState::Focused, SdLayerPriority::Content, "button.bg");
+			AddDefaultRootBackgroundRule(SdWidgetTargetIds::ScrollView, SdStyleInteractionState::Normal, SdLayerPriority::Content, "panel.bg");
+			AddDefaultRootBackgroundRule(SdWidgetTargetIds::Popup, SdStyleInteractionState::Normal, SdLayerPriority::Popup, "window.bg", true);
+			AddDefaultRootBackgroundRule(SdWidgetTargetIds::ContextMenu, SdStyleInteractionState::Normal, SdLayerPriority::Popup, "window.bg", true);
+			AddDefaultRootBackgroundRule(SdWidgetTargetIds::Tooltip, SdStyleInteractionState::Normal, SdLayerPriority::Overlay, "panel.bg", true);
+
+			compiledStyleSheet = typedStyleSheet.Compile();
+			if (touchRevision)
+				Touch();
+		}
+
+		void AddDefaultRootBackgroundRule(
 			SdStyleTokenTag targetTag,
 			SdStyleInteractionState interactionState,
 			SdLayerPriority layerPriority,
-			SdStyleToken backgroundToken,
+			const char* backgroundVariable,
 			bool matchLayer = false)
 		{
-			SdStyleRule rule = {};
-			rule.targetTag = targetTag;
-			rule.interactionState = interactionState;
-			rule.layerPriority = layerPriority;
-			rule.matchLayer = matchLayer;
-			rule.SetColorToken(SdStylePropertyTags::Background, backgroundToken);
-			AddRule(rule);
-		}
-
-		void SetBaseValues(SdComputedStyle& result) const
-		{
-			result.SetValue(SdStylePropertyTags::Color, SdStyleValue::FromColor(theme.GetColor(SdStyleToken::ColorText)));
-			result.SetValue(SdStylePropertyTags::Background, SdStyleValue::FromColor(theme.GetColor(SdStyleToken::ColorBackground)));
-			result.SetValue(SdStylePropertyTags::Border, SdStyleValue::FromColor(theme.GetColor(SdStyleToken::ColorBorder)));
-			result.SetValue(SdStylePropertyTags::Radius, SdStyleValue::FromFloat(theme.GetMetric(SdStyleToken::RadiusSmall)));
-			result.SetValue(SdStylePropertyTags::Opacity, SdStyleValue::FromFloat(1.0f));
+			auto rule = typedStyleSheet.RuleForTarget<SdWidgetRootStyle>(targetTag);
+			rule.Cascade(SdCascadeLayer::UserAgent)
+				.Pseudo(interactionState)
+				.Set(&SdBoxStyle::backgroundColor, ThemeColor(backgroundVariable));
+			if (matchLayer)
+				rule.Layer(layerPriority);
 		}
 
 		SdStyleValue ResolveValue(const SdStyleValue& value) const
@@ -990,31 +1077,6 @@ namespace Sodium
 			}
 		}
 
-		bool MatchesRule(
-			const SdStyleRule& rule,
-			SdStyleTokenTag targetTag,
-			SdStyleInteractionState interactionState,
-			SdLayerPriority layerPriority,
-			SdSpan<const SdStyleClassId> styleClasses,
-			SdStyleScopeId styleScope,
-			bool globalPass) const noexcept
-		{
-			const bool isGlobalRule = rule.targetTag == SdStyleTargetTags::Global;
-			if (isGlobalRule != globalPass)
-				return false;
-			if (!isGlobalRule && rule.targetTag != targetTag)
-				return false;
-			if (rule.interactionState != SdStyleInteractionState::Normal && rule.interactionState != interactionState)
-				return false;
-			if (rule.matchLayer && rule.layerPriority != layerPriority)
-				return false;
-			if (rule.matchClass && !HasStyleClass(styleClasses, rule.classId))
-				return false;
-			if (rule.matchScope && rule.scopeId != styleScope)
-				return false;
-			return true;
-		}
-
 		bool MatchesTypedRule(
 			const SdTypedStyleRule& rule,
 			std::type_index styleType,
@@ -1026,7 +1088,7 @@ namespace Sodium
 		{
 			if (rule.styleType != styleType)
 				return false;
-			if (rule.targetTag != SdStyleTargetTags::Global && rule.targetTag != targetTag)
+			if (rule.targetTag != SdWidgetTargetIds::Global && rule.targetTag != targetTag)
 				return false;
 			if (rule.interactionState != SdStyleInteractionState::Normal && rule.interactionState != interactionState)
 				return false;
@@ -1047,25 +1109,6 @@ namespace Sodium
 					return true;
 			}
 			return false;
-		}
-
-		void ApplyMatchingRules(
-			SdComputedStyle& result,
-			SdStyleTokenTag targetTag,
-			SdStyleInteractionState interactionState,
-			SdLayerPriority layerPriority,
-			SdSpan<const SdStyleClassId> styleClasses,
-			SdStyleScopeId styleScope,
-			bool globalPass) const
-		{
-			for (const SdStyleRule& rule : rules)
-			{
-				if (!MatchesRule(rule, targetTag, interactionState, layerPriority, styleClasses, styleScope, globalPass))
-					continue;
-
-				for (const SdStyleDeclaration& declaration : rule.declarations)
-					result.SetValue(declaration.propertyTag, ResolveValue(declaration.value));
-			}
 		}
 	};
 
@@ -1189,16 +1232,16 @@ namespace Sodium
 	}
 
 	template<class TWidget>
-	typename TWidget::Style SdStyleSystem::ResolveTargetStyle(
+	typename TWidget::Style SdStyleSystem::ResolveTypedStyle(
 		SdStyleInteractionState interactionState,
 		SdLayerPriority layerPriority,
 		const typename TWidget::Style* inlineStyle) const
 	{
-		return ResolveTargetStyle<TWidget>(interactionState, layerPriority, {}, 0, inlineStyle);
+		return ResolveTypedStyle<TWidget>(interactionState, layerPriority, {}, 0, inlineStyle);
 	}
 
 	template<class TWidget>
-	typename TWidget::Style SdStyleSystem::ResolveTargetStyle(
+	typename TWidget::Style SdStyleSystem::ResolveTypedStyle(
 		SdStyleInteractionState interactionState,
 		SdLayerPriority layerPriority,
 		SdSpan<const SdStyleClassId> styleClasses,

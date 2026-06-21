@@ -61,6 +61,12 @@ namespace Sodium
 		template<>
 		inline constexpr bool SdPropertyValueField<SdVec2> = true;
 
+		template<>
+		inline constexpr bool SdPropertyValueField<SdLength> = true;
+
+		template<>
+		inline constexpr bool SdPropertyValueField<SdBorder> = true;
+
 		template<class T>
 		SdStyleValue MakePropertyValue(T value) noexcept
 		{
@@ -72,6 +78,16 @@ namespace Sodium
 				return SdStyleValue::FromSpacing(value);
 			else if constexpr (std::is_same_v<T, SdVec2>)
 				return SdStyleValue::FromVec2(value);
+			else if constexpr (std::is_same_v<T, SdLength>)
+			{
+				if (value.unit == SdLengthUnit::Pixels)
+					return SdStyleValue::FromFloat(value.value);
+				if (value.unit == SdLengthUnit::Variable)
+					return SdStyleValue::FromMetricVariable(value.variableId);
+				return {};
+			}
+			else if constexpr (std::is_same_v<T, SdBorder>)
+				return SdStyleValue::FromColor(value.left.color);
 			else
 				return {};
 		}
@@ -105,6 +121,20 @@ namespace Sodium
 				if (value.kind != SdStyleValueKind::Vec2)
 					return false;
 				destination = value.vec2;
+				return true;
+			}
+			else if constexpr (std::is_same_v<T, SdLength>)
+			{
+				if (value.kind != SdStyleValueKind::Float)
+					return false;
+				destination = SdLength::Pixels(value.number);
+				return true;
+			}
+			else if constexpr (std::is_same_v<T, SdBorder>)
+			{
+				if (value.kind != SdStyleValueKind::Color)
+					return false;
+				destination = SdBorder::All(SdLength::Pixels(1.0f), value.color);
 				return true;
 			}
 			else
@@ -194,6 +224,11 @@ namespace Sodium
 			for (const SdPropertyDescriptor& property : properties)
 			{
 				if (property.propertyId == propertyId && property.styleType == styleType)
+					return &property;
+			}
+			for (const SdPropertyDescriptor& property : properties)
+			{
+				if (property.propertyId == propertyId)
 					return &property;
 			}
 			return nullptr;
