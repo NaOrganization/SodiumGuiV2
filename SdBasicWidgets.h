@@ -385,6 +385,13 @@ namespace Sodium
 	{
 		static constexpr SdStyleId TargetTypeId = SdWidgetTargetIds::CheckBox;
 
+		struct Parts final
+		{
+			static constexpr SdStylePart Box = SdStylePart::Make("Sodium.CheckBox.Part.Box");
+			static constexpr SdStylePart Indicator = SdStylePart::Make("Sodium.CheckBox.Part.Indicator");
+			static constexpr SdStylePart Label = SdStylePart::Make("Sodium.CheckBox.Part.Label");
+		};
+
 		struct Style final
 		{
 			float boxSize = 18.0f;
@@ -465,9 +472,10 @@ namespace Sodium
 			const State& state = context.State<State>();
 			const Style& style = context.RootPresentationStyle<SdCheckBox>();
 			const SdBoxStyle& presentation = context.RootStyleNode().presentationStyle;
+			const SdBoxStyle& labelPresentation = context.Part(Parts::Label).presentationStyle;
 			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(presentation, context.animatedRect.Size(), {});
 			const float labelGap = std::max(0.0f, usedStyle.gap);
-			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, presentation.fontSize, presentation.lineHeight);
+			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, labelPresentation.fontSize, labelPresentation.lineHeight);
 			const float lineHeight = BasicWidgetDetail::ResolveLineHeight(textStyle);
 			const float boxY = context.animatedRect.min.y + (context.animatedRect.Height() - style.boxSize) * 0.5f;
 			const SdRect boxRect = {
@@ -478,7 +486,7 @@ namespace Sodium
 			};
 			const SdColor background = BasicWidgetDetail::ApplyOpacity(presentation.backgroundColor, context.opacity * presentation.opacity);
 			const SdColor border = BasicWidgetDetail::ApplyOpacity(presentation.border.left.color, context.opacity * presentation.opacity);
-			const SdColor textColor = BasicWidgetDetail::ApplyOpacity(presentation.color, context.opacity * presentation.opacity);
+			const SdColor textColor = BasicWidgetDetail::ApplyOpacity(labelPresentation.color, context.opacity * labelPresentation.opacity);
 			const SdColor accent = BasicWidgetDetail::ApplyOpacity(
 				context.instance.GetStyleSystem().GetTheme().GetColorVariable(SdThemeVariableLiteral("accent")),
 				context.opacity * presentation.opacity);
@@ -508,6 +516,9 @@ namespace Sodium
 			context.widgetState.targetTypeId = TargetTypeId;
 			context.widgetState.inputEnabled = true;
 			context.widgetState.layoutWeight = 1.0f;
+			context.EnsurePart(Parts::Box);
+			context.EnsurePart(Parts::Indicator);
+			context.EnsurePart(Parts::Label);
 		}
 	};
 

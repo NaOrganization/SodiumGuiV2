@@ -399,11 +399,14 @@ namespace
 		bool windowOpen = true;
 		instance.BeginFrame({ 640.0f, 480.0f });
 		instance.ui.Declare<SdButton>("Parted");
+		bool checked = false;
+		instance.ui.Declare<SdCheckBox>("Check", checked);
 		instance.ui.Declare<SdTextInput>(text, "Placeholder");
 		instance.ui.Declare<SdWindow>("Window", windowOpen);
 		PumpFrame(instance);
 
 		bool buttonHasLabel = false;
+		bool checkBoxHasLabel = false;
 		bool inputHasCaret = false;
 		bool windowHasTitlebar = false;
 		for (const auto& [id, record] : instance.GetStateStorage().GetWidgetRecords())
@@ -411,14 +414,17 @@ namespace
 			(void)id;
 			if (record.widgetType == std::type_index(typeid(SdButton)))
 				buttonHasLabel = instance.GetStylePart(record.state.id, SdButton::Parts::Label).part == SdButton::Parts::Label;
+			if (record.widgetType == std::type_index(typeid(SdCheckBox)))
+				checkBoxHasLabel = instance.GetStylePart(record.state.id, SdCheckBox::Parts::Label).part == SdCheckBox::Parts::Label;
 			if (record.widgetType == std::type_index(typeid(SdTextInput)))
 				inputHasCaret = instance.GetStylePart(record.state.id, SdTextInput::Parts::Caret).part == SdTextInput::Parts::Caret;
 			if (record.widgetType == std::type_index(typeid(SdWindow)))
 				windowHasTitlebar = instance.GetStylePart(record.state.id, SdWindow::Parts::Titlebar).part == SdWindow::Parts::Titlebar;
 		}
 
-		Check(instance.GetDiagnostics().styleNodeCount >= 16, "runtime owns root and part style nodes");
+		Check(instance.GetDiagnostics().styleNodeCount >= 20, "runtime owns root and part style nodes");
 		Check(buttonHasLabel, "button label part style node exists");
+		Check(checkBoxHasLabel, "checkbox label part style node exists");
 		Check(inputHasCaret, "text input caret part style node exists");
 		Check(windowHasTitlebar, "window titlebar part style node exists");
 
@@ -459,6 +465,24 @@ namespace
 			&& partFontBackend.lastPaintColor.b == labelPartColor.b
 			&& partFontBackend.lastPaintColor.a <= BasicWidgetDetail::ApplyOpacity(labelPartColor, 0.42f).a,
 			"button label part color drives text paint");
+
+		SdInstance checkBoxPartStyleInstance;
+		RecordingFontBackend checkBoxPartFontBackend = {};
+		checkBoxPartStyleInstance.SetFontBackend(&checkBoxPartFontBackend);
+		const SdColor checkBoxLabelPartColor = SdColor(57, 21, 99, 255);
+		checkBoxPartStyleInstance.GetStyleSystem().Part<SdCheckBox>(SdCheckBox::Parts::Label)
+			.Set(&SdBoxStyle::color, checkBoxLabelPartColor)
+			.Set(&SdBoxStyle::opacity, 1.0f);
+		bool checkBoxChecked = false;
+		checkBoxPartStyleInstance.BeginFrame({ 320.0f, 200.0f });
+		checkBoxPartStyleInstance.ui.Declare<SdCheckBox>("Part check", checkBoxChecked);
+		PumpFrame(checkBoxPartStyleInstance);
+		Check(checkBoxPartFontBackend.lastPaintText == "Part check", "checkbox label part drives text paint");
+		Check(
+			checkBoxPartFontBackend.lastPaintColor.r == checkBoxLabelPartColor.r
+			&& checkBoxPartFontBackend.lastPaintColor.g == checkBoxLabelPartColor.g
+			&& checkBoxPartFontBackend.lastPaintColor.b == checkBoxLabelPartColor.b,
+			"checkbox label part color drives text paint");
 
 		SdInstance inputPartStyleInstance;
 		RecordingFontBackend inputPartFontBackend = {};
