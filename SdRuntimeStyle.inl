@@ -313,6 +313,8 @@ namespace Sodium
 					if (canTransition)
 					{
 						SdTypedStyleAnimationChannel& channel = Detail::GetOrCreateTypedStyleAnimationChannel(styleRecord, field.fieldId);
+						channel.styleNodeId = record.rootStyleNodeId;
+						channel.propertyId = field.fieldId;
 						channel.impact = field.impact;
 						channel.interpolation = field.interpolation;
 						channel.transition = transition;

@@ -276,6 +276,8 @@ namespace Sodium
 	struct SdTypedStyleAnimationChannel final
 	{
 		SdUInt64 fieldId = 0;
+		SdStyleNodeId styleNodeId = SdInvalidStyleNodeId;
+		SdPropertyId propertyId = 0;
 		SdStyleFieldImpact impact = SdStyleFieldImpact::Discrete;
 		SdStyleInterpolation interpolation = SdStyleInterpolation::None;
 		SdTransition transition = {};
