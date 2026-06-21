@@ -150,7 +150,14 @@ namespace Sodium
 			const auto parentBoxIt = boxIndexByWidgetId.find(record.parentId);
 			if (record.parentId != 0 && parentBoxIt != boxIndexByWidgetId.end())
 				parentBoxIndex = parentBoxIt->second;
-			const SdUInt32 boxIndex = context.boxTree.AddBox(record.rootStyleNodeId, parentBoxIndex, record.styleCache.resolvedStyle, result.desiredSize);
+			SdBoxStyle boxStyle = record.styleCache.resolvedStyle;
+			SdRect explicitBorderBox = {};
+			if (record.state.manualLayout)
+			{
+				boxStyle.position = SdPosition::Absolute;
+				explicitBorderBox = record.state.manualRect;
+			}
+			const SdUInt32 boxIndex = context.boxTree.AddBox(record.rootStyleNodeId, parentBoxIndex, boxStyle, result.desiredSize, explicitBorderBox);
 			boxIndexByWidgetId[id] = boxIndex;
 		}
 

@@ -53,6 +53,7 @@ namespace Sodium
 		SdRect borderBox = {};
 		SdRect paddingBox = {};
 		SdRect contentBox = {};
+		SdRect explicitBorderBox = {};
 		SdVec2 intrinsicSize = {};
 		SdResolvedBoxStyle usedStyleValues = {};
 		SdBoxStyle style = {};
@@ -210,6 +211,12 @@ namespace Sodium
 					+ child.usedStyleValues.border.top + child.usedStyleValues.border.bottom);
 				if (child.usedStyleValues.position == SdPosition::Absolute)
 				{
+					if (child.explicitBorderBox.Width() > 0.0f || child.explicitBorderBox.Height() > 0.0f)
+					{
+						SetBoxRect(child, child.explicitBorderBox);
+						LayoutChildBlock(childIndex);
+						continue;
+					}
 					const float x = parent.contentBox.min.x + child.usedStyleValues.margin.left;
 					const float absoluteY = parent.contentBox.min.y + child.usedStyleValues.margin.top;
 					SetBoxRect(child, { x, absoluteY, x + borderWidth, absoluteY + borderHeight });
@@ -316,6 +323,12 @@ namespace Sodium
 				{
 					const float childWidth = childBorderWidth(child);
 					const float childHeight = childBorderHeight(child);
+					if (child.explicitBorderBox.Width() > 0.0f || child.explicitBorderBox.Height() > 0.0f)
+					{
+						SetBoxRect(child, child.explicitBorderBox);
+						LayoutChildBlock(childIndex);
+						continue;
+					}
 					const float x = parent.contentBox.min.x + child.usedStyleValues.margin.left;
 					const float y = parent.contentBox.min.y + child.usedStyleValues.margin.top;
 					SetBoxRect(child, { x, y, x + childWidth, y + childHeight });
@@ -411,7 +424,7 @@ namespace Sodium
 			boxIndexByStyleNodeId.clear();
 		}
 
-		SdUInt32 AddBox(SdStyleNodeId styleNodeId, SdUInt32 parentBoxIndex, const SdBoxStyle& style, SdVec2 intrinsicSize = {})
+		SdUInt32 AddBox(SdStyleNodeId styleNodeId, SdUInt32 parentBoxIndex, const SdBoxStyle& style, SdVec2 intrinsicSize = {}, SdRect explicitBorderBox = {})
 		{
 			const SdUInt32 index = static_cast<SdUInt32>(boxes.size());
 			SdBoxNode& box = boxes.emplace_back();
@@ -421,6 +434,7 @@ namespace Sodium
 			box.display = style.display;
 			box.position = style.position;
 			box.intrinsicSize = intrinsicSize;
+			box.explicitBorderBox = explicitBorderBox;
 			lastChildIndices.push_back(SdInvalidIndex<SdUInt32>);
 			if (styleNodeId != SdInvalidStyleNodeId)
 				boxIndexByStyleNodeId[styleNodeId] = index;
@@ -447,6 +461,13 @@ namespace Sodium
 			{
 				SdBoxNode& root = boxes[rootIndex];
 				root.usedStyleValues = SdResolveBoxStyle(root.style, containingBlock.Size(), root.intrinsicSize);
+				if (root.explicitBorderBox.Width() > 0.0f || root.explicitBorderBox.Height() > 0.0f)
+				{
+					SetBoxRect(root, root.explicitBorderBox);
+					LayoutChildBlock(rootIndex);
+					blockY = root.marginBox.max.y;
+					continue;
+				}
 				const float width = root.usedStyleValues.width > 0.0f ? root.usedStyleValues.width : containingBlock.Width();
 				const float height = root.usedStyleValues.height;
 				const SdRect rect = {

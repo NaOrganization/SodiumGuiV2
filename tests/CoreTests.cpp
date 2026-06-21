@@ -138,6 +138,24 @@ namespace
 		}
 	};
 
+	struct TestManualLayoutWidget final : SdWidgetTag
+	{
+		static constexpr SdStyleId TargetTypeId = SdStyleIdLiteral("Tests.ManualLayoutWidget");
+		using Style = SdWidgetRootStyle;
+
+		void OnUpdate(SdUpdateContext& context)
+		{
+			context.widgetState.targetTypeId = TargetTypeId;
+		}
+
+		void OnLayout(SdLayoutContext& context)
+		{
+			context.SetDesiredSize({ 40.0f, 20.0f });
+			context.widgetState.manualLayout = true;
+			context.widgetState.manualRect = { 33.0f, 44.0f, 73.0f, 64.0f };
+		}
+	};
+
 	struct CustomComponentStyle final
 	{
 		static constexpr SdStyleId TargetTypeId = SdStyleIdLiteral("Tests.CustomComponent");
@@ -1213,6 +1231,12 @@ namespace
 		Check(absoluteBoxes[1].borderBox.min.y == absoluteBoxes[0].contentBox.min.y + 12.0f, "absolute box uses margin top as positioned y offset");
 		Check(absoluteBoxes[2].borderBox.min.y == absoluteBoxes[0].contentBox.min.y, "absolute box does not consume normal block flow");
 
+		SdBoxTree explicitTree = {};
+		explicitTree.AddBox(27, SdInvalidIndex<SdUInt32>, absoluteChildStyle, { 20.0f, 10.0f }, { 31.0f, 37.0f, 51.0f, 47.0f });
+		explicitTree.Layout({ 0.0f, 0.0f, 200.0f, 100.0f });
+		const std::vector<SdBoxNode>& explicitBoxes = explicitTree.GetBoxes();
+		Check(explicitBoxes[0].borderBox.min.x == 31.0f && explicitBoxes[0].borderBox.max.y == 47.0f, "box tree honors explicit absolute border rect");
+
 		SdInstance instance;
 		instance.BeginFrame({ 320.0f, 200.0f });
 		instance.ui.Declare<SdButton>("Used");
@@ -1338,6 +1362,25 @@ namespace
 		Check(rootUsedBoxIncludesContent, "runtime used geometry resolves root content box");
 		Check(childArrangedFromFlexDisplay, "runtime derives child arrangement from root flex display style");
 		Check(childClipMatchesOverflowContent, "runtime derives child clipping from root overflow style");
+
+		SdInstance manualInstance;
+		manualInstance.BeginFrame({ 320.0f, 200.0f });
+		manualInstance.ui.Declare<TestManualLayoutWidget>();
+		PumpFrame(manualInstance);
+		bool manualShadowBoxUsesAbsoluteRect = false;
+		for (const auto& [id, record] : manualInstance.GetStateStorage().GetWidgetRecords())
+		{
+			(void)id;
+			if (record.widgetType == std::type_index(typeid(TestManualLayoutWidget)))
+			{
+				const SdBoxNode* box = manualInstance.GetBoxTree().FindBoxByStyleNodeId(record.rootStyleNodeId);
+				manualShadowBoxUsesAbsoluteRect = box
+					&& box->usedStyleValues.position == SdPosition::Absolute
+					&& box->borderBox.min.x == record.state.manualRect.min.x
+					&& box->borderBox.max.y == record.state.manualRect.max.y;
+			}
+		}
+		Check(manualShadowBoxUsesAbsoluteRect, "runtime maps manual layout widgets to absolute shadow boxes");
 	}
 
 	void TestIdAndKeySemantics()
