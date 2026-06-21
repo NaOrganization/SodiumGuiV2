@@ -806,7 +806,8 @@ namespace Sodium
 			const SdBoxStyle& valuePresentation = context.Part(Parts::Value).presentationStyle;
 			const SdBoxStyle& placeholderPresentation = context.Part(Parts::Placeholder).presentationStyle;
 			const SdBoxStyle& caretPresentation = context.Part(Parts::Caret).presentationStyle;
-			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(presentation, context.animatedRect.Size(), {});
+			const SdRect paintRect = BasicWidgetDetail::PaintRect(context);
+			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(presentation, paintRect.Size(), {});
 			const bool showPlaceholder = state.text.empty() && state.composition.empty() && !state.placeholder.empty();
 			const SdBoxStyle& textPresentation = showPlaceholder ? placeholderPresentation : valuePresentation;
 			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, textPresentation.fontSize, textPresentation.lineHeight);
@@ -815,18 +816,18 @@ namespace Sodium
 			const SdColor border = BasicWidgetDetail::ApplyOpacity(fieldPresentation.border.left.color, context.opacity * fieldPresentation.opacity);
 			const SdColor textColor = BasicWidgetDetail::ApplyOpacity(textPresentation.color, context.opacity * textPresentation.opacity);
 			const SdColor caretColor = BasicWidgetDetail::ApplyOpacity(caretPresentation.color, context.opacity * caretPresentation.opacity);
-			const float radius = SdResolveLength(fieldPresentation.radius, context.animatedRect.Width(), SdResolveLength(presentation.radius, context.animatedRect.Width()));
+			const float radius = SdResolveLength(fieldPresentation.radius, paintRect.Width(), SdResolveLength(presentation.radius, paintRect.Width()));
 
-			context.renderList.AddRectFilled(context.animatedRect, background, context.clipRect, radius);
-			context.renderList.AddRect(context.animatedRect, border, context.clipRect, 1.0f, radius);
+			context.renderList.AddRectFilled(paintRect, background, context.clipRect, radius);
+			context.renderList.AddRect(paintRect, border, context.clipRect, 1.0f, radius);
 
 			SdUtf8String paintText = showPlaceholder ? state.placeholder : state.text;
 			if (!state.composition.empty())
 				paintText += state.composition;
 
 			const SdVec2 textPosition = {
-				context.animatedRect.min.x + usedStyle.padding.left,
-				context.animatedRect.min.y + std::max(usedStyle.padding.top, (context.animatedRect.Height() - lineHeight) * 0.5f)
+				paintRect.min.x + usedStyle.padding.left,
+				paintRect.min.y + std::max(usedStyle.padding.top, (paintRect.Height() - lineHeight) * 0.5f)
 			};
 			context.renderList.AddText(
 				paintText,

@@ -1440,6 +1440,39 @@ namespace
 		const bool sliderPaintUsesLayoutBox = sliderPaintMinX == sliderLayoutMinX;
 		Check(sliderPaintUsesLayoutBox, "slider paint uses root layout box geometry");
 
+		SdInstance textInputPaintInstance;
+		textInputPaintInstance.GetRenderSharedData().flags = 0;
+		const SdColor textInputPaintColor{ 31, 83, 109, 255 };
+		const SdColor textInputPaintBorderColor{ 109, 83, 31, 255 };
+		SdUtf8String textInputValue = {};
+		textInputPaintInstance.GetStyleSystem().RootRule(SdTextInput::TargetTypeId)
+			.Set(&SdBoxStyle::margin, SdStyleValue::FromSpacing({ 17.0f, 0.0f, 0.0f, 0.0f }))
+			.Set(&SdBoxStyle::padding, SdStyleValue::FromSpacing({ 0.0f, 0.0f, 0.0f, 0.0f }))
+			.Set(&SdBoxStyle::radius, SdLength::Pixels(0.0f));
+		textInputPaintInstance.GetStyleSystem().Part<SdTextInput>(SdTextInput::Parts::Field)
+			.Set(&SdBoxStyle::backgroundColor, textInputPaintColor)
+			.Set(&SdBoxStyle::border, SdStyleValue::FromColor(textInputPaintBorderColor))
+			.Set(&SdBoxStyle::radius, SdLength::Pixels(0.0f));
+		textInputPaintInstance.BeginFrame({ 320.0f, 200.0f });
+		textInputPaintInstance.ui.Declare<SdTextInput>(textInputValue, "Hint");
+		PumpFrame(textInputPaintInstance);
+		float textInputLayoutMinX = -1.0f;
+		for (const auto& [id, record] : textInputPaintInstance.GetStateStorage().GetWidgetRecords())
+		{
+			(void)id;
+			if (record.widgetType == std::type_index(typeid(SdTextInput)))
+				textInputLayoutMinX = textInputPaintInstance.GetRootStyleNode(record.state.id).layoutBox.borderBox.min.x;
+		}
+		const SdUInt32 textInputPaintPackedRgb = textInputPaintColor.Pack() & 0x00ffffffu;
+		float textInputPaintMinX = 1000000.0f;
+		for (const SdVertex& vertex : textInputPaintInstance.GetRenderData().vertices)
+		{
+			if ((vertex.color & 0x00ffffffu) == textInputPaintPackedRgb && (vertex.color >> 24) > 0u)
+				textInputPaintMinX = std::min(textInputPaintMinX, vertex.position.x);
+		}
+		const bool textInputPaintUsesLayoutBox = textInputPaintMinX == textInputLayoutMinX;
+		Check(textInputPaintUsesLayoutBox, "text input paint uses root layout box geometry");
+
 		SdInstance overflowInstance;
 		overflowInstance.GetStyleSystem().RootRule(TestOverflowContainer::TargetTypeId)
 			.Set(&SdBoxStyle::display, SdDisplay::Flex)
