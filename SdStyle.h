@@ -2,8 +2,8 @@
 
 #include "SdStyleResolver.h"
 
+#include <array>
 #include <cstring>
-#include <functional>
 #include <unordered_map>
 #include <typeindex>
 #include <type_traits>
@@ -74,14 +74,23 @@ namespace Sodium
 
 	struct SdStyleFieldDescriptor final
 	{
+		using EqualsFn = bool(*)(const SdStyleFieldDescriptor&, const void*, const void*);
+		using CopyFn = void(*)(const SdStyleFieldDescriptor&, void*, const void*);
+		using ReadValueFn = SdStyleValue(*)(const SdStyleFieldDescriptor&, const void*);
+		using WriteValueFn = void(*)(const SdStyleFieldDescriptor&, void*, const SdStyleValue&, const SdTheme&);
+
+		static constexpr SdSize kMemberPointerStorageSize = sizeof(void*) * 4;
+
 		SdUInt64 fieldId = 0;
 		SdStyleFieldImpact impact = SdStyleFieldImpact::Discrete;
 		SdStyleInterpolation interpolation = SdStyleInterpolation::None;
 		bool expensiveTransition = false;
-		std::function<bool(const void*, const void*)> equals = {};
-		std::function<void(void*, const void*)> copy = {};
-		std::function<SdStyleValue(const void*)> readValue = {};
-		std::function<void(void*, const SdStyleValue&, const SdTheme&)> writeValue = {};
+		std::array<unsigned char, kMemberPointerStorageSize> memberPointerBytes = {};
+		SdSize memberPointerSize = 0;
+		EqualsFn equals = nullptr;
+		CopyFn copy = nullptr;
+		ReadValueFn readValue = nullptr;
+		WriteValueFn writeValue = nullptr;
 	};
 
 	namespace Detail
@@ -180,6 +189,60 @@ namespace Sodium
 				}
 			}
 			return false;
+		}
+
+		template<class TStyle, class TField>
+		void StoreStyleFieldMember(SdStyleFieldDescriptor& descriptor, TField TStyle::* member) noexcept
+		{
+			static_assert(sizeof(member) <= SdStyleFieldDescriptor::kMemberPointerStorageSize);
+			descriptor.memberPointerBytes = {};
+			descriptor.memberPointerSize = sizeof(member);
+			std::memcpy(descriptor.memberPointerBytes.data(), &member, sizeof(member));
+		}
+
+		template<class TStyle, class TField>
+		TField TStyle::* LoadStyleFieldMember(const SdStyleFieldDescriptor& descriptor) noexcept
+		{
+			TField TStyle::* member = nullptr;
+			std::memcpy(&member, descriptor.memberPointerBytes.data(), sizeof(member));
+			return member;
+		}
+
+		template<class TStyle, class TField>
+		bool StyleFieldEquals(const SdStyleFieldDescriptor& descriptor, const void* left, const void* right)
+		{
+			const TField TStyle::* member = LoadStyleFieldMember<TStyle, TField>(descriptor);
+			const TField& leftValue = static_cast<const TStyle*>(left)->*member;
+			const TField& rightValue = static_cast<const TStyle*>(right)->*member;
+			if constexpr (requires { leftValue == rightValue; })
+				return leftValue == rightValue;
+			else if constexpr (std::is_trivially_copyable_v<TField>)
+				return std::memcmp(&leftValue, &rightValue, sizeof(TField)) == 0;
+			else
+				return false;
+		}
+
+		template<class TStyle, class TField>
+		void StyleFieldCopy(const SdStyleFieldDescriptor& descriptor, void* destination, const void* source)
+		{
+			TField TStyle::* member = LoadStyleFieldMember<TStyle, TField>(descriptor);
+			static_cast<TStyle*>(destination)->*member = static_cast<const TStyle*>(source)->*member;
+		}
+
+		template<class TStyle, class TField>
+		SdStyleValue StyleFieldReadValue(const SdStyleFieldDescriptor& descriptor, const void* style)
+		{
+			const TField TStyle::* member = LoadStyleFieldMember<TStyle, TField>(descriptor);
+			return MakeStyleValue(static_cast<const TStyle*>(style)->*member);
+		}
+
+		template<class TStyle, class TField>
+		void StyleFieldWriteValue(const SdStyleFieldDescriptor& descriptor, void* style, const SdStyleValue& value, const SdTheme& theme)
+		{
+			TField TStyle::* member = LoadStyleFieldMember<TStyle, TField>(descriptor);
+			TField resolvedValue = {};
+			if (TryResolveStyleValue(value, theme, resolvedValue))
+				static_cast<TStyle*>(style)->*member = resolvedValue;
 		}
 
 		inline bool StyleValuesEqual(const SdStyleValue& left, const SdStyleValue& right) noexcept
@@ -330,39 +393,19 @@ namespace Sodium
 			{
 				descriptor.fieldId = fieldId;
 				descriptor.impact = impact;
-				descriptor.equals = [member](const void* left, const void* right)
-				{
-					const TField& leftValue = static_cast<const TStyle*>(left)->*member;
-					const TField& rightValue = static_cast<const TStyle*>(right)->*member;
-					if constexpr (requires { leftValue == rightValue; })
-						return leftValue == rightValue;
-					else if constexpr (std::is_trivially_copyable_v<TField>)
-						return std::memcmp(&leftValue, &rightValue, sizeof(TField)) == 0;
-					else
-						return false;
-				};
-				descriptor.copy = [member](void* destination, const void* source)
-				{
-					static_cast<TStyle*>(destination)->*member = static_cast<const TStyle*>(source)->*member;
-				};
+				Detail::StoreStyleFieldMember(descriptor, member);
+				descriptor.equals = &Detail::StyleFieldEquals<TStyle, TField>;
+				descriptor.copy = &Detail::StyleFieldCopy<TStyle, TField>;
 
 				if constexpr (Detail::SdIsStyleValueField<TField>)
 				{
-					descriptor.readValue = [member](const void* style)
-					{
-						return Detail::MakeStyleValue(static_cast<const TStyle*>(style)->*member);
-					};
-					descriptor.writeValue = [member](void* style, const SdStyleValue& value, const SdTheme& theme)
-					{
-						TField resolvedValue = {};
-						if (Detail::TryResolveStyleValue(value, theme, resolvedValue))
-							static_cast<TStyle*>(style)->*member = resolvedValue;
-					};
+					descriptor.readValue = &Detail::StyleFieldReadValue<TStyle, TField>;
+					descriptor.writeValue = &Detail::StyleFieldWriteValue<TStyle, TField>;
 				}
 				else
 				{
-					descriptor.readValue = {};
-					descriptor.writeValue = {};
+					descriptor.readValue = nullptr;
+					descriptor.writeValue = nullptr;
 				}
 			};
 
@@ -886,7 +929,7 @@ namespace Sodium
 
 				const SdStyleFieldDescriptor* field = contract.Find(declaration.propertyId);
 				if (field && field->writeValue)
-					field->writeValue(&style, declaration.value, theme);
+					field->writeValue(*field, &style, declaration.value, theme);
 			}
 			return style;
 		}

@@ -357,7 +357,7 @@ namespace Sodium
 				{
 					if (!field.equals || !field.copy)
 						continue;
-					if (field.equals(&oldResolvedStyle, &resolvedStyle))
+					if (field.equals(field, &oldResolvedStyle, &resolvedStyle))
 						continue;
 
 					SdTransition transition = {};
@@ -377,8 +377,8 @@ namespace Sodium
 
 					if (canTransition)
 					{
-						const SdStyleValue startValue = field.readValue(&presentationStyle);
-						const SdStyleValue targetValue = field.readValue(&resolvedStyle);
+						const SdStyleValue startValue = field.readValue(field, &presentationStyle);
+						const SdStyleValue targetValue = field.readValue(field, &resolvedStyle);
 						SdPropertyAnimationChannel& propertyChannel = Detail::SetStylePropertyChannelTarget(
 							context.styleAnimationChannels,
 							record.rootStyleNodeId,
@@ -391,7 +391,7 @@ namespace Sodium
 							false,
 							field.expensiveTransition);
 						if (!propertyChannel.active)
-							field.writeValue(&presentationStyle, propertyChannel.currentValue, context.styleSystem.GetTheme());
+							field.writeValue(field, &presentationStyle, propertyChannel.currentValue, context.styleSystem.GetTheme());
 						Detail::MarkTypedStyleFieldImpact(record, field.impact, propertyChannel.active);
 					}
 					else
@@ -400,10 +400,10 @@ namespace Sodium
 						{
 							SdPropertyAnimationChannel& propertyChannel = context.styleAnimationChannels.Ensure(record.rootStyleNodeId, field.fieldId);
 							propertyChannel.active = false;
-							propertyChannel.currentValue = field.readValue(&resolvedStyle);
+							propertyChannel.currentValue = field.readValue(field, &resolvedStyle);
 							propertyChannel.targetValue = propertyChannel.currentValue;
 						}
-						field.copy(&presentationStyle, &resolvedStyle);
+						field.copy(field, &presentationStyle, &resolvedStyle);
 						Detail::MarkTypedStyleFieldImpact(record, field.impact, false);
 					}
 				}
@@ -443,12 +443,12 @@ namespace Sodium
 				if (!propertyChannel)
 					continue;
 
-				field.writeValue(presentationStyle, propertyChannel->currentValue, context.styleSystem.GetTheme());
+				field.writeValue(field, presentationStyle, propertyChannel->currentValue, context.styleSystem.GetTheme());
 				const bool active = propertyChannel->active
 					&& !Detail::StyleValuesEqual(propertyChannel->currentValue, propertyChannel->targetValue);
 				if (!active)
 				{
-					field.writeValue(presentationStyle, propertyChannel->targetValue, context.styleSystem.GetTheme());
+					field.writeValue(field, presentationStyle, propertyChannel->targetValue, context.styleSystem.GetTheme());
 					propertyChannel->active = false;
 					propertyChannel->currentValue = propertyChannel->targetValue;
 				}
