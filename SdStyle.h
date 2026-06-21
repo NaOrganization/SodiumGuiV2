@@ -920,6 +920,7 @@ namespace Sodium
 				.Set(&SdBoxStyle::fontSize, ThemeMetric("font.button"))
 				.Set(&SdBoxStyle::lineHeight, 0.0f)
 				.Set(&SdBoxStyle::radius, ThemeMetric("radius.small"))
+				.Set(&SdBoxStyle::gap, SdLength::Pixels(theme.GetMetricVariable(SdThemeVariableLiteral("spacing.small"))))
 				.Set(&SdBoxStyle::opacity, 1.0f);
 			const float smallSpacing = theme.GetMetricVariable(SdThemeVariableLiteral("spacing.small"));
 			typedStyleSheet.RuleForTarget<SdWidgetRootStyle>(SdWidgetTargetIds::Button)

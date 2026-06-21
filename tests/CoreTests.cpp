@@ -515,6 +515,7 @@ namespace
 		Check(windowDefault.width.unit == SdLengthUnit::Pixels && windowDefault.width.value == 420.0f, "window default width resolves through root style");
 		Check(windowDefault.height.unit == SdLengthUnit::Pixels && windowDefault.height.value == 260.0f, "window default height resolves through root style");
 		Check(windowDefault.padding.top.value == 40.0f, "window default title padding resolves through root style");
+		Check(SdResolveLength(windowDefault.gap, 0.0f) == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableLiteral("spacing.small")), "window default child spacing resolves through root gap");
 
 		const SdWidgetRootStyle buttonDefault = styleSystem.ResolveRootStyle(SdButton::TargetTypeId, SdStyleInteractionState::Normal);
 		Check(buttonDefault.minWidth.unit == SdLengthUnit::Pixels && buttonDefault.minWidth.value == 82.0f, "button default min width resolves through root style");

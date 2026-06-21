@@ -852,20 +852,17 @@ namespace Sodium
 		struct Style final
 		{
 			float titleHeight = 30.0f;
-			float childSpacing = 6.0f;
 
-			static Style Default(const SdStyleContext& context)
+			static Style Default(const SdStyleContext&)
 			{
 				Style style = {};
 				style.titleHeight = 30.0f;
-				style.childSpacing = context.theme.GetMetricVariable(SdThemeVariableLiteral("spacing.small"));
 				return style;
 			}
 
 			static void Describe(SdStyleContract<Style>& contract)
 			{
 				contract.Layout(&Style::titleHeight);
-				contract.Layout(&Style::childSpacing);
 			}
 		};
 
@@ -930,7 +927,6 @@ namespace Sodium
 		void OnLayout(SdLayoutContext& context)
 		{
 			State& state = context.State<State>();
-			const Style& style = context.RootResolvedStyle<SdWindow>();
 			const SdBoxStyle& rootStyle = context.RootStyleNode().resolvedStyle;
 			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(rootStyle, context.constraints.maxSize, { 420.0f, 260.0f });
 			if (!state.initialized)
@@ -953,7 +949,7 @@ namespace Sodium
 				usedStyle.padding.right,
 				usedStyle.padding.bottom
 			};
-			context.widgetState.childSpacing = std::max(0.0f, style.childSpacing);
+			context.widgetState.childSpacing = std::max(0.0f, usedStyle.gap);
 			context.SetDesiredSize(state.open ? state.rect.Size() : SdVec2{});
 		}
 
