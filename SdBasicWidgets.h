@@ -472,6 +472,8 @@ namespace Sodium
 			const State& state = context.State<State>();
 			const Style& style = context.RootPresentationStyle<SdCheckBox>();
 			const SdBoxStyle& presentation = context.RootStyleNode().presentationStyle;
+			const SdBoxStyle& boxPresentation = context.Part(Parts::Box).presentationStyle;
+			const SdBoxStyle& indicatorPresentation = context.Part(Parts::Indicator).presentationStyle;
 			const SdBoxStyle& labelPresentation = context.Part(Parts::Label).presentationStyle;
 			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(presentation, context.animatedRect.Size(), {});
 			const float labelGap = std::max(0.0f, usedStyle.gap);
@@ -484,13 +486,11 @@ namespace Sodium
 				context.animatedRect.min.x + usedStyle.padding.left + style.boxSize,
 				boxY + style.boxSize
 			};
-			const SdColor background = BasicWidgetDetail::ApplyOpacity(presentation.backgroundColor, context.opacity * presentation.opacity);
-			const SdColor border = BasicWidgetDetail::ApplyOpacity(presentation.border.left.color, context.opacity * presentation.opacity);
+			const SdColor background = BasicWidgetDetail::ApplyOpacity(boxPresentation.backgroundColor, context.opacity * boxPresentation.opacity);
+			const SdColor border = BasicWidgetDetail::ApplyOpacity(boxPresentation.border.left.color, context.opacity * boxPresentation.opacity);
 			const SdColor textColor = BasicWidgetDetail::ApplyOpacity(labelPresentation.color, context.opacity * labelPresentation.opacity);
-			const SdColor accent = BasicWidgetDetail::ApplyOpacity(
-				context.instance.GetStyleSystem().GetTheme().GetColorVariable(SdThemeVariableLiteral("accent")),
-				context.opacity * presentation.opacity);
-			const float radius = SdResolveLength(presentation.radius, style.boxSize);
+			const SdColor indicatorColor = BasicWidgetDetail::ApplyOpacity(indicatorPresentation.backgroundColor, context.opacity * indicatorPresentation.opacity);
+			const float radius = SdResolveLength(boxPresentation.radius, style.boxSize, SdResolveLength(presentation.radius, style.boxSize));
 
 			context.renderList.AddRectFilled(boxRect, background, context.clipRect, radius);
 			context.renderList.AddRect(boxRect, border, context.clipRect, 1.0f, radius);
@@ -498,7 +498,7 @@ namespace Sodium
 			{
 				context.renderList.AddRectFilled(
 					BasicWidgetDetail::InsetRect(boxRect, { 4.0f, 4.0f, 4.0f, 4.0f }),
-					accent,
+					indicatorColor,
 					context.clipRect,
 					std::max(0.0f, radius - 2.0f));
 			}

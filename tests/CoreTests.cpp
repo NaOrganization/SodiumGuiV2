@@ -476,6 +476,12 @@ namespace
 		RecordingFontBackend checkBoxPartFontBackend = {};
 		checkBoxPartStyleInstance.SetFontBackend(&checkBoxPartFontBackend);
 		const SdColor checkBoxLabelPartColor = SdColor(57, 21, 99, 255);
+		const SdColor checkBoxBoxPartColor = SdColor(19, 33, 47, 255);
+		const SdColor checkBoxIndicatorPartColor = SdColor(220, 96, 12, 255);
+		checkBoxPartStyleInstance.GetStyleSystem().Part<SdCheckBox>(SdCheckBox::Parts::Box)
+			.Set(&SdBoxStyle::backgroundColor, checkBoxBoxPartColor);
+		checkBoxPartStyleInstance.GetStyleSystem().Part<SdCheckBox>(SdCheckBox::Parts::Indicator)
+			.Set(&SdBoxStyle::backgroundColor, checkBoxIndicatorPartColor);
 		checkBoxPartStyleInstance.GetStyleSystem().Part<SdCheckBox>(SdCheckBox::Parts::Label)
 			.Set(&SdBoxStyle::color, checkBoxLabelPartColor)
 			.Set(&SdBoxStyle::opacity, 1.0f);
@@ -489,6 +495,19 @@ namespace
 			&& checkBoxPartFontBackend.lastPaintColor.g == checkBoxLabelPartColor.g
 			&& checkBoxPartFontBackend.lastPaintColor.b == checkBoxLabelPartColor.b,
 			"checkbox label part color drives text paint");
+		bool checkBoxBoxIndicatorPartsApplied = false;
+		for (const auto& [id, record] : checkBoxPartStyleInstance.GetStateStorage().GetWidgetRecords())
+		{
+			(void)id;
+			if (record.widgetType == std::type_index(typeid(SdCheckBox)))
+			{
+				const SdBoxStyle& boxStyle = checkBoxPartStyleInstance.GetStylePart(record.state.id, SdCheckBox::Parts::Box).presentationStyle;
+				const SdBoxStyle& indicatorStyle = checkBoxPartStyleInstance.GetStylePart(record.state.id, SdCheckBox::Parts::Indicator).presentationStyle;
+				checkBoxBoxIndicatorPartsApplied = boxStyle.backgroundColor == checkBoxBoxPartColor
+					&& indicatorStyle.backgroundColor == checkBoxIndicatorPartColor;
+			}
+		}
+		Check(checkBoxBoxIndicatorPartsApplied, "checkbox box and indicator part backgrounds resolve into part style nodes");
 
 		SdInstance sliderPartStyleInstance;
 		RecordingFontBackend sliderPartFontBackend = {};
@@ -663,6 +682,10 @@ namespace
 		Check(checkBoxDefault.padding.left.value == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableLiteral("spacing.small")), "checkbox default padding resolves through root style");
 		Check(SdResolveLength(checkBoxDefault.gap, 0.0f) == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableLiteral("spacing.small")), "checkbox default label gap resolves through root style");
 		Check(SdResolveLength(checkBoxDefault.radius, 18.0f) >= 2.0f, "checkbox radius resolves through root style");
+		const SdWidgetPartStyle checkBoxBoxDefault = styleSystem.ResolvePartStyle(SdCheckBox::TargetTypeId, SdCheckBox::Parts::Box, checkBoxDefault, SdStyleInteractionState::Normal);
+		const SdWidgetPartStyle checkBoxIndicatorDefault = styleSystem.ResolvePartStyle(SdCheckBox::TargetTypeId, SdCheckBox::Parts::Indicator, checkBoxDefault, SdStyleInteractionState::Normal);
+		Check(checkBoxBoxDefault.backgroundColor == styleSystem.GetTheme().GetColorVariable(SdThemeVariableLiteral("panel.bg")), "checkbox box default background resolves through part style");
+		Check(checkBoxIndicatorDefault.backgroundColor == styleSystem.GetTheme().GetColorVariable(SdThemeVariableLiteral("accent")), "checkbox indicator default background resolves through part style");
 
 		const SdWidgetRootStyle sliderDefault = styleSystem.ResolveRootStyle(SdSliderFloat::TargetTypeId, SdStyleInteractionState::Normal);
 		Check(sliderDefault.width.unit == SdLengthUnit::Pixels && sliderDefault.width.value == 180.0f, "slider default width resolves through root style");
