@@ -994,6 +994,15 @@ namespace Sodium
 				.Set(&SdBoxStyle::padding, SdStyleValue::FromSpacing({ mediumSpacing, smallSpacing, mediumSpacing, smallSpacing }))
 				.Set(&SdBoxStyle::fontSize, ThemeMetric("font.button"))
 				.Set(&SdBoxStyle::lineHeight, 0.0f);
+			typedStyleSheet.PartForTarget(SdWidgetTargetIds::TextInput, SdStylePart::Make("Sodium.TextInput.Part.Field"))
+				.Cascade(SdCascadeLayer::UserAgent)
+				.Set(&SdBoxStyle::backgroundColor, ThemeColor("panel.bg"))
+				.Set(&SdBoxStyle::border, ThemeColor("border"))
+				.Set(&SdBoxStyle::radius, ThemeMetric("radius.small"));
+			typedStyleSheet.PartForTarget(SdWidgetTargetIds::TextInput, SdStylePart::Make("Sodium.TextInput.Part.Field"))
+				.Cascade(SdCascadeLayer::UserAgent)
+				.Pseudo(SdStyleInteractionState::Focused)
+				.Set(&SdBoxStyle::backgroundColor, ThemeColor("button.bg"));
 			typedStyleSheet.PartForTarget(SdWidgetTargetIds::TextInput, SdStylePart::Make("Sodium.TextInput.Part.Placeholder"))
 				.Cascade(SdCascadeLayer::UserAgent)
 				.Set(&SdBoxStyle::opacity, 0.52f);
@@ -1040,8 +1049,6 @@ namespace Sodium
 			AddDefaultRootBackgroundRule(SdWidgetTargetIds::Slider, SdStyleInteractionState::Normal, SdLayerPriority::Content, "panel.bg");
 			AddDefaultRootBackgroundRule(SdWidgetTargetIds::Slider, SdStyleInteractionState::Hovered, SdLayerPriority::Content, "button.bg.hover");
 			AddDefaultRootBackgroundRule(SdWidgetTargetIds::Slider, SdStyleInteractionState::Pressed, SdLayerPriority::Content, "button.bg.pressed");
-			AddDefaultRootBackgroundRule(SdWidgetTargetIds::TextInput, SdStyleInteractionState::Normal, SdLayerPriority::Content, "panel.bg");
-			AddDefaultRootBackgroundRule(SdWidgetTargetIds::TextInput, SdStyleInteractionState::Focused, SdLayerPriority::Content, "button.bg");
 			AddDefaultRootBackgroundRule(SdWidgetTargetIds::ScrollView, SdStyleInteractionState::Normal, SdLayerPriority::Content, "panel.bg");
 			AddDefaultRootBackgroundRule(SdWidgetTargetIds::Popup, SdStyleInteractionState::Normal, SdLayerPriority::Popup, "window.bg", true);
 			AddDefaultRootBackgroundRule(SdWidgetTargetIds::ContextMenu, SdStyleInteractionState::Normal, SdLayerPriority::Popup, "window.bg", true);

@@ -587,6 +587,11 @@ namespace
 		RecordingFontBackend inputPartFontBackend = {};
 		inputPartStyleInstance.SetFontBackend(&inputPartFontBackend);
 		const SdColor placeholderPartColor = SdColor(91, 35, 17, 255);
+		const SdColor inputFieldPartColor = SdColor(42, 77, 118, 255);
+		const SdColor inputFieldBorderPartColor = SdColor(118, 77, 42, 255);
+		inputPartStyleInstance.GetStyleSystem().PartRule(SdTextInput::TargetTypeId, SdTextInput::Parts::Field)
+			.Set(&SdBoxStyle::backgroundColor, inputFieldPartColor)
+			.Set(&SdBoxStyle::border, SdStyleValue::FromColor(inputFieldBorderPartColor));
 		inputPartStyleInstance.GetStyleSystem().PartRule(SdTextInput::TargetTypeId, SdTextInput::Parts::Placeholder)
 			.Set(&SdBoxStyle::color, placeholderPartColor)
 			.Set(&SdBoxStyle::opacity, 1.0f);
@@ -600,6 +605,39 @@ namespace
 			&& inputPartFontBackend.lastPaintColor.g == placeholderPartColor.g
 			&& inputPartFontBackend.lastPaintColor.b == placeholderPartColor.b,
 			"text input placeholder part color drives text paint");
+		bool inputFieldPartRuleApplied = false;
+		for (const auto& [id, record] : inputPartStyleInstance.GetStateStorage().GetWidgetRecords())
+		{
+			(void)id;
+			if (record.widgetType == std::type_index(typeid(SdTextInput)))
+			{
+				const SdBoxStyle& fieldStyle = inputPartStyleInstance.GetStylePart(record.state.id, SdTextInput::Parts::Field).presentationStyle;
+				inputFieldPartRuleApplied = fieldStyle.backgroundColor == inputFieldPartColor
+					&& fieldStyle.border.left.color == inputFieldBorderPartColor;
+			}
+		}
+		Check(inputFieldPartRuleApplied, "text input field part background and border resolve into part style node");
+		const SdUInt32 inputFieldPartPackedRgb = inputFieldPartColor.Pack() & 0x00ffffffu;
+		const SdUInt32 inputFieldBorderPartPackedRgb = inputFieldBorderPartColor.Pack() & 0x00ffffffu;
+		const SdDrawPacket inputPartDrawPacket = inputPartStyleInstance.GetDrawPacket();
+		const bool inputFieldPartPainted = std::any_of(
+			inputPartDrawPacket.vertices.begin(),
+			inputPartDrawPacket.vertices.end(),
+			[inputFieldPartPackedRgb](const SdVertex& vertex)
+			{
+				return (vertex.color & 0x00ffffffu) == inputFieldPartPackedRgb
+					&& (vertex.color >> 24) > 0u;
+			});
+		const bool inputFieldBorderPartPainted = std::any_of(
+			inputPartDrawPacket.vertices.begin(),
+			inputPartDrawPacket.vertices.end(),
+			[inputFieldBorderPartPackedRgb](const SdVertex& vertex)
+			{
+				return (vertex.color & 0x00ffffffu) == inputFieldBorderPartPackedRgb
+					&& (vertex.color >> 24) > 0u;
+			});
+		Check(inputFieldPartPainted, "text input field part background drives field paint");
+		Check(inputFieldBorderPartPainted, "text input field part border drives field paint");
 
 		SdInstance windowPartStyleInstance;
 		RecordingFontBackend windowPartFontBackend = {};
@@ -757,6 +795,10 @@ namespace
 		Check(textInputDefault.width.unit == SdLengthUnit::Pixels && textInputDefault.width.value == 220.0f, "text input default width resolves through root style");
 		Check(textInputDefault.minHeight.unit == SdLengthUnit::Pixels && textInputDefault.minHeight.value == 32.0f, "text input default min height resolves through root style");
 		Check(textInputDefault.padding.left.value > textInputDefault.padding.top.value, "text input default padding resolves through root style");
+		const SdWidgetPartStyle textInputFieldDefault = styleSystem.ResolvePartStyle(SdTextInput::TargetTypeId, SdTextInput::Parts::Field, textInputDefault, SdStyleInteractionState::Normal);
+		const SdWidgetPartStyle textInputFieldFocusedDefault = styleSystem.ResolvePartStyle(SdTextInput::TargetTypeId, SdTextInput::Parts::Field, textInputDefault, SdStyleInteractionState::Focused);
+		Check(textInputFieldDefault.backgroundColor == styleSystem.GetTheme().GetColorVariable(SdThemeVariableLiteral("panel.bg")), "text input field default background resolves through part style");
+		Check(textInputFieldFocusedDefault.backgroundColor == styleSystem.GetTheme().GetColorVariable(SdThemeVariableLiteral("button.bg")), "text input field focused background resolves through part style");
 
 		const SdWidgetRootStyle imageViewerDefault = styleSystem.ResolveRootStyle(SdImageViewer::TargetTypeId, SdStyleInteractionState::Normal);
 		Check(imageViewerDefault.width.unit == SdLengthUnit::Pixels && imageViewerDefault.width.value == 160.0f, "image viewer default width resolves through root style");

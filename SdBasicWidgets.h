@@ -796,6 +796,7 @@ namespace Sodium
 		{
 			const State& state = context.State<State>();
 			const SdBoxStyle& presentation = context.RootStyleNode().presentationStyle;
+			const SdBoxStyle& fieldPresentation = context.Part(Parts::Field).presentationStyle;
 			const SdBoxStyle& valuePresentation = context.Part(Parts::Value).presentationStyle;
 			const SdBoxStyle& placeholderPresentation = context.Part(Parts::Placeholder).presentationStyle;
 			const SdBoxStyle& caretPresentation = context.Part(Parts::Caret).presentationStyle;
@@ -804,11 +805,11 @@ namespace Sodium
 			const SdBoxStyle& textPresentation = showPlaceholder ? placeholderPresentation : valuePresentation;
 			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, textPresentation.fontSize, textPresentation.lineHeight);
 			const float lineHeight = BasicWidgetDetail::ResolveLineHeight(textStyle);
-			const SdColor background = BasicWidgetDetail::ApplyOpacity(presentation.backgroundColor, context.opacity * presentation.opacity);
-			const SdColor border = BasicWidgetDetail::ApplyOpacity(presentation.border.left.color, context.opacity * presentation.opacity);
+			const SdColor background = BasicWidgetDetail::ApplyOpacity(fieldPresentation.backgroundColor, context.opacity * fieldPresentation.opacity);
+			const SdColor border = BasicWidgetDetail::ApplyOpacity(fieldPresentation.border.left.color, context.opacity * fieldPresentation.opacity);
 			const SdColor textColor = BasicWidgetDetail::ApplyOpacity(textPresentation.color, context.opacity * textPresentation.opacity);
 			const SdColor caretColor = BasicWidgetDetail::ApplyOpacity(caretPresentation.color, context.opacity * caretPresentation.opacity);
-			const float radius = SdResolveLength(presentation.radius, context.animatedRect.Width());
+			const float radius = SdResolveLength(fieldPresentation.radius, context.animatedRect.Width(), SdResolveLength(presentation.radius, context.animatedRect.Width()));
 
 			context.renderList.AddRectFilled(context.animatedRect, background, context.clipRect, radius);
 			context.renderList.AddRect(context.animatedRect, border, context.clipRect, 1.0f, radius);
