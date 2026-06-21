@@ -751,6 +751,28 @@ namespace Sodium
 				transition);
 		}
 
+		bool TryResolvePartTransition(
+			SdStyleId targetTypeId,
+			SdStylePart part,
+			SdPropertyId propertyId,
+			SdStyleInteractionState interactionState,
+			SdLayerPriority layerPriority,
+			SdSpan<const SdStyleClassId> styleClasses,
+			SdStyleScopeId styleScope,
+			SdTransition& transition) const
+		{
+			return TryResolveCompiledTransition(
+				std::type_index(typeid(SdWidgetPartStyle)),
+				targetTypeId,
+				part,
+				propertyId,
+				interactionState,
+				layerPriority,
+				styleClasses,
+				styleScope,
+				transition);
+		}
+
 		template<class TWidget>
 		const SdStyleContract<typename TWidget::Style>& GetContract() const;
 

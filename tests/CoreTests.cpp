@@ -829,7 +829,21 @@ namespace
 
 		styleSystem.Part<StyleNodeApiWidget>(StyleNodeApiWidget::Parts::Label)
 			.Set(&SdWidgetPartStyle::opacity, 0.42f);
+		styleSystem.Part<SdButton>(SdButton::Parts::Label)
+			.Set(&SdWidgetPartStyle::opacity, 0.42f)
+			.Transition(&SdWidgetPartStyle::opacity, std::chrono::milliseconds(260), SdAnimationEasing::Linear);
 		Check(!styleSystem.GetCompiledStyleSheet().GetRules().empty(), "style system exposes compiled stylesheet with part rules");
+		SdTransition partTransition = {};
+		const bool partTransitionResolved = styleSystem.TryResolvePartTransition(
+			SdButton::TargetTypeId,
+			SdButton::Parts::Label,
+			Detail::SdStylePropertyId(&SdWidgetPartStyle::opacity),
+			SdStyleInteractionState::Normal,
+			SdLayerPriority::Content,
+			{},
+			0,
+			partTransition);
+		Check(partTransitionResolved && partTransition.duration == std::chrono::milliseconds(260), "part stylesheet transition resolves through compiled stylesheet");
 
 		const SdWidgetRootStyle panelDefault = styleSystem.ResolveRootStyle(SdPanel::TargetTypeId, SdStyleInteractionState::Normal);
 		Check(panelDefault.width.unit == SdLengthUnit::Pixels && panelDefault.width.value == 240.0f, "panel default width resolves through root style");
