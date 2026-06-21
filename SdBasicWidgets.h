@@ -624,6 +624,7 @@ namespace Sodium
 			const SdBoxStyle& labelPresentation = context.Part(Parts::Label).presentationStyle;
 			const SdBoxStyle& trackPresentation = context.Part(Parts::Track).presentationStyle;
 			const SdBoxStyle& fillPresentation = context.Part(Parts::Fill).presentationStyle;
+			const SdBoxStyle& thumbPresentation = context.Part(Parts::Thumb).presentationStyle;
 			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(presentation, context.animatedRect.Size(), { 180.0f, 30.0f });
 			const float labelGap = std::max(0.0f, usedStyle.gap);
 			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, labelPresentation.fontSize, labelPresentation.lineHeight);
@@ -632,6 +633,8 @@ namespace Sodium
 			const SdColor trackColor = BasicWidgetDetail::ApplyOpacity(trackPresentation.backgroundColor, context.opacity * trackPresentation.opacity);
 			const SdColor trackBorder = BasicWidgetDetail::ApplyOpacity(trackPresentation.border.left.color, context.opacity * trackPresentation.opacity);
 			const SdColor fillColor = BasicWidgetDetail::ApplyOpacity(fillPresentation.backgroundColor, context.opacity * fillPresentation.opacity);
+			const SdColor thumbColor = BasicWidgetDetail::ApplyOpacity(thumbPresentation.backgroundColor, context.opacity * thumbPresentation.opacity);
+			const SdColor thumbBorder = BasicWidgetDetail::ApplyOpacity(thumbPresentation.border.left.color, context.opacity * thumbPresentation.opacity);
 			const float radius = SdResolveLength(trackPresentation.radius, usedStyle.width, SdResolveLength(presentation.radius, usedStyle.width));
 
 			float trackStartX = context.animatedRect.min.x + usedStyle.padding.left;
@@ -659,8 +662,8 @@ namespace Sodium
 			context.renderList.AddRectFilled(trackRect, trackColor, context.clipRect, radius);
 			context.renderList.AddRectFilled(fillRect, fillColor, context.clipRect, radius);
 			context.renderList.AddRect(trackRect, trackBorder, context.clipRect, 1.0f, radius);
-			context.renderList.AddCircleFilled({ thumbX, trackCenterY }, style.thumbRadius, fillColor, context.clipRect);
-			context.renderList.AddCircle({ thumbX, trackCenterY }, style.thumbRadius, trackBorder, context.clipRect, 1.0f);
+			context.renderList.AddCircleFilled({ thumbX, trackCenterY }, style.thumbRadius, thumbColor, context.clipRect);
+			context.renderList.AddCircle({ thumbX, trackCenterY }, style.thumbRadius, thumbBorder, context.clipRect, 1.0f);
 		}
 
 	private:

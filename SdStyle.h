@@ -971,6 +971,10 @@ namespace Sodium
 			typedStyleSheet.PartForTarget(SdWidgetTargetIds::Slider, SdStylePart::Make("Sodium.Slider.Part.Fill"))
 				.Cascade(SdCascadeLayer::UserAgent)
 				.Set(&SdBoxStyle::backgroundColor, ThemeColor("accent"));
+			typedStyleSheet.PartForTarget(SdWidgetTargetIds::Slider, SdStylePart::Make("Sodium.Slider.Part.Thumb"))
+				.Cascade(SdCascadeLayer::UserAgent)
+				.Set(&SdBoxStyle::backgroundColor, ThemeColor("accent"))
+				.Set(&SdBoxStyle::border, ThemeColor("border"));
 			typedStyleSheet.RuleForTarget<SdWidgetRootStyle>(SdWidgetTargetIds::TextInput)
 				.Cascade(SdCascadeLayer::UserAgent)
 				.Set(&SdBoxStyle::width, SdLength::Pixels(220.0f))
