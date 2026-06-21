@@ -460,6 +460,11 @@ namespace
 		RecordingFontBackend partFontBackend = {};
 		partStyleInstance.SetFontBackend(&partFontBackend);
 		const SdColor labelPartColor = SdColor(18, 52, 86, 255);
+		const SdColor buttonContentPartColor = SdColor(74, 33, 105, 255);
+		const SdColor buttonContentBorderPartColor = SdColor(105, 74, 33, 255);
+		partStyleInstance.GetStyleSystem().Part<SdButton>(SdButton::Parts::Content)
+			.Set(&SdBoxStyle::backgroundColor, buttonContentPartColor)
+			.Set(&SdBoxStyle::border, SdStyleValue::FromColor(buttonContentBorderPartColor));
 		partStyleInstance.GetStyleSystem().Part<SdButton>(SdButton::Parts::Label)
 			.Set(&SdBoxStyle::opacity, 0.42f)
 			.Set(&SdBoxStyle::color, labelPartColor);
@@ -467,16 +472,42 @@ namespace
 		partStyleInstance.ui.Declare<SdButton>("Part style");
 		PumpFrame(partStyleInstance);
 		bool partRuleApplied = false;
+		bool contentPartRuleApplied = false;
 		for (const auto& [id, record] : partStyleInstance.GetStateStorage().GetWidgetRecords())
 		{
 			(void)id;
 			if (record.widgetType == std::type_index(typeid(SdButton)))
 			{
+				const SdBoxStyle& contentStyle = partStyleInstance.GetStylePart(record.state.id, SdButton::Parts::Content).presentationStyle;
 				const SdBoxStyle& labelStyle = partStyleInstance.GetStylePart(record.state.id, SdButton::Parts::Label).presentationStyle;
+				contentPartRuleApplied = contentStyle.backgroundColor == buttonContentPartColor
+					&& contentStyle.border.left.color == buttonContentBorderPartColor;
 				partRuleApplied = labelStyle.opacity == 0.42f && labelStyle.color == labelPartColor;
 			}
 		}
+		Check(contentPartRuleApplied, "button content part background and border resolve into part style node");
 		Check(partRuleApplied, "runtime resolves compiled part selector into part style node");
+		const SdUInt32 buttonContentPartPackedRgb = buttonContentPartColor.Pack() & 0x00ffffffu;
+		const SdUInt32 buttonContentBorderPartPackedRgb = buttonContentBorderPartColor.Pack() & 0x00ffffffu;
+		const SdDrawPacket buttonPartDrawPacket = partStyleInstance.GetDrawPacket();
+		const bool buttonContentPartPainted = std::any_of(
+			buttonPartDrawPacket.vertices.begin(),
+			buttonPartDrawPacket.vertices.end(),
+			[buttonContentPartPackedRgb](const SdVertex& vertex)
+			{
+				return (vertex.color & 0x00ffffffu) == buttonContentPartPackedRgb
+					&& (vertex.color >> 24) > 0u;
+			});
+		const bool buttonContentBorderPartPainted = std::any_of(
+			buttonPartDrawPacket.vertices.begin(),
+			buttonPartDrawPacket.vertices.end(),
+			[buttonContentBorderPartPackedRgb](const SdVertex& vertex)
+			{
+				return (vertex.color & 0x00ffffffu) == buttonContentBorderPartPackedRgb
+					&& (vertex.color >> 24) > 0u;
+			});
+		Check(buttonContentPartPainted, "button content part background drives button paint");
+		Check(buttonContentBorderPartPainted, "button content part border drives button paint");
 		Check(partFontBackend.lastPaintText == "Part style", "button label part drives text paint");
 		Check(
 			partFontBackend.lastPaintColor.r == labelPartColor.r
@@ -768,6 +799,12 @@ namespace
 		Check(buttonDefault.minWidth.unit == SdLengthUnit::Pixels && buttonDefault.minWidth.value == 82.0f, "button default min width resolves through root style");
 		Check(buttonDefault.padding.left.value > buttonDefault.padding.top.value, "button default padding resolves through root style");
 		Check(buttonDefault.fontSize == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableLiteral("font.button")), "button font size resolves through root style");
+		const SdWidgetPartStyle buttonContentDefault = styleSystem.ResolvePartStyle(SdButton::TargetTypeId, SdButton::Parts::Content, buttonDefault, SdStyleInteractionState::Normal);
+		const SdWidgetPartStyle buttonContentHoveredDefault = styleSystem.ResolvePartStyle(SdButton::TargetTypeId, SdButton::Parts::Content, buttonDefault, SdStyleInteractionState::Hovered);
+		const SdWidgetPartStyle buttonContentPressedDefault = styleSystem.ResolvePartStyle(SdButton::TargetTypeId, SdButton::Parts::Content, buttonDefault, SdStyleInteractionState::Pressed);
+		Check(buttonContentDefault.backgroundColor == styleSystem.GetTheme().GetColorVariable(SdThemeVariableLiteral("button.bg")), "button content default background resolves through part style");
+		Check(buttonContentHoveredDefault.backgroundColor == styleSystem.GetTheme().GetColorVariable(SdThemeVariableLiteral("button.bg.hover")), "button content hovered background resolves through part style");
+		Check(buttonContentPressedDefault.backgroundColor == styleSystem.GetTheme().GetColorVariable(SdThemeVariableLiteral("button.bg.pressed")), "button content pressed background resolves through part style");
 
 		const SdWidgetRootStyle checkBoxDefault = styleSystem.ResolveRootStyle(SdCheckBox::TargetTypeId, SdStyleInteractionState::Normal);
 		Check(checkBoxDefault.minHeight.unit == SdLengthUnit::Pixels && checkBoxDefault.minHeight.value == 28.0f, "checkbox default min height resolves through root style");
@@ -1037,10 +1074,18 @@ namespace
 		Check(hasExtendedAnimationChannels, "widget records own extended animation channel references");
 		Check(hasStyleAnimationTarget, "style color animation targets presentation background");
 
-		const SdWidgetRootStyle normal = instance.GetStyleSystem().ResolveRootStyle(TestDrawWidget::TargetTypeId, SdStyleInteractionState::Normal);
-		const SdWidgetRootStyle hovered = instance.GetStyleSystem().ResolveRootStyle(TestDrawWidget::TargetTypeId, SdStyleInteractionState::Hovered);
-		Check(normal.backgroundColor != hovered.backgroundColor, "style interaction selector changes button background");
-		Check(normal.border.left.color == instance.GetStyleSystem().GetTheme().GetColorVariable(SdThemeVariableLiteral("border")), "presentation style carries theme border color");
+		const SdWidgetPartStyle normalContent = instance.GetStyleSystem().ResolvePartStyle(
+			TestDrawWidget::TargetTypeId,
+			SdButton::Parts::Content,
+			buttonStyle,
+			SdStyleInteractionState::Normal);
+		const SdWidgetPartStyle hoveredContent = instance.GetStyleSystem().ResolvePartStyle(
+			TestDrawWidget::TargetTypeId,
+			SdButton::Parts::Content,
+			buttonStyle,
+			SdStyleInteractionState::Hovered);
+		Check(normalContent.backgroundColor != hoveredContent.backgroundColor, "style interaction selector changes button content background");
+		Check(normalContent.border.left.color == instance.GetStyleSystem().GetTheme().GetColorVariable(SdThemeVariableLiteral("border")), "button content style carries theme border color");
 
 		const SdUInt64 previousStyleRevision = instance.GetStyleSystem().GetRevision();
 		const SdColor updatedButtonColor = { 11, 22, 33, 255 };
@@ -1054,26 +1099,24 @@ namespace
 		PumpFrame(instance);
 
 		bool hasUpdatedStyleRevision = false;
-		bool hasUpdatedStyleAnimationTargets = false;
+		bool hasUpdatedContentPartStyle = false;
 		for (const auto& [id, record] : instance.GetStateStorage().GetWidgetRecords())
 		{
 			(void)id;
 			if (record.state.targetTypeId == TestDrawWidget::TargetTypeId)
 			{
 				hasUpdatedStyleRevision = record.styleCache.valid
-					&& record.styleCache.styleRevision != previousStyleRevision
-					&& record.styleCache.resolvedStyle.backgroundColor == updatedButtonColor;
-				const SdAnimationChannel& red = instance.GetContext().animationSystem.GetChannel(record.animation.styleBackgroundR);
-				const SdAnimationChannel& green = instance.GetContext().animationSystem.GetChannel(record.animation.styleBackgroundG);
-				const SdAnimationChannel& blue = instance.GetContext().animationSystem.GetChannel(record.animation.styleBackgroundB);
-				hasUpdatedStyleAnimationTargets = red.target == static_cast<float>(updatedButtonColor.r)
-					&& green.target == static_cast<float>(updatedButtonColor.g)
-					&& blue.target == static_cast<float>(updatedButtonColor.b)
-					&& red.value != red.target;
+					&& record.styleCache.styleRevision != previousStyleRevision;
+				const SdWidgetPartStyle contentStyle = instance.GetStyleSystem().ResolvePartStyle(
+					TestDrawWidget::TargetTypeId,
+					SdButton::Parts::Content,
+					record.styleCache.resolvedStyle,
+					SdStyleInteractionState::Normal);
+				hasUpdatedContentPartStyle = contentStyle.backgroundColor == updatedButtonColor;
 			}
 		}
 		Check(hasUpdatedStyleRevision, "style cache refreshes when style system revision changes");
-		Check(hasUpdatedStyleAnimationTargets, "style background animation retargets when style system revision changes");
+		Check(hasUpdatedContentPartStyle, "button content part style refreshes when style system revision changes");
 	}
 
 	void TestIdStackAndStyleLayerSelectors()

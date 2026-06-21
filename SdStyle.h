@@ -939,6 +939,19 @@ namespace Sodium
 				.Set(&SdBoxStyle::padding, SdStyleValue::FromSpacing({ mediumSpacing, smallSpacing, mediumSpacing, smallSpacing }))
 				.Set(&SdBoxStyle::fontSize, ThemeMetric("font.button"))
 				.Set(&SdBoxStyle::lineHeight, 0.0f);
+			typedStyleSheet.PartForTarget(SdWidgetTargetIds::Button, SdStylePart::Make("Sodium.Button.Part.Content"))
+				.Cascade(SdCascadeLayer::UserAgent)
+				.Set(&SdBoxStyle::backgroundColor, ThemeColor("button.bg"))
+				.Set(&SdBoxStyle::border, ThemeColor("border"))
+				.Set(&SdBoxStyle::radius, ThemeMetric("radius.small"));
+			typedStyleSheet.PartForTarget(SdWidgetTargetIds::Button, SdStylePart::Make("Sodium.Button.Part.Content"))
+				.Cascade(SdCascadeLayer::UserAgent)
+				.Pseudo(SdStyleInteractionState::Hovered)
+				.Set(&SdBoxStyle::backgroundColor, ThemeColor("button.bg.hover"));
+			typedStyleSheet.PartForTarget(SdWidgetTargetIds::Button, SdStylePart::Make("Sodium.Button.Part.Content"))
+				.Cascade(SdCascadeLayer::UserAgent)
+				.Pseudo(SdStyleInteractionState::Pressed)
+				.Set(&SdBoxStyle::backgroundColor, ThemeColor("button.bg.pressed"));
 			typedStyleSheet.RuleForTarget<SdWidgetRootStyle>(SdWidgetTargetIds::CheckBox)
 				.Cascade(SdCascadeLayer::UserAgent)
 				.Set(&SdBoxStyle::minHeight, SdLength::Pixels(28.0f))
@@ -1039,9 +1052,6 @@ namespace Sodium
 
 			AddDefaultRootBackgroundRule(SdWidgetTargetIds::Default, SdStyleInteractionState::Normal, SdLayerPriority::Content, "background");
 			AddDefaultRootBackgroundRule(SdWidgetTargetIds::Panel, SdStyleInteractionState::Normal, SdLayerPriority::Content, "panel.bg");
-			AddDefaultRootBackgroundRule(SdWidgetTargetIds::Button, SdStyleInteractionState::Normal, SdLayerPriority::Content, "button.bg");
-			AddDefaultRootBackgroundRule(SdWidgetTargetIds::Button, SdStyleInteractionState::Hovered, SdLayerPriority::Content, "button.bg.hover");
-			AddDefaultRootBackgroundRule(SdWidgetTargetIds::Button, SdStyleInteractionState::Pressed, SdLayerPriority::Content, "button.bg.pressed");
 			AddDefaultRootBackgroundRule(SdWidgetTargetIds::CheckBox, SdStyleInteractionState::Normal, SdLayerPriority::Content, "panel.bg");
 			AddDefaultRootBackgroundRule(SdWidgetTargetIds::CheckBox, SdStyleInteractionState::Hovered, SdLayerPriority::Content, "button.bg.hover");
 			AddDefaultRootBackgroundRule(SdWidgetTargetIds::Window, SdStyleInteractionState::Normal, SdLayerPriority::Floating, "window.bg", true);

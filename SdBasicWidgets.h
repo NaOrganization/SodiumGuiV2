@@ -350,15 +350,16 @@ namespace Sodium
 		{
 			const State& state = context.State<State>();
 			const SdBoxStyle& presentation = context.RootStyleNode().presentationStyle;
+			const SdBoxStyle& contentPresentation = context.Part(Parts::Content).presentationStyle;
 			const SdBoxStyle& labelPresentation = context.Part(Parts::Label).presentationStyle;
 			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(presentation, context.animatedRect.Size(), {});
 			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, labelPresentation.fontSize, labelPresentation.lineHeight);
 			const float lineHeight = BasicWidgetDetail::ResolveLineHeight(textStyle);
 			const SdVec2 textSize = BasicWidgetDetail::MeasureText(context.instance, state.label, textStyle);
-			const SdColor background = BasicWidgetDetail::ApplyOpacity(presentation.backgroundColor, context.opacity * presentation.opacity);
-			const SdColor border = BasicWidgetDetail::ApplyOpacity(presentation.border.left.color, context.opacity * presentation.opacity);
+			const SdColor background = BasicWidgetDetail::ApplyOpacity(contentPresentation.backgroundColor, context.opacity * contentPresentation.opacity);
+			const SdColor border = BasicWidgetDetail::ApplyOpacity(contentPresentation.border.left.color, context.opacity * contentPresentation.opacity);
 			const SdColor color = BasicWidgetDetail::ApplyOpacity(labelPresentation.color, context.opacity * labelPresentation.opacity);
-			const float radius = SdResolveLength(presentation.radius, context.animatedRect.Width());
+			const float radius = SdResolveLength(contentPresentation.radius, context.animatedRect.Width(), SdResolveLength(presentation.radius, context.animatedRect.Width()));
 
 			context.renderList.AddRectFilled(context.animatedRect, background, context.clipRect, radius);
 			context.renderList.AddRect(context.animatedRect, border, context.clipRect, 1.0f, radius);
