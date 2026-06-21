@@ -33,7 +33,7 @@ namespace Sodium
 	struct SdCompiledSelector final
 	{
 		std::type_index styleType = std::type_index(typeid(void));
-		SdStyleTokenTag targetTag = SdWidgetTargetIds::Global;
+		SdStyleId targetTag = SdWidgetTargetIds::Global;
 		SdStylePart part = SdStylePart::Root();
 		SdPseudoState pseudoState = {};
 		SdLayerPriority layerPriority = SdLayerPriority::Content;
@@ -214,7 +214,7 @@ namespace Sodium
 			if constexpr (requires { TWidget::TargetTypeId; })
 				rule.selector.targetTag = TWidget::TargetTypeId;
 			else
-				rule.selector.targetTag = SdStyleTokenTagLiteral(typeid(TWidget).name());
+				rule.selector.targetTag = SdStyleIdLiteral(typeid(TWidget).name());
 			rule.selector.part = part;
 			rule.selector.matchPart = !part.IsRoot();
 			rule.specificity.types = 1;
@@ -227,7 +227,7 @@ namespace Sodium
 
 	public:
 		template<class TStyle>
-		SdStyleSheetRuleBuilder<TStyle> RuleForTarget(SdStyleTokenTag targetTag)
+		SdStyleSheetRuleBuilder<TStyle> RuleForTarget(SdStyleId targetTag)
 		{
 			struct TargetStyleWidget final
 			{

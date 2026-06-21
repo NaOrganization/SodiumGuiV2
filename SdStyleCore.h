@@ -251,7 +251,7 @@ namespace Sodium
 
 		static constexpr SdStylePart Make(const char* text) noexcept
 		{
-			return { SdStyleTokenTagLiteral(text) };
+			return { SdStyleIdLiteral(text) };
 		}
 
 		constexpr bool IsRoot() const noexcept

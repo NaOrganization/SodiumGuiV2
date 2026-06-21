@@ -43,15 +43,15 @@ namespace Sodium
 		float baseline = 0.0f;
 	};
 
-	using SdStyleTokenTag = SdUInt64;
+	using SdStyleId = SdUInt64;
 	using SdStyleClassId = SdUInt64;
 	using SdStyleScopeId = SdUInt64;
 	using SdPropertyId = SdUInt64;
 	using SdThemeVariableId = SdUInt64;
 
-	inline constexpr SdStyleTokenTag SdStyleTokenTagLiteral(const char* text) noexcept
+	inline constexpr SdStyleId SdStyleIdLiteral(const char* text) noexcept
 	{
-		SdStyleTokenTag hash = 14695981039346656037ull;
+		SdStyleId hash = 14695981039346656037ull;
 		while (*text != '\0')
 		{
 			hash ^= static_cast<SdUInt8>(*text);
@@ -63,17 +63,17 @@ namespace Sodium
 
 	inline constexpr SdStyleClassId SdStyleClassLiteral(const char* text) noexcept
 	{
-		return SdStyleTokenTagLiteral(text);
+		return SdStyleIdLiteral(text);
 	}
 
 	inline constexpr SdStyleScopeId SdStyleScopeLiteral(const char* text) noexcept
 	{
-		return SdStyleTokenTagLiteral(text);
+		return SdStyleIdLiteral(text);
 	}
 
 	inline constexpr SdThemeVariableId SdThemeVariableLiteral(const char* text) noexcept
 	{
-		return SdStyleTokenTagLiteral(text);
+		return SdStyleIdLiteral(text);
 	}
 
 	struct SdStyleIdentity final
@@ -84,32 +84,32 @@ namespace Sodium
 
 	namespace SdWidgetTargetIds
 	{
-		inline constexpr SdStyleTokenTag Global = SdStyleTokenTagLiteral("Sodium.Style.Target.Global");
-		inline constexpr SdStyleTokenTag Default = SdStyleTokenTagLiteral("Sodium.Style.Target.Default");
-		inline constexpr SdStyleTokenTag Text = SdStyleTokenTagLiteral("Sodium.Style.Target.Text");
-		inline constexpr SdStyleTokenTag Panel = SdStyleTokenTagLiteral("Sodium.Style.Target.Panel");
-		inline constexpr SdStyleTokenTag Button = SdStyleTokenTagLiteral("Sodium.Style.Target.Button");
-		inline constexpr SdStyleTokenTag CheckBox = SdStyleTokenTagLiteral("Sodium.Style.Target.CheckBox");
-		inline constexpr SdStyleTokenTag Window = SdStyleTokenTagLiteral("Sodium.Style.Target.Window");
-		inline constexpr SdStyleTokenTag ImageViewer = SdStyleTokenTagLiteral("Sodium.Style.Target.ImageViewer");
-		inline constexpr SdStyleTokenTag Slider = SdStyleTokenTagLiteral("Sodium.Style.Target.Slider");
-		inline constexpr SdStyleTokenTag TextInput = SdStyleTokenTagLiteral("Sodium.Style.Target.TextInput");
-		inline constexpr SdStyleTokenTag ScrollView = SdStyleTokenTagLiteral("Sodium.Style.Target.ScrollView");
-		inline constexpr SdStyleTokenTag Popup = SdStyleTokenTagLiteral("Sodium.Style.Target.Popup");
-		inline constexpr SdStyleTokenTag ContextMenu = SdStyleTokenTagLiteral("Sodium.Style.Target.ContextMenu");
-		inline constexpr SdStyleTokenTag Tooltip = SdStyleTokenTagLiteral("Sodium.Style.Target.Tooltip");
+		inline constexpr SdStyleId Global = SdStyleIdLiteral("Sodium.Style.Target.Global");
+		inline constexpr SdStyleId Default = SdStyleIdLiteral("Sodium.Style.Target.Default");
+		inline constexpr SdStyleId Text = SdStyleIdLiteral("Sodium.Style.Target.Text");
+		inline constexpr SdStyleId Panel = SdStyleIdLiteral("Sodium.Style.Target.Panel");
+		inline constexpr SdStyleId Button = SdStyleIdLiteral("Sodium.Style.Target.Button");
+		inline constexpr SdStyleId CheckBox = SdStyleIdLiteral("Sodium.Style.Target.CheckBox");
+		inline constexpr SdStyleId Window = SdStyleIdLiteral("Sodium.Style.Target.Window");
+		inline constexpr SdStyleId ImageViewer = SdStyleIdLiteral("Sodium.Style.Target.ImageViewer");
+		inline constexpr SdStyleId Slider = SdStyleIdLiteral("Sodium.Style.Target.Slider");
+		inline constexpr SdStyleId TextInput = SdStyleIdLiteral("Sodium.Style.Target.TextInput");
+		inline constexpr SdStyleId ScrollView = SdStyleIdLiteral("Sodium.Style.Target.ScrollView");
+		inline constexpr SdStyleId Popup = SdStyleIdLiteral("Sodium.Style.Target.Popup");
+		inline constexpr SdStyleId ContextMenu = SdStyleIdLiteral("Sodium.Style.Target.ContextMenu");
+		inline constexpr SdStyleId Tooltip = SdStyleIdLiteral("Sodium.Style.Target.Tooltip");
 	}
 
 	namespace SdStylePropertyIds
 	{
-		inline constexpr SdStyleTokenTag Color = SdStyleTokenTagLiteral("Sodium.Style.Property.Color");
-		inline constexpr SdStyleTokenTag Background = SdStyleTokenTagLiteral("Sodium.Style.Property.Background");
-		inline constexpr SdStyleTokenTag Border = SdStyleTokenTagLiteral("Sodium.Style.Property.Border");
-		inline constexpr SdStyleTokenTag Padding = SdStyleTokenTagLiteral("Sodium.Style.Property.Padding");
-		inline constexpr SdStyleTokenTag Width = SdStyleTokenTagLiteral("Sodium.Style.Property.Width");
-		inline constexpr SdStyleTokenTag Height = SdStyleTokenTagLiteral("Sodium.Style.Property.Height");
-		inline constexpr SdStyleTokenTag Radius = SdStyleTokenTagLiteral("Sodium.Style.Property.Radius");
-		inline constexpr SdStyleTokenTag Opacity = SdStyleTokenTagLiteral("Sodium.Style.Property.Opacity");
+		inline constexpr SdStyleId Color = SdStyleIdLiteral("Sodium.Style.Property.Color");
+		inline constexpr SdStyleId Background = SdStyleIdLiteral("Sodium.Style.Property.Background");
+		inline constexpr SdStyleId Border = SdStyleIdLiteral("Sodium.Style.Property.Border");
+		inline constexpr SdStyleId Padding = SdStyleIdLiteral("Sodium.Style.Property.Padding");
+		inline constexpr SdStyleId Width = SdStyleIdLiteral("Sodium.Style.Property.Width");
+		inline constexpr SdStyleId Height = SdStyleIdLiteral("Sodium.Style.Property.Height");
+		inline constexpr SdStyleId Radius = SdStyleIdLiteral("Sodium.Style.Property.Radius");
+		inline constexpr SdStyleId Opacity = SdStyleIdLiteral("Sodium.Style.Property.Opacity");
 	}
 
 	enum class SdStyleInteractionState : SdUInt8
@@ -226,7 +226,7 @@ namespace Sodium
 
 	struct SdStyleDeclaration final
 	{
-		SdStyleTokenTag propertyTag = 0;
+		SdStyleId propertyTag = 0;
 		SdStyleValue value = {};
 	};
 

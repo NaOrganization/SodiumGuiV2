@@ -36,14 +36,14 @@ namespace
 
 	struct TestDrawWidget final : SdWidgetTag
 	{
-		static constexpr SdStyleTokenTag TargetTypeId = SdWidgetTargetIds::Button;
+		static constexpr SdStyleId TargetTypeId = SdWidgetTargetIds::Button;
 
 		struct Style final
 		{
-			static constexpr SdStyleTokenTag Background = SdStylePropertyIds::Background;
-			static constexpr SdStyleTokenTag Border = SdStylePropertyIds::Border;
-			static constexpr SdStyleTokenTag Color = SdStylePropertyIds::Color;
-			static constexpr SdStyleTokenTag Radius = SdStylePropertyIds::Radius;
+			static constexpr SdStyleId Background = SdStylePropertyIds::Background;
+			static constexpr SdStyleId Border = SdStylePropertyIds::Border;
+			static constexpr SdStyleId Color = SdStylePropertyIds::Color;
+			static constexpr SdStyleId Radius = SdStylePropertyIds::Radius;
 		};
 
 		struct State
@@ -87,12 +87,12 @@ namespace
 
 	struct TestContainer final : SdWidgetTag
 	{
-		static constexpr SdStyleTokenTag TargetTypeId = SdWidgetTargetIds::Panel;
+		static constexpr SdStyleId TargetTypeId = SdWidgetTargetIds::Panel;
 
 		struct Style final
 		{
-			static constexpr SdStyleTokenTag Background = SdStylePropertyIds::Background;
-			static constexpr SdStyleTokenTag Radius = SdStylePropertyIds::Radius;
+			static constexpr SdStyleId Background = SdStylePropertyIds::Background;
+			static constexpr SdStyleId Radius = SdStylePropertyIds::Radius;
 		};
 
 		template<class TContent>
@@ -123,14 +123,14 @@ namespace
 
 	struct CustomComponentStyle final
 	{
-		static constexpr SdStyleTokenTag TargetTypeId = SdStyleTokenTagLiteral("Tests.CustomComponent");
-		static constexpr SdStyleTokenTag Highlight = SdStyleTokenTagLiteral("Tests.CustomComponent.Highlight");
-		static constexpr SdStyleTokenTag ContentPadding = SdStyleTokenTagLiteral("Tests.CustomComponent.ContentPadding");
+		static constexpr SdStyleId TargetTypeId = SdStyleIdLiteral("Tests.CustomComponent");
+		static constexpr SdStyleId Highlight = SdStyleIdLiteral("Tests.CustomComponent.Highlight");
+		static constexpr SdStyleId ContentPadding = SdStyleIdLiteral("Tests.CustomComponent.ContentPadding");
 	};
 
 	struct CustomComponentWidget final : SdWidgetTag
 	{
-		static constexpr SdStyleTokenTag TargetTypeId = CustomComponentStyle::TargetTypeId;
+		static constexpr SdStyleId TargetTypeId = CustomComponentStyle::TargetTypeId;
 
 		struct Style final
 		{
@@ -194,7 +194,7 @@ namespace
 
 	struct TypedStyleWidget final : SdWidgetTag
 	{
-		static constexpr SdStyleTokenTag TargetTypeId = SdStyleTokenTagLiteral("Tests.TypedStyleWidget");
+		static constexpr SdStyleId TargetTypeId = SdStyleIdLiteral("Tests.TypedStyleWidget");
 
 		struct Style final
 		{
@@ -465,7 +465,7 @@ namespace
 		const SdCompiledStyleSheet compiled = sheet.Compile();
 		const SdStyleClassId classes[] = { dangerClass };
 		SdStyleResolveRequest request = {};
-		request.targetTag = SdStyleTokenTagLiteral(typeid(RegistryDispatchWidget).name());
+		request.targetTag = SdStyleIdLiteral(typeid(RegistryDispatchWidget).name());
 		request.classes = SdSpan<const SdStyleClassId>(classes, 1);
 
 		const RegistryDispatchStyle resolved = SdStyleResolver::ResolveStyle<RegistryDispatchStyle>(

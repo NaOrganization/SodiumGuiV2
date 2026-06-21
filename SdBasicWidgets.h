@@ -135,12 +135,12 @@ namespace Sodium
 
 	struct SdText final : SdWidgetTag
 	{
-		static constexpr SdStyleTokenTag TargetTypeId = SdWidgetTargetIds::Text;
+		static constexpr SdStyleId TargetTypeId = SdWidgetTargetIds::Text;
 
 		struct Style final
 		{
-			static constexpr SdStyleTokenTag Color = SdStylePropertyIds::Color;
-			static constexpr SdStyleTokenTag Opacity = SdStylePropertyIds::Opacity;
+			static constexpr SdStyleId Color = SdStylePropertyIds::Color;
+			static constexpr SdStyleId Opacity = SdStylePropertyIds::Opacity;
 			SdSpacing padding = {};
 			float fontSize = 16.0f;
 			float lineHeight = 0.0f;
@@ -257,7 +257,7 @@ namespace Sodium
 
 	struct SdPanel final : SdWidgetTag
 	{
-		static constexpr SdStyleTokenTag TargetTypeId = SdWidgetTargetIds::Panel;
+		static constexpr SdStyleId TargetTypeId = SdWidgetTargetIds::Panel;
 
 		struct Style final
 		{
@@ -350,7 +350,7 @@ namespace Sodium
 
 	struct SdButton final : SdWidgetTag
 	{
-		static constexpr SdStyleTokenTag TargetTypeId = SdWidgetTargetIds::Button;
+		static constexpr SdStyleId TargetTypeId = SdWidgetTargetIds::Button;
 
 		struct Parts final
 		{
@@ -473,7 +473,7 @@ namespace Sodium
 
 	struct SdCheckBox final : SdWidgetTag
 	{
-		static constexpr SdStyleTokenTag TargetTypeId = SdWidgetTargetIds::CheckBox;
+		static constexpr SdStyleId TargetTypeId = SdWidgetTargetIds::CheckBox;
 
 		struct Style final
 		{
@@ -621,7 +621,7 @@ namespace Sodium
 
 	struct SdSliderFloat final : SdWidgetTag
 	{
-		static constexpr SdStyleTokenTag TargetTypeId = SdWidgetTargetIds::Slider;
+		static constexpr SdStyleId TargetTypeId = SdWidgetTargetIds::Slider;
 
 		struct Style final
 		{
@@ -788,7 +788,7 @@ namespace Sodium
 
 	struct SdTextInput final : SdWidgetTag
 	{
-		static constexpr SdStyleTokenTag TargetTypeId = SdWidgetTargetIds::TextInput;
+		static constexpr SdStyleId TargetTypeId = SdWidgetTargetIds::TextInput;
 
 		struct Parts final
 		{
@@ -992,7 +992,7 @@ namespace Sodium
 
 	struct SdWindow final : SdWidgetTag
 	{
-		static constexpr SdStyleTokenTag TargetTypeId = SdWidgetTargetIds::Window;
+		static constexpr SdStyleId TargetTypeId = SdWidgetTargetIds::Window;
 
 		struct Parts final
 		{
@@ -1254,7 +1254,7 @@ namespace Sodium
 
 	struct SdImageViewer final : SdWidgetTag
 	{
-		static constexpr SdStyleTokenTag TargetTypeId = SdWidgetTargetIds::ImageViewer;
+		static constexpr SdStyleId TargetTypeId = SdWidgetTargetIds::ImageViewer;
 
 		struct Style final
 		{
@@ -1345,7 +1345,7 @@ namespace Sodium
 
 	struct SdScrollView final : SdWidgetTag
 	{
-		static constexpr SdStyleTokenTag TargetTypeId = SdWidgetTargetIds::ScrollView;
+		static constexpr SdStyleId TargetTypeId = SdWidgetTargetIds::ScrollView;
 
 		struct Style final
 		{
@@ -1444,7 +1444,7 @@ namespace Sodium
 
 	struct SdPopup final : SdWidgetTag
 	{
-		static constexpr SdStyleTokenTag TargetTypeId = SdWidgetTargetIds::Popup;
+		static constexpr SdStyleId TargetTypeId = SdWidgetTargetIds::Popup;
 
 		struct Style final
 		{
@@ -1546,7 +1546,7 @@ namespace Sodium
 
 	struct SdContextMenu final : SdWidgetTag
 	{
-		static constexpr SdStyleTokenTag TargetTypeId = SdWidgetTargetIds::ContextMenu;
+		static constexpr SdStyleId TargetTypeId = SdWidgetTargetIds::ContextMenu;
 
 		struct Style final
 		{
@@ -1635,7 +1635,7 @@ namespace Sodium
 
 	struct SdTooltip final : SdWidgetTag
 	{
-		static constexpr SdStyleTokenTag TargetTypeId = SdWidgetTargetIds::Tooltip;
+		static constexpr SdStyleId TargetTypeId = SdWidgetTargetIds::Tooltip;
 
 		struct Style final
 		{

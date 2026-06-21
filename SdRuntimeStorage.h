@@ -265,7 +265,7 @@ namespace Sodium
 		SdWidgetRootStyle resolvedStyle = {};
 		SdWidgetRootStyle presentationStyle = {};
 		SdStyleNodeId rootStyleNodeId = SdInvalidStyleNodeId;
-		SdStyleTokenTag targetTypeId = SdWidgetTargetIds::Default;
+		SdStyleId targetTypeId = SdWidgetTargetIds::Default;
 		SdStyleInteractionState interactionState = SdStyleInteractionState::Normal;
 		SdLayerPriority layerPriority = SdLayerPriority::Content;
 		SdUInt64 styleIdentityRevision = 0;
@@ -292,7 +292,7 @@ namespace Sodium
 		Detail::SdObjectHandle presentationStyle = {};
 		Detail::SdObjectHandle inlineStyle = {};
 		std::type_index styleType = std::type_index(typeid(void));
-		SdStyleTokenTag targetTypeId = SdWidgetTargetIds::Default;
+		SdStyleId targetTypeId = SdWidgetTargetIds::Default;
 		SdStyleInteractionState interactionState = SdStyleInteractionState::Normal;
 		SdLayerPriority layerPriority = SdLayerPriority::Content;
 		SdUInt64 styleIdentityRevision = 0;

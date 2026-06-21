@@ -36,7 +36,7 @@ namespace Sodium
 		SdWidgetId id = 0;
 		SdWidgetLifePhase lifePhase = SdWidgetLifePhase::Entering;
 		SdLayerPriority layerPriority = SdLayerPriority::Content;
-		SdStyleTokenTag targetTypeId = SdWidgetTargetIds::Default;
+		SdStyleId targetTypeId = SdWidgetTargetIds::Default;
 		bool submittedThisFrame = false;
 		bool inputEnabled = true;
 		bool manualLayout = false;

@@ -438,7 +438,7 @@ namespace Sodium
 	struct SdTypedStyleRule final
 	{
 		std::type_index styleType = std::type_index(typeid(void));
-		SdStyleTokenTag targetTag = SdWidgetTargetIds::Global;
+		SdStyleId targetTag = SdWidgetTargetIds::Global;
 		SdStyleInteractionState interactionState = SdStyleInteractionState::Normal;
 		SdLayerPriority layerPriority = SdLayerPriority::Content;
 		SdStyleClassId classId = 0;
@@ -632,7 +632,7 @@ namespace Sodium
 		template<class TWidget>
 		SdStyleRuleBuilder<TWidget> Rule();
 
-		SdStyleSystemSheetRuleBuilder<SdWidgetRootStyle> RootRule(SdStyleTokenTag targetTypeId)
+		SdStyleSystemSheetRuleBuilder<SdWidgetRootStyle> RootRule(SdStyleId targetTypeId)
 		{
 			return SdStyleSystemSheetRuleBuilder<SdWidgetRootStyle>(*this, typedStyleSheet.RuleForTarget<SdWidgetRootStyle>(targetTypeId));
 		}
@@ -644,7 +644,7 @@ namespace Sodium
 		}
 
 		SdWidgetRootStyle ResolveRootStyle(
-			SdStyleTokenTag targetTypeId,
+			SdStyleId targetTypeId,
 			SdStyleInteractionState interactionState,
 			SdLayerPriority layerPriority = SdLayerPriority::Content,
 			SdSpan<const SdStyleClassId> styleClasses = {},
@@ -662,7 +662,7 @@ namespace Sodium
 		}
 
 		SdWidgetPartStyle ResolvePartStyle(
-			SdStyleTokenTag targetTypeId,
+			SdStyleId targetTypeId,
 			SdStylePart part,
 			const SdWidgetRootStyle& rootStyle,
 			SdStyleInteractionState interactionState,
@@ -724,7 +724,7 @@ namespace Sodium
 
 	private:
 		template<class TWidget>
-		static constexpr SdStyleTokenTag GetTargetTag() noexcept
+		static constexpr SdStyleId GetTargetTag() noexcept
 		{
 			if constexpr (requires { TWidget::TargetTypeId; })
 				return TWidget::TargetTypeId;
@@ -754,7 +754,7 @@ namespace Sodium
 			return style;
 		}
 
-		SdTypedStyleRule& AddTypedRule(std::type_index styleType, SdStyleTokenTag targetTag)
+		SdTypedStyleRule& AddTypedRule(std::type_index styleType, SdStyleId targetTag)
 		{
 			SdTypedStyleRule rule = {};
 			rule.styleType = styleType;
@@ -767,7 +767,7 @@ namespace Sodium
 		template<class TStyle>
 		void ApplyTypedRules(
 			TStyle& style,
-			SdStyleTokenTag targetTag,
+			SdStyleId targetTag,
 			SdStyleInteractionState interactionState,
 			SdLayerPriority layerPriority,
 			SdSpan<const SdStyleClassId> styleClasses,
@@ -808,7 +808,7 @@ namespace Sodium
 		template<class TStyle>
 		TStyle ApplyCompiledTypedRules(
 			TStyle style,
-			SdStyleTokenTag targetTag,
+			SdStyleId targetTag,
 			SdStylePart part,
 			SdStyleInteractionState interactionState,
 			SdLayerPriority layerPriority,
@@ -899,7 +899,7 @@ namespace Sodium
 		}
 
 		void AddDefaultRootBackgroundRule(
-			SdStyleTokenTag targetTag,
+			SdStyleId targetTag,
 			SdStyleInteractionState interactionState,
 			SdLayerPriority layerPriority,
 			const char* backgroundVariable,
@@ -929,7 +929,7 @@ namespace Sodium
 		bool MatchesTypedRule(
 			const SdTypedStyleRule& rule,
 			std::type_index styleType,
-			SdStyleTokenTag targetTag,
+			SdStyleId targetTag,
 			SdStyleInteractionState interactionState,
 			SdLayerPriority layerPriority,
 			SdSpan<const SdStyleClassId> styleClasses,

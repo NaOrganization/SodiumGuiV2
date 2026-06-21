@@ -6,7 +6,7 @@ namespace Sodium
 {
 	struct SdStyleResolveRequest final
 	{
-		SdStyleTokenTag targetTag = SdWidgetTargetIds::Default;
+		SdStyleId targetTag = SdWidgetTargetIds::Default;
 		SdStylePart part = SdStylePart::Root();
 		SdPseudoState pseudoState = {};
 		SdLayerPriority layerPriority = SdLayerPriority::Content;
