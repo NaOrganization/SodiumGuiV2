@@ -528,6 +528,14 @@ namespace Sodium
 	{
 		static constexpr SdStyleId TargetTypeId = SdWidgetTargetIds::Slider;
 
+		struct Parts final
+		{
+			static constexpr SdStylePart Label = SdStylePart::Make("Sodium.Slider.Part.Label");
+			static constexpr SdStylePart Track = SdStylePart::Make("Sodium.Slider.Part.Track");
+			static constexpr SdStylePart Fill = SdStylePart::Make("Sodium.Slider.Part.Fill");
+			static constexpr SdStylePart Thumb = SdStylePart::Make("Sodium.Slider.Part.Thumb");
+		};
+
 		struct Style final
 		{
 			float trackHeight = 6.0f;
@@ -613,11 +621,12 @@ namespace Sodium
 			const State& state = context.State<State>();
 			const Style& style = context.RootPresentationStyle<SdSliderFloat>();
 			const SdBoxStyle& presentation = context.RootStyleNode().presentationStyle;
+			const SdBoxStyle& labelPresentation = context.Part(Parts::Label).presentationStyle;
 			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(presentation, context.animatedRect.Size(), { 180.0f, 30.0f });
 			const float labelGap = std::max(0.0f, usedStyle.gap);
-			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, presentation.fontSize, presentation.lineHeight);
+			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, labelPresentation.fontSize, labelPresentation.lineHeight);
 			const float lineHeight = BasicWidgetDetail::ResolveLineHeight(textStyle);
-			const SdColor textColor = BasicWidgetDetail::ApplyOpacity(presentation.color, context.opacity * presentation.opacity);
+			const SdColor textColor = BasicWidgetDetail::ApplyOpacity(labelPresentation.color, context.opacity * labelPresentation.opacity);
 			const SdColor trackColor = BasicWidgetDetail::ApplyOpacity(presentation.backgroundColor, context.opacity * presentation.opacity);
 			const SdColor border = BasicWidgetDetail::ApplyOpacity(presentation.border.left.color, context.opacity * presentation.opacity);
 			const SdColor accent = BasicWidgetDetail::ApplyOpacity(
@@ -660,6 +669,10 @@ namespace Sodium
 			context.widgetState.targetTypeId = TargetTypeId;
 			context.widgetState.inputEnabled = true;
 			context.widgetState.layoutWeight = 1.0f;
+			context.EnsurePart(Parts::Label);
+			context.EnsurePart(Parts::Track);
+			context.EnsurePart(Parts::Fill);
+			context.EnsurePart(Parts::Thumb);
 		}
 
 		static float PositionToValue(SdUpdateContext& context, float x, float minValue, float maxValue)

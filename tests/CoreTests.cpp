@@ -401,12 +401,15 @@ namespace
 		instance.ui.Declare<SdButton>("Parted");
 		bool checked = false;
 		instance.ui.Declare<SdCheckBox>("Check", checked);
+		float sliderValue = 0.5f;
+		instance.ui.Declare<SdSliderFloat>("Slide", sliderValue, 0.0f, 1.0f);
 		instance.ui.Declare<SdTextInput>(text, "Placeholder");
 		instance.ui.Declare<SdWindow>("Window", windowOpen);
 		PumpFrame(instance);
 
 		bool buttonHasLabel = false;
 		bool checkBoxHasLabel = false;
+		bool sliderHasLabel = false;
 		bool inputHasCaret = false;
 		bool windowHasTitlebar = false;
 		for (const auto& [id, record] : instance.GetStateStorage().GetWidgetRecords())
@@ -416,15 +419,18 @@ namespace
 				buttonHasLabel = instance.GetStylePart(record.state.id, SdButton::Parts::Label).part == SdButton::Parts::Label;
 			if (record.widgetType == std::type_index(typeid(SdCheckBox)))
 				checkBoxHasLabel = instance.GetStylePart(record.state.id, SdCheckBox::Parts::Label).part == SdCheckBox::Parts::Label;
+			if (record.widgetType == std::type_index(typeid(SdSliderFloat)))
+				sliderHasLabel = instance.GetStylePart(record.state.id, SdSliderFloat::Parts::Label).part == SdSliderFloat::Parts::Label;
 			if (record.widgetType == std::type_index(typeid(SdTextInput)))
 				inputHasCaret = instance.GetStylePart(record.state.id, SdTextInput::Parts::Caret).part == SdTextInput::Parts::Caret;
 			if (record.widgetType == std::type_index(typeid(SdWindow)))
 				windowHasTitlebar = instance.GetStylePart(record.state.id, SdWindow::Parts::Titlebar).part == SdWindow::Parts::Titlebar;
 		}
 
-		Check(instance.GetDiagnostics().styleNodeCount >= 20, "runtime owns root and part style nodes");
+		Check(instance.GetDiagnostics().styleNodeCount >= 25, "runtime owns root and part style nodes");
 		Check(buttonHasLabel, "button label part style node exists");
 		Check(checkBoxHasLabel, "checkbox label part style node exists");
+		Check(sliderHasLabel, "slider label part style node exists");
 		Check(inputHasCaret, "text input caret part style node exists");
 		Check(windowHasTitlebar, "window titlebar part style node exists");
 
@@ -483,6 +489,24 @@ namespace
 			&& checkBoxPartFontBackend.lastPaintColor.g == checkBoxLabelPartColor.g
 			&& checkBoxPartFontBackend.lastPaintColor.b == checkBoxLabelPartColor.b,
 			"checkbox label part color drives text paint");
+
+		SdInstance sliderPartStyleInstance;
+		RecordingFontBackend sliderPartFontBackend = {};
+		sliderPartStyleInstance.SetFontBackend(&sliderPartFontBackend);
+		const SdColor sliderLabelPartColor = SdColor(8, 94, 63, 255);
+		sliderPartStyleInstance.GetStyleSystem().Part<SdSliderFloat>(SdSliderFloat::Parts::Label)
+			.Set(&SdBoxStyle::color, sliderLabelPartColor)
+			.Set(&SdBoxStyle::opacity, 1.0f);
+		float sliderPartValue = 0.5f;
+		sliderPartStyleInstance.BeginFrame({ 320.0f, 200.0f });
+		sliderPartStyleInstance.ui.Declare<SdSliderFloat>("Part slide", sliderPartValue, 0.0f, 1.0f);
+		PumpFrame(sliderPartStyleInstance);
+		Check(sliderPartFontBackend.lastPaintText == "Part slide", "slider label part drives text paint");
+		Check(
+			sliderPartFontBackend.lastPaintColor.r == sliderLabelPartColor.r
+			&& sliderPartFontBackend.lastPaintColor.g == sliderLabelPartColor.g
+			&& sliderPartFontBackend.lastPaintColor.b == sliderLabelPartColor.b,
+			"slider label part color drives text paint");
 
 		SdInstance inputPartStyleInstance;
 		RecordingFontBackend inputPartFontBackend = {};
