@@ -19,7 +19,6 @@ namespace Sodium
 		SdTheme()
 		{
 			SetDefaultVariables();
-			metricVariables[SdThemeVariableLiteral("font.button")] = 16.0f;
 		}
 
 		void SetColorVariable(SdThemeVariableId variableId, SdColor color)
@@ -62,6 +61,7 @@ namespace Sodium
 			colorVariables[SdThemeVariableLiteral("selection")] = { 82, 170, 128, 96 };
 			metricVariables[SdThemeVariableLiteral("spacing.small")] = 6.0f;
 			metricVariables[SdThemeVariableLiteral("spacing.medium")] = 10.0f;
+			metricVariables[SdThemeVariableLiteral("font.button")] = 16.0f;
 			metricVariables[SdThemeVariableLiteral("radius.small")] = 5.0f;
 			metricVariables[SdThemeVariableLiteral("duration.fast")] = 0.16f;
 		}
@@ -907,6 +907,14 @@ namespace Sodium
 				.Set(&SdBoxStyle::width, SdLength::Pixels(240.0f))
 				.Set(&SdBoxStyle::height, SdLength::Pixels(120.0f))
 				.Set(&SdBoxStyle::padding, SdStyleValue::FromSpacing({ mediumSpacing, mediumSpacing, mediumSpacing, mediumSpacing }));
+			const float smallSpacing = theme.GetMetricVariable(SdThemeVariableLiteral("spacing.small"));
+			typedStyleSheet.RuleForTarget<SdWidgetRootStyle>(SdWidgetTargetIds::Button)
+				.Cascade(SdCascadeLayer::UserAgent)
+				.Set(&SdBoxStyle::minWidth, SdLength::Pixels(82.0f))
+				.Set(&SdBoxStyle::minHeight, SdLength::Pixels(30.0f))
+				.Set(&SdBoxStyle::padding, SdStyleValue::FromSpacing({ mediumSpacing, smallSpacing, mediumSpacing, smallSpacing }))
+				.Set(&SdBoxStyle::fontSize, ThemeMetric("font.button"))
+				.Set(&SdBoxStyle::lineHeight, 0.0f);
 
 			AddDefaultRootBackgroundRule(SdWidgetTargetIds::Default, SdStyleInteractionState::Normal, SdLayerPriority::Content, "background");
 			AddDefaultRootBackgroundRule(SdWidgetTargetIds::Panel, SdStyleInteractionState::Normal, SdLayerPriority::Content, "panel.bg");

@@ -339,38 +339,16 @@ namespace Sodium
 
 		struct Style final
 		{
-			SdSpacing padding = { 10.0f, 6.0f, 10.0f, 6.0f };
-			float minWidth = 82.0f;
-			float minHeight = 30.0f;
-			float fontSize = 16.0f;
-			float lineHeight = 0.0f;
-			float radius = 5.0f;
-			float opacity = 1.0f;
-
 			static Style Default(const SdStyleContext& context)
 			{
+				(void)context;
 				Style style = {};
-				const float smallSpacing = context.theme.GetMetricVariable(SdThemeVariableLiteral("spacing.small"));
-				const float mediumSpacing = context.theme.GetMetricVariable(SdThemeVariableLiteral("spacing.medium"));
-				style.padding = { mediumSpacing, smallSpacing, mediumSpacing, smallSpacing };
-				style.minWidth = 82.0f;
-				style.minHeight = 30.0f;
-				style.fontSize = BasicWidgetDetail::kDefaultFontSize;
-				style.lineHeight = 0.0f;
-				style.radius = context.theme.GetMetricVariable(SdThemeVariableLiteral("radius.small"));
-				style.opacity = 1.0f;
 				return style;
 			}
 
 			static void Describe(SdStyleContract<Style>& contract)
 			{
-				contract.Layout(&Style::padding);
-				contract.Layout(&Style::minWidth);
-				contract.Layout(&Style::minHeight);
-				contract.Layout(&Style::fontSize);
-				contract.Layout(&Style::lineHeight);
-				contract.Paint(&Style::radius).InterpolatesAsFloat();
-				contract.Composite(&Style::opacity).InterpolatesAsFloat();
+				(void)contract;
 			}
 		};
 
@@ -405,34 +383,36 @@ namespace Sodium
 		void OnLayout(SdLayoutContext& context)
 		{
 			const State& state = context.State<State>();
-			const Style& style = context.RootResolvedStyle<SdButton>();
-			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, style.fontSize, style.lineHeight);
+			const SdBoxStyle& rootStyle = context.RootStyleNode().resolvedStyle;
+			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(rootStyle, context.constraints.maxSize, {});
+			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, rootStyle.fontSize, rootStyle.lineHeight);
 			SdVec2 textSize = BasicWidgetDetail::MeasureText(context, state.label, textStyle);
 			textSize.y = std::max(textSize.y, BasicWidgetDetail::ResolveLineHeight(textStyle));
 
 			context.SetDesiredSize({
-				std::max(style.minWidth, textSize.x + style.padding.left + style.padding.right),
-				std::max(style.minHeight, textSize.y + style.padding.top + style.padding.bottom)
+				std::max(usedStyle.minWidth, textSize.x + usedStyle.padding.left + usedStyle.padding.right),
+				std::max(usedStyle.minHeight, textSize.y + usedStyle.padding.top + usedStyle.padding.bottom)
 			});
 		}
 
 		void OnPaint(SdPaintContext& context)
 		{
 			const State& state = context.State<State>();
-			const Style& style = context.RootPresentationStyle<SdButton>();
 			const SdBoxStyle& presentation = context.RootStyleNode().presentationStyle;
-			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, style.fontSize, style.lineHeight);
+			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(presentation, context.animatedRect.Size(), {});
+			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, presentation.fontSize, presentation.lineHeight);
 			const float lineHeight = BasicWidgetDetail::ResolveLineHeight(textStyle);
 			const SdVec2 textSize = BasicWidgetDetail::MeasureText(context.instance, state.label, textStyle);
-			const SdColor background = BasicWidgetDetail::ApplyOpacity(presentation.backgroundColor, context.opacity * style.opacity);
-			const SdColor border = BasicWidgetDetail::ApplyOpacity(presentation.border.left.color, context.opacity * style.opacity);
-			const SdColor color = BasicWidgetDetail::ApplyOpacity(presentation.color, context.opacity * style.opacity);
+			const SdColor background = BasicWidgetDetail::ApplyOpacity(presentation.backgroundColor, context.opacity * presentation.opacity);
+			const SdColor border = BasicWidgetDetail::ApplyOpacity(presentation.border.left.color, context.opacity * presentation.opacity);
+			const SdColor color = BasicWidgetDetail::ApplyOpacity(presentation.color, context.opacity * presentation.opacity);
+			const float radius = SdResolveLength(presentation.radius, context.animatedRect.Width());
 
-			context.renderList.AddRectFilled(context.animatedRect, background, context.clipRect, style.radius);
-			context.renderList.AddRect(context.animatedRect, border, context.clipRect, 1.0f, style.radius);
+			context.renderList.AddRectFilled(context.animatedRect, background, context.clipRect, radius);
+			context.renderList.AddRect(context.animatedRect, border, context.clipRect, 1.0f, radius);
 			const SdVec2 position = {
-				context.animatedRect.min.x + std::max(style.padding.left, (context.animatedRect.Width() - textSize.x) * 0.5f),
-				context.animatedRect.min.y + std::max(style.padding.top, (context.animatedRect.Height() - lineHeight) * 0.5f)
+				context.animatedRect.min.x + std::max(usedStyle.padding.left, (context.animatedRect.Width() - textSize.x) * 0.5f),
+				context.animatedRect.min.y + std::max(usedStyle.padding.top, (context.animatedRect.Height() - lineHeight) * 0.5f)
 			};
 			context.renderList.AddText(state.label, textStyle, position, color, context.clipRect);
 		}

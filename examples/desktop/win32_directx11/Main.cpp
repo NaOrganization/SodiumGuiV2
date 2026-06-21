@@ -39,8 +39,6 @@ namespace
 	{
 		const auto themeTransition = std::chrono::milliseconds(360);
 		const Sodium::SdAnimationEasing easing = Sodium::SdAnimationEasing::OutCubic;
-		styleSystem.Rule<Sodium::SdButton>()
-			.Transition(&Sodium::SdButton::Style::radius, themeTransition, easing);
 		styleSystem.Rule<Sodium::SdCheckBox>()
 			.Transition(&Sodium::SdCheckBox::Style::radius, themeTransition, easing);
 		styleSystem.Rule<Sodium::SdSliderFloat>()
