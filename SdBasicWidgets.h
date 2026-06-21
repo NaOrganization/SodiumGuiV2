@@ -569,46 +569,25 @@ namespace Sodium
 
 		struct Style final
 		{
-			SdSpacing padding = { 8.0f, 8.0f, 8.0f, 8.0f };
-			float width = 180.0f;
-			float height = 30.0f;
 			float trackHeight = 6.0f;
 			float thumbRadius = 8.0f;
 			float labelGap = 8.0f;
-			float fontSize = 16.0f;
-			float lineHeight = 0.0f;
-			float radius = 5.0f;
-			float opacity = 1.0f;
 
 			static Style Default(const SdStyleContext& context)
 			{
 				Style style = {};
 				const float smallSpacing = context.theme.GetMetricVariable(SdThemeVariableLiteral("spacing.small"));
-				style.padding = { smallSpacing, smallSpacing, smallSpacing, smallSpacing };
-				style.width = 180.0f;
-				style.height = 30.0f;
 				style.trackHeight = 6.0f;
 				style.thumbRadius = 8.0f;
 				style.labelGap = smallSpacing;
-				style.fontSize = BasicWidgetDetail::kDefaultFontSize;
-				style.lineHeight = 0.0f;
-				style.radius = context.theme.GetMetricVariable(SdThemeVariableLiteral("radius.small"));
-				style.opacity = 1.0f;
 				return style;
 			}
 
 			static void Describe(SdStyleContract<Style>& contract)
 			{
-				contract.Layout(&Style::padding);
-				contract.Layout(&Style::width);
-				contract.Layout(&Style::height);
 				contract.Layout(&Style::trackHeight);
 				contract.Layout(&Style::thumbRadius);
 				contract.Layout(&Style::labelGap);
-				contract.Layout(&Style::fontSize);
-				contract.Layout(&Style::lineHeight);
-				contract.Paint(&Style::radius).InterpolatesAsFloat();
-				contract.Composite(&Style::opacity).InterpolatesAsFloat();
 			}
 		};
 
@@ -656,16 +635,18 @@ namespace Sodium
 		{
 			const State& state = context.State<State>();
 			const Style& style = context.RootResolvedStyle<SdSliderFloat>();
+			const SdBoxStyle& rootStyle = context.RootStyleNode().resolvedStyle;
+			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(rootStyle, context.constraints.maxSize, { 180.0f, 30.0f });
 			SdVec2 labelSize = {};
 			if (!state.label.empty())
 			{
-				const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, style.fontSize, style.lineHeight);
+				const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, rootStyle.fontSize, rootStyle.lineHeight);
 				labelSize = BasicWidgetDetail::MeasureText(context, state.label, textStyle);
 			}
 
 			context.SetDesiredSize({
-				style.padding.left + labelSize.x + (state.label.empty() ? 0.0f : style.labelGap) + style.width + style.padding.right,
-				std::max(style.height, labelSize.y + style.padding.top + style.padding.bottom)
+				usedStyle.padding.left + labelSize.x + (state.label.empty() ? 0.0f : style.labelGap) + usedStyle.width + usedStyle.padding.right,
+				std::max(usedStyle.height, labelSize.y + usedStyle.padding.top + usedStyle.padding.bottom)
 			});
 		}
 
@@ -674,22 +655,24 @@ namespace Sodium
 			const State& state = context.State<State>();
 			const Style& style = context.RootPresentationStyle<SdSliderFloat>();
 			const SdBoxStyle& presentation = context.RootStyleNode().presentationStyle;
-			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, style.fontSize, style.lineHeight);
+			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(presentation, context.animatedRect.Size(), { 180.0f, 30.0f });
+			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, presentation.fontSize, presentation.lineHeight);
 			const float lineHeight = BasicWidgetDetail::ResolveLineHeight(textStyle);
-			const SdColor textColor = BasicWidgetDetail::ApplyOpacity(presentation.color, context.opacity * style.opacity);
-			const SdColor trackColor = BasicWidgetDetail::ApplyOpacity(presentation.backgroundColor, context.opacity * style.opacity);
-			const SdColor border = BasicWidgetDetail::ApplyOpacity(presentation.border.left.color, context.opacity * style.opacity);
+			const SdColor textColor = BasicWidgetDetail::ApplyOpacity(presentation.color, context.opacity * presentation.opacity);
+			const SdColor trackColor = BasicWidgetDetail::ApplyOpacity(presentation.backgroundColor, context.opacity * presentation.opacity);
+			const SdColor border = BasicWidgetDetail::ApplyOpacity(presentation.border.left.color, context.opacity * presentation.opacity);
 			const SdColor accent = BasicWidgetDetail::ApplyOpacity(
 				context.instance.GetStyleSystem().GetTheme().GetColorVariable(SdThemeVariableLiteral("accent")),
-				context.opacity * style.opacity);
+				context.opacity * presentation.opacity);
+			const float radius = SdResolveLength(presentation.radius, usedStyle.width);
 
-			float trackStartX = context.animatedRect.min.x + style.padding.left;
+			float trackStartX = context.animatedRect.min.x + usedStyle.padding.left;
 			if (!state.label.empty())
 			{
 				const SdVec2 labelSize = BasicWidgetDetail::MeasureText(context.instance, state.label, textStyle);
 				const SdVec2 labelPosition = {
 					trackStartX,
-					context.animatedRect.min.y + std::max(style.padding.top, (context.animatedRect.Height() - lineHeight) * 0.5f)
+					context.animatedRect.min.y + std::max(usedStyle.padding.top, (context.animatedRect.Height() - lineHeight) * 0.5f)
 				};
 				context.renderList.AddText(state.label, textStyle, labelPosition, textColor, context.clipRect);
 				trackStartX += labelSize.x + style.labelGap;
@@ -699,15 +682,15 @@ namespace Sodium
 			const SdRect trackRect = {
 				trackStartX,
 				trackCenterY - (style.trackHeight * 0.5f),
-				trackStartX + style.width,
+				trackStartX + usedStyle.width,
 				trackCenterY + (style.trackHeight * 0.5f)
 			};
 			const float t = BasicWidgetDetail::Normalize(state.value, state.minValue, state.maxValue);
 			const float thumbX = BasicWidgetDetail::Lerp(trackRect.min.x, trackRect.max.x, t);
 			const SdRect fillRect = { trackRect.min.x, trackRect.min.y, thumbX, trackRect.max.y };
-			context.renderList.AddRectFilled(trackRect, trackColor, context.clipRect, style.radius);
-			context.renderList.AddRectFilled(fillRect, accent, context.clipRect, style.radius);
-			context.renderList.AddRect(trackRect, border, context.clipRect, 1.0f, style.radius);
+			context.renderList.AddRectFilled(trackRect, trackColor, context.clipRect, radius);
+			context.renderList.AddRectFilled(fillRect, accent, context.clipRect, radius);
+			context.renderList.AddRect(trackRect, border, context.clipRect, 1.0f, radius);
 			context.renderList.AddCircleFilled({ thumbX, trackCenterY }, style.thumbRadius, accent, context.clipRect);
 			context.renderList.AddCircle({ thumbX, trackCenterY }, style.thumbRadius, border, context.clipRect, 1.0f);
 		}
@@ -722,9 +705,10 @@ namespace Sodium
 
 		static float PositionToValue(SdUpdateContext& context, float x, float minValue, float maxValue)
 		{
-			const Style& style = context.instance.GetResolvedStyle<SdSliderFloat>(context.id);
-			const float trackMin = context.widgetState.targetRect.min.x + style.padding.left;
-			const float trackMax = trackMin + std::max(1.0f, style.width);
+			const SdBoxStyle& rootStyle = context.instance.GetRootStyleNode(context.id).resolvedStyle;
+			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(rootStyle, context.widgetState.targetRect.Size(), { 180.0f, 30.0f });
+			const float trackMin = context.widgetState.targetRect.min.x + usedStyle.padding.left;
+			const float trackMax = trackMin + std::max(1.0f, usedStyle.width);
 			const float t = std::clamp((x - trackMin) / (trackMax - trackMin), 0.0f, 1.0f);
 			return BasicWidgetDetail::Lerp(minValue, maxValue, t);
 		}
