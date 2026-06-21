@@ -32,6 +32,35 @@ namespace Sodium
 				record.state.animationActive = true;
 		}
 
+		inline SdPropertyAnimationChannel& SetStylePropertyChannelTarget(
+			SdStyleAnimationChannels& channels,
+			SdStyleNodeId styleNodeId,
+			SdPropertyId propertyId,
+			SdStyleFieldImpact impact,
+			SdStyleInterpolation interpolation,
+			const SdStyleValue& currentValue,
+			const SdStyleValue& targetValue,
+			SdTransition transition,
+			bool immediate,
+			bool expensiveLayout = false)
+		{
+			SdPropertyAnimationChannel& channel = channels.Ensure(styleNodeId, propertyId);
+			channel.impact = impact;
+			channel.interpolation = interpolation;
+			channel.transition = immediate ? SdTransition{} : transition;
+			channel.delay = {};
+			channel.elapsed = {};
+			channel.startValue = currentValue;
+			channel.targetValue = targetValue;
+			channel.currentValue = channel.startValue;
+			channel.expensiveLayout = expensiveLayout;
+			channel.discrete = interpolation == SdStyleInterpolation::None;
+			channel.active = !immediate && !StyleValuesEqual(channel.startValue, channel.targetValue);
+			if (immediate || !channel.active)
+				channel.currentValue = channel.targetValue;
+			return channel;
+		}
+
 		inline void SetStyleColorPropertyChannelTarget(
 			SdStyleAnimationChannels& channels,
 			SdStyleNodeId styleNodeId,
@@ -41,17 +70,16 @@ namespace Sodium
 			SdTransition transition,
 			bool immediate)
 		{
-			SdPropertyAnimationChannel& channel = channels.Ensure(styleNodeId, propertyId);
-			channel.impact = SdStyleFieldImpact::Paint;
-			channel.interpolation = SdStyleInterpolation::Color;
-			channel.transition = immediate ? SdTransition{} : transition;
-			channel.elapsed = {};
-			channel.startValue = SdStyleValue::FromColor(currentValue);
-			channel.targetValue = SdStyleValue::FromColor(targetValue);
-			channel.currentValue = channel.startValue;
-			channel.active = !immediate && !StyleValuesEqual(channel.startValue, channel.targetValue);
-			if (immediate || !channel.active)
-				channel.currentValue = channel.targetValue;
+			SetStylePropertyChannelTarget(
+				channels,
+				styleNodeId,
+				propertyId,
+				SdStyleFieldImpact::Paint,
+				SdStyleInterpolation::Color,
+				SdStyleValue::FromColor(currentValue),
+				SdStyleValue::FromColor(targetValue),
+				transition,
+				immediate);
 		}
 
 		inline SdColor GetStyleColorPropertyChannelValue(
@@ -312,25 +340,45 @@ namespace Sodium
 
 					if (canTransition)
 					{
+						const SdStyleValue startValue = field.readValue(&presentationStyle);
+						const SdStyleValue targetValue = field.readValue(&resolvedStyle);
+						SdPropertyAnimationChannel& propertyChannel = Detail::SetStylePropertyChannelTarget(
+							context.styleAnimationChannels,
+							record.rootStyleNodeId,
+							field.fieldId,
+							field.impact,
+							field.interpolation,
+							startValue,
+							targetValue,
+							transition,
+							false,
+							field.expensiveTransition);
 						SdTypedStyleAnimationChannel& channel = Detail::GetOrCreateTypedStyleAnimationChannel(styleRecord, field.fieldId);
 						channel.styleNodeId = record.rootStyleNodeId;
 						channel.propertyId = field.fieldId;
 						channel.impact = field.impact;
 						channel.interpolation = field.interpolation;
 						channel.transition = transition;
-						channel.elapsed = {};
-						channel.startValue = field.readValue(&presentationStyle);
-						channel.targetValue = field.readValue(&resolvedStyle);
-						channel.currentValue = channel.startValue;
-						channel.active = !Detail::StyleValuesEqual(channel.startValue, channel.targetValue);
+						channel.elapsed = propertyChannel.elapsed;
+						channel.startValue = propertyChannel.startValue;
+						channel.targetValue = propertyChannel.targetValue;
+						channel.currentValue = propertyChannel.currentValue;
+						channel.active = propertyChannel.active;
 						if (!channel.active)
-							field.writeValue(&presentationStyle, channel.targetValue, context.styleSystem.GetTheme());
+							field.writeValue(&presentationStyle, propertyChannel.currentValue, context.styleSystem.GetTheme());
 						Detail::MarkTypedStyleFieldImpact(record, field.impact, channel.active);
 					}
 					else
 					{
 						if (SdTypedStyleAnimationChannel* channel = Detail::FindTypedStyleAnimationChannel(styleRecord, field.fieldId))
 							channel->active = false;
+						if (field.readValue)
+						{
+							SdPropertyAnimationChannel& propertyChannel = context.styleAnimationChannels.Ensure(record.rootStyleNodeId, field.fieldId);
+							propertyChannel.active = false;
+							propertyChannel.currentValue = field.readValue(&resolvedStyle);
+							propertyChannel.targetValue = propertyChannel.currentValue;
+						}
 						field.copy(&presentationStyle, &resolvedStyle);
 						Detail::MarkTypedStyleFieldImpact(record, field.impact, false);
 					}
@@ -362,7 +410,7 @@ namespace Sodium
 				return;
 
 			const auto& contract = context.styleSystem.GetContract<TWidget>();
-			const float seconds = std::max(0.001f, static_cast<float>(deltaTime.count()) / 1000000000.0f);
+			(void)deltaTime;
 			for (SdTypedStyleAnimationChannel& channel : styleRecord.animationChannels)
 			{
 				if (!channel.active)
@@ -375,18 +423,17 @@ namespace Sodium
 					continue;
 				}
 
-				channel.elapsed += std::chrono::duration_cast<SdDuration>(std::chrono::duration<float>(seconds));
-				const float durationSeconds = std::max(0.001f, static_cast<float>(channel.transition.duration.count()) / 1000000000.0f);
-				const float elapsedSeconds = std::max(0.0f, static_cast<float>(channel.elapsed.count()) / 1000000000.0f);
-				const float t = std::clamp(elapsedSeconds / durationSeconds, 0.0f, 1.0f);
-				const float eased = SdApplyEasing(t, channel.transition.easing);
-				channel.currentValue = Detail::InterpolateStyleValue(channel.startValue, channel.targetValue, channel.interpolation, eased);
+				SdPropertyAnimationChannel& propertyChannel = context.styleAnimationChannels.Ensure(channel.styleNodeId, channel.propertyId);
+				channel.elapsed = propertyChannel.elapsed;
+				channel.currentValue = propertyChannel.currentValue;
 				field->writeValue(presentationStyle, channel.currentValue, context.styleSystem.GetTheme());
-				channel.active = t < 1.0f && !Detail::StyleValuesEqual(channel.currentValue, channel.targetValue);
+				channel.active = propertyChannel.active && !Detail::StyleValuesEqual(channel.currentValue, channel.targetValue);
 				if (!channel.active)
 				{
 					channel.currentValue = channel.targetValue;
 					field->writeValue(presentationStyle, channel.targetValue, context.styleSystem.GetTheme());
+					propertyChannel.active = false;
+					propertyChannel.currentValue = channel.targetValue;
 				}
 
 				Detail::MarkTypedStyleFieldImpact(record, channel.impact, channel.active);

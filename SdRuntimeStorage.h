@@ -809,29 +809,6 @@ namespace Sodium
 			return true;
 		}
 
-		SdUInt32 CountActiveStyleNodeBoundTypedStyleAnimationChannels() const noexcept
-		{
-			SdUInt32 count = 0;
-			for (const auto& [id, record] : widgetRecords)
-			{
-				(void)id;
-				for (const auto& [type, styleRecord] : record.typedStyles)
-				{
-					(void)type;
-					for (const SdTypedStyleAnimationChannel& channel : styleRecord.animationChannels)
-					{
-						if (channel.active
-							&& channel.styleNodeId != SdInvalidStyleNodeId
-							&& channel.propertyId != 0)
-						{
-							++count;
-						}
-					}
-				}
-			}
-			return count;
-		}
-
 		SdStateStorageStats& GetStats() noexcept
 		{
 			return stats;
