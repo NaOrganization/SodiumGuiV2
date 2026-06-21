@@ -208,6 +208,15 @@ namespace Sodium
 				const float borderHeight = std::max(0.0f, child.usedStyleValues.height
 					+ child.usedStyleValues.padding.top + child.usedStyleValues.padding.bottom
 					+ child.usedStyleValues.border.top + child.usedStyleValues.border.bottom);
+				if (child.usedStyleValues.position == SdPosition::Absolute)
+				{
+					const float x = parent.contentBox.min.x + child.usedStyleValues.margin.left;
+					const float absoluteY = parent.contentBox.min.y + child.usedStyleValues.margin.top;
+					SetBoxRect(child, { x, absoluteY, x + borderWidth, absoluteY + borderHeight });
+					LayoutChildBlock(childIndex);
+					continue;
+				}
+
 				const float x = parent.contentBox.min.x + child.usedStyleValues.margin.left;
 				y += child.usedStyleValues.margin.top;
 				SetBoxRect(child, { x, y, x + borderWidth, y + borderHeight });
@@ -253,6 +262,9 @@ namespace Sodium
 					continue;
 
 				child.usedStyleValues = SdResolveBoxStyle(child.style, parent.contentBox.Size(), child.intrinsicSize);
+				if (child.usedStyleValues.position == SdPosition::Absolute)
+					continue;
+
 				const float childWidth = childBorderWidth(child);
 				const float childHeight = childBorderHeight(child);
 				occupiedMainSize += row
@@ -299,6 +311,17 @@ namespace Sodium
 				SdBoxNode& child = boxes[childIndex];
 				if (child.display == SdDisplay::None)
 					continue;
+
+				if (child.usedStyleValues.position == SdPosition::Absolute)
+				{
+					const float childWidth = childBorderWidth(child);
+					const float childHeight = childBorderHeight(child);
+					const float x = parent.contentBox.min.x + child.usedStyleValues.margin.left;
+					const float y = parent.contentBox.min.y + child.usedStyleValues.margin.top;
+					SetBoxRect(child, { x, y, x + childWidth, y + childHeight });
+					LayoutChildBlock(childIndex);
+					continue;
+				}
 
 				float childWidth = childBorderWidth(child);
 				float childHeight = childBorderHeight(child);

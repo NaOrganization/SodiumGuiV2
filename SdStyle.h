@@ -1061,6 +1061,10 @@ namespace Sodium
 				SdStyleFieldImpact::Layout,
 				SdStyleInterpolation::None,
 				true);
+			propertyRegistry.Register<&SdBoxStyle::position>(
+				SdStyleFieldImpact::Layout,
+				SdStyleInterpolation::None,
+				true);
 			propertyRegistry.Register<&SdBoxStyle::width>(
 				SdStyleFieldImpact::Layout,
 				SdStyleInterpolation::Float,

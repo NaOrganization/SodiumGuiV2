@@ -1192,6 +1192,27 @@ namespace
 		Check(columnBoxes[1].borderBox.min.y == columnBoxes[0].contentBox.min.y, "flex column first child starts at content min");
 		Check(columnBoxes[2].borderBox.min.y == columnBoxes[1].borderBox.max.y + 5.0f, "flex column gap advances next child");
 
+		SdBoxStyle absoluteParentStyle = {};
+		absoluteParentStyle.width = SdLength::Pixels(120.0f);
+		absoluteParentStyle.height = SdLength::Pixels(80.0f);
+		SdBoxStyle absoluteChildStyle = childStyle;
+		absoluteChildStyle.position = SdPosition::Absolute;
+		absoluteChildStyle.margin = {
+			SdLength::Pixels(30.0f),
+			SdLength::Pixels(12.0f),
+			SdLength::Pixels(0.0f),
+			SdLength::Pixels(0.0f)
+		};
+		SdBoxTree absoluteTree = {};
+		const SdUInt32 absoluteParent = absoluteTree.AddBox(24, SdInvalidIndex<SdUInt32>, absoluteParentStyle, { 120.0f, 80.0f });
+		absoluteTree.AddBox(25, absoluteParent, absoluteChildStyle, { 20.0f, 10.0f });
+		absoluteTree.AddBox(26, absoluteParent, childStyle, { 20.0f, 10.0f });
+		absoluteTree.Layout({ 0.0f, 0.0f, 200.0f, 100.0f });
+		const std::vector<SdBoxNode>& absoluteBoxes = absoluteTree.GetBoxes();
+		Check(absoluteBoxes[1].borderBox.min.x == absoluteBoxes[0].contentBox.min.x + 30.0f, "absolute box uses margin left as positioned x offset");
+		Check(absoluteBoxes[1].borderBox.min.y == absoluteBoxes[0].contentBox.min.y + 12.0f, "absolute box uses margin top as positioned y offset");
+		Check(absoluteBoxes[2].borderBox.min.y == absoluteBoxes[0].contentBox.min.y, "absolute box does not consume normal block flow");
+
 		SdInstance instance;
 		instance.BeginFrame({ 320.0f, 200.0f });
 		instance.ui.Declare<SdButton>("Used");
@@ -1244,6 +1265,7 @@ namespace
 		SdInstance overflowInstance;
 		overflowInstance.GetStyleSystem().RootRule(TestOverflowContainer::TargetTypeId)
 			.Set(&SdBoxStyle::display, SdDisplay::Flex)
+			.Set(&SdBoxStyle::position, SdPosition::Absolute)
 			.Set(&SdBoxStyle::flexDirection, SdFlexDirection::Column)
 			.Set(&SdBoxStyle::justifyContent, SdJustifyContent::Center)
 			.Set(&SdBoxStyle::alignItems, SdAlignItems::FlexEnd)
@@ -1266,6 +1288,7 @@ namespace
 		const SdWidgetRootStyle overflowStyle = overflowInstance.GetStyleSystem().ResolveRootStyle(TestOverflowContainer::TargetTypeId, SdStyleInteractionState::Normal);
 		Check(
 			overflowStyle.display == SdDisplay::Flex
+			&& overflowStyle.position == SdPosition::Absolute
 			&& overflowStyle.flexDirection == SdFlexDirection::Column
 			&& overflowStyle.justifyContent == SdJustifyContent::Center
 			&& overflowStyle.alignItems == SdAlignItems::FlexEnd
