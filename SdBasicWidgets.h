@@ -520,15 +520,12 @@ namespace Sodium
 		{
 			float trackHeight = 6.0f;
 			float thumbRadius = 8.0f;
-			float labelGap = 8.0f;
 
-			static Style Default(const SdStyleContext& context)
+			static Style Default(const SdStyleContext&)
 			{
 				Style style = {};
-				const float smallSpacing = context.theme.GetMetricVariable(SdThemeVariableLiteral("spacing.small"));
 				style.trackHeight = 6.0f;
 				style.thumbRadius = 8.0f;
-				style.labelGap = smallSpacing;
 				return style;
 			}
 
@@ -536,7 +533,6 @@ namespace Sodium
 			{
 				contract.Layout(&Style::trackHeight);
 				contract.Layout(&Style::thumbRadius);
-				contract.Layout(&Style::labelGap);
 			}
 		};
 
@@ -592,9 +588,10 @@ namespace Sodium
 				const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, rootStyle.fontSize, rootStyle.lineHeight);
 				labelSize = BasicWidgetDetail::MeasureText(context, state.label, textStyle);
 			}
+			const float labelGap = state.label.empty() ? 0.0f : std::max(0.0f, usedStyle.gap);
 
 			context.SetDesiredSize({
-				usedStyle.padding.left + labelSize.x + (state.label.empty() ? 0.0f : style.labelGap) + usedStyle.width + usedStyle.padding.right,
+				usedStyle.padding.left + labelSize.x + labelGap + usedStyle.width + usedStyle.padding.right,
 				std::max(usedStyle.height, labelSize.y + usedStyle.padding.top + usedStyle.padding.bottom)
 			});
 		}
@@ -605,6 +602,7 @@ namespace Sodium
 			const Style& style = context.RootPresentationStyle<SdSliderFloat>();
 			const SdBoxStyle& presentation = context.RootStyleNode().presentationStyle;
 			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(presentation, context.animatedRect.Size(), { 180.0f, 30.0f });
+			const float labelGap = std::max(0.0f, usedStyle.gap);
 			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, presentation.fontSize, presentation.lineHeight);
 			const float lineHeight = BasicWidgetDetail::ResolveLineHeight(textStyle);
 			const SdColor textColor = BasicWidgetDetail::ApplyOpacity(presentation.color, context.opacity * presentation.opacity);
@@ -624,7 +622,7 @@ namespace Sodium
 					context.animatedRect.min.y + std::max(usedStyle.padding.top, (context.animatedRect.Height() - lineHeight) * 0.5f)
 				};
 				context.renderList.AddText(state.label, textStyle, labelPosition, textColor, context.clipRect);
-				trackStartX += labelSize.x + style.labelGap;
+				trackStartX += labelSize.x + labelGap;
 			}
 
 			const float trackCenterY = context.animatedRect.min.y + (context.animatedRect.Height() * 0.5f);
