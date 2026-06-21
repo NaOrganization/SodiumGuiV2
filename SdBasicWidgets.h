@@ -1519,31 +1519,16 @@ namespace Sodium
 
 		struct Style final
 		{
-			SdSpacing padding = { 7.0f, 5.0f, 7.0f, 5.0f };
-			float fontSize = 16.0f;
-			float lineHeight = 0.0f;
-			float radius = 5.0f;
-			float opacity = 1.0f;
-
 			static Style Default(const SdStyleContext& context)
 			{
+				(void)context;
 				Style style = {};
-				const float smallSpacing = context.theme.GetMetricVariable(SdThemeVariableLiteral("spacing.small"));
-				style.padding = { smallSpacing, smallSpacing, smallSpacing, smallSpacing };
-				style.fontSize = BasicWidgetDetail::kDefaultFontSize;
-				style.lineHeight = 0.0f;
-				style.radius = context.theme.GetMetricVariable(SdThemeVariableLiteral("radius.small"));
-				style.opacity = 1.0f;
 				return style;
 			}
 
 			static void Describe(SdStyleContract<Style>& contract)
 			{
-				contract.Layout(&Style::padding);
-				contract.Layout(&Style::fontSize);
-				contract.Layout(&Style::lineHeight);
-				contract.Paint(&Style::radius).InterpolatesAsFloat();
-				contract.Composite(&Style::opacity).InterpolatesAsFloat();
+				(void)contract;
 			}
 		};
 
@@ -1569,11 +1554,12 @@ namespace Sodium
 		void OnLayout(SdLayoutContext& context)
 		{
 			const State& state = context.State<State>();
-			const Style& style = context.RootResolvedStyle<SdTooltip>();
-			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, style.fontSize, style.lineHeight);
+			const SdBoxStyle& rootStyle = context.RootStyleNode().resolvedStyle;
+			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(rootStyle, context.constraints.maxSize, {});
+			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, rootStyle.fontSize, rootStyle.lineHeight);
 			const SdVec2 textSize = BasicWidgetDetail::MeasureText(context, state.text, textStyle);
 			const SdVec2 size = state.visible
-				? SdVec2{ textSize.x + style.padding.left + style.padding.right, textSize.y + style.padding.top + style.padding.bottom }
+				? SdVec2{ textSize.x + usedStyle.padding.left + usedStyle.padding.right, textSize.y + usedStyle.padding.top + usedStyle.padding.bottom }
 				: SdVec2{};
 			context.widgetState.manualLayout = true;
 			context.widgetState.manualRect = BasicWidgetDetail::MakeRect(state.position, size);
@@ -1585,18 +1571,19 @@ namespace Sodium
 			const State& state = context.State<State>();
 			if (!state.visible)
 				return;
-			const Style& style = context.RootPresentationStyle<SdTooltip>();
 			const SdBoxStyle& presentation = context.RootStyleNode().presentationStyle;
-			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, style.fontSize, style.lineHeight);
-			const SdColor background = BasicWidgetDetail::ApplyOpacity(presentation.backgroundColor, context.opacity * style.opacity);
-			const SdColor border = BasicWidgetDetail::ApplyOpacity(presentation.border.left.color, context.opacity * style.opacity);
-			const SdColor color = BasicWidgetDetail::ApplyOpacity(presentation.color, context.opacity * style.opacity);
-			context.renderList.AddRectFilled(context.animatedRect, background, context.clipRect, style.radius);
-			context.renderList.AddRect(context.animatedRect, border, context.clipRect, 1.0f, style.radius);
+			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(presentation, context.animatedRect.Size(), {});
+			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, presentation.fontSize, presentation.lineHeight);
+			const SdColor background = BasicWidgetDetail::ApplyOpacity(presentation.backgroundColor, context.opacity * presentation.opacity);
+			const SdColor border = BasicWidgetDetail::ApplyOpacity(presentation.border.left.color, context.opacity * presentation.opacity);
+			const SdColor color = BasicWidgetDetail::ApplyOpacity(presentation.color, context.opacity * presentation.opacity);
+			const float radius = SdResolveLength(presentation.radius, context.animatedRect.Width());
+			context.renderList.AddRectFilled(context.animatedRect, background, context.clipRect, radius);
+			context.renderList.AddRect(context.animatedRect, border, context.clipRect, 1.0f, radius);
 			context.renderList.AddText(
 				state.text,
 				textStyle,
-				{ context.animatedRect.min.x + style.padding.left, context.animatedRect.min.y + style.padding.top },
+				{ context.animatedRect.min.x + usedStyle.padding.left, context.animatedRect.min.y + usedStyle.padding.top },
 				color,
 				context.clipRect);
 		}

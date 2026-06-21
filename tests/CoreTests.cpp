@@ -529,6 +529,10 @@ namespace
 		Check(popupDefault.width.unit == SdLengthUnit::Pixels && popupDefault.width.value == 220.0f, "popup default width resolves through root style");
 		Check(contextMenuDefault.height.unit == SdLengthUnit::Pixels && contextMenuDefault.height.value == 140.0f, "context menu default height resolves through root style");
 
+		const SdWidgetRootStyle tooltipDefault = styleSystem.ResolveRootStyle(SdTooltip::TargetTypeId, SdStyleInteractionState::Normal, SdLayerPriority::Overlay);
+		Check(tooltipDefault.padding.left.value == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableLiteral("spacing.small")), "tooltip default padding resolves through root style");
+		Check(tooltipDefault.fontSize == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableLiteral("font.button")), "tooltip font size resolves through root style");
+
 		constexpr SdStyleClassId panelClass = SdStyleClassLiteral("Tests.Panel.RootStyle");
 		constexpr SdStyleScopeId panelScope = SdStyleScopeLiteral("Tests.Panel.Scope");
 		const SdStyleClassId panelClasses[] = { panelClass };

@@ -44,8 +44,6 @@ namespace SodiumDynamicExample
 		const Sodium::SdAnimationEasing easing = Sodium::SdAnimationEasing::OutCubic;
 		styleSystem.Rule<Sodium::SdWindow>()
 			.Transition(&Sodium::SdWindow::Style::radius, themeTransition, easing);
-		styleSystem.Rule<Sodium::SdTooltip>()
-			.Transition(&Sodium::SdTooltip::Style::radius, themeTransition, easing);
 	}
 
 	class DetourHook final
