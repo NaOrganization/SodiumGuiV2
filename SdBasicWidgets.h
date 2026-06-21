@@ -622,17 +622,17 @@ namespace Sodium
 			const Style& style = context.RootPresentationStyle<SdSliderFloat>();
 			const SdBoxStyle& presentation = context.RootStyleNode().presentationStyle;
 			const SdBoxStyle& labelPresentation = context.Part(Parts::Label).presentationStyle;
+			const SdBoxStyle& trackPresentation = context.Part(Parts::Track).presentationStyle;
+			const SdBoxStyle& fillPresentation = context.Part(Parts::Fill).presentationStyle;
 			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(presentation, context.animatedRect.Size(), { 180.0f, 30.0f });
 			const float labelGap = std::max(0.0f, usedStyle.gap);
 			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, labelPresentation.fontSize, labelPresentation.lineHeight);
 			const float lineHeight = BasicWidgetDetail::ResolveLineHeight(textStyle);
 			const SdColor textColor = BasicWidgetDetail::ApplyOpacity(labelPresentation.color, context.opacity * labelPresentation.opacity);
-			const SdColor trackColor = BasicWidgetDetail::ApplyOpacity(presentation.backgroundColor, context.opacity * presentation.opacity);
-			const SdColor border = BasicWidgetDetail::ApplyOpacity(presentation.border.left.color, context.opacity * presentation.opacity);
-			const SdColor accent = BasicWidgetDetail::ApplyOpacity(
-				context.instance.GetStyleSystem().GetTheme().GetColorVariable(SdThemeVariableLiteral("accent")),
-				context.opacity * presentation.opacity);
-			const float radius = SdResolveLength(presentation.radius, usedStyle.width);
+			const SdColor trackColor = BasicWidgetDetail::ApplyOpacity(trackPresentation.backgroundColor, context.opacity * trackPresentation.opacity);
+			const SdColor trackBorder = BasicWidgetDetail::ApplyOpacity(trackPresentation.border.left.color, context.opacity * trackPresentation.opacity);
+			const SdColor fillColor = BasicWidgetDetail::ApplyOpacity(fillPresentation.backgroundColor, context.opacity * fillPresentation.opacity);
+			const float radius = SdResolveLength(trackPresentation.radius, usedStyle.width, SdResolveLength(presentation.radius, usedStyle.width));
 
 			float trackStartX = context.animatedRect.min.x + usedStyle.padding.left;
 			if (!state.label.empty())
@@ -657,10 +657,10 @@ namespace Sodium
 			const float thumbX = BasicWidgetDetail::Lerp(trackRect.min.x, trackRect.max.x, t);
 			const SdRect fillRect = { trackRect.min.x, trackRect.min.y, thumbX, trackRect.max.y };
 			context.renderList.AddRectFilled(trackRect, trackColor, context.clipRect, radius);
-			context.renderList.AddRectFilled(fillRect, accent, context.clipRect, radius);
-			context.renderList.AddRect(trackRect, border, context.clipRect, 1.0f, radius);
-			context.renderList.AddCircleFilled({ thumbX, trackCenterY }, style.thumbRadius, accent, context.clipRect);
-			context.renderList.AddCircle({ thumbX, trackCenterY }, style.thumbRadius, border, context.clipRect, 1.0f);
+			context.renderList.AddRectFilled(fillRect, fillColor, context.clipRect, radius);
+			context.renderList.AddRect(trackRect, trackBorder, context.clipRect, 1.0f, radius);
+			context.renderList.AddCircleFilled({ thumbX, trackCenterY }, style.thumbRadius, fillColor, context.clipRect);
+			context.renderList.AddCircle({ thumbX, trackCenterY }, style.thumbRadius, trackBorder, context.clipRect, 1.0f);
 		}
 
 	private:

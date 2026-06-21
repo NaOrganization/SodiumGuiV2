@@ -494,9 +494,15 @@ namespace
 		RecordingFontBackend sliderPartFontBackend = {};
 		sliderPartStyleInstance.SetFontBackend(&sliderPartFontBackend);
 		const SdColor sliderLabelPartColor = SdColor(8, 94, 63, 255);
+		const SdColor sliderTrackPartColor = SdColor(32, 36, 42, 255);
+		const SdColor sliderFillPartColor = SdColor(116, 70, 20, 255);
 		sliderPartStyleInstance.GetStyleSystem().Part<SdSliderFloat>(SdSliderFloat::Parts::Label)
 			.Set(&SdBoxStyle::color, sliderLabelPartColor)
 			.Set(&SdBoxStyle::opacity, 1.0f);
+		sliderPartStyleInstance.GetStyleSystem().Part<SdSliderFloat>(SdSliderFloat::Parts::Track)
+			.Set(&SdBoxStyle::backgroundColor, sliderTrackPartColor);
+		sliderPartStyleInstance.GetStyleSystem().Part<SdSliderFloat>(SdSliderFloat::Parts::Fill)
+			.Set(&SdBoxStyle::backgroundColor, sliderFillPartColor);
 		float sliderPartValue = 0.5f;
 		sliderPartStyleInstance.BeginFrame({ 320.0f, 200.0f });
 		sliderPartStyleInstance.ui.Declare<SdSliderFloat>("Part slide", sliderPartValue, 0.0f, 1.0f);
@@ -507,6 +513,18 @@ namespace
 			&& sliderPartFontBackend.lastPaintColor.g == sliderLabelPartColor.g
 			&& sliderPartFontBackend.lastPaintColor.b == sliderLabelPartColor.b,
 			"slider label part color drives text paint");
+		bool sliderTrackFillPartsApplied = false;
+		for (const auto& [id, record] : sliderPartStyleInstance.GetStateStorage().GetWidgetRecords())
+		{
+			(void)id;
+			if (record.widgetType == std::type_index(typeid(SdSliderFloat)))
+			{
+				const SdBoxStyle& trackStyle = sliderPartStyleInstance.GetStylePart(record.state.id, SdSliderFloat::Parts::Track).presentationStyle;
+				const SdBoxStyle& fillStyle = sliderPartStyleInstance.GetStylePart(record.state.id, SdSliderFloat::Parts::Fill).presentationStyle;
+				sliderTrackFillPartsApplied = trackStyle.backgroundColor == sliderTrackPartColor && fillStyle.backgroundColor == sliderFillPartColor;
+			}
+		}
+		Check(sliderTrackFillPartsApplied, "slider track and fill part backgrounds resolve into part style nodes");
 
 		SdInstance inputPartStyleInstance;
 		RecordingFontBackend inputPartFontBackend = {};
@@ -645,6 +663,10 @@ namespace
 		Check(sliderDefault.height.unit == SdLengthUnit::Pixels && sliderDefault.height.value == 30.0f, "slider default height resolves through root style");
 		Check(sliderDefault.padding.left.value == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableLiteral("spacing.small")), "slider default padding resolves through root style");
 		Check(SdResolveLength(sliderDefault.gap, 0.0f) == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableLiteral("spacing.small")), "slider default label gap resolves through root style");
+		const SdWidgetPartStyle sliderTrackDefault = styleSystem.ResolvePartStyle(SdSliderFloat::TargetTypeId, SdSliderFloat::Parts::Track, sliderDefault, SdStyleInteractionState::Normal);
+		const SdWidgetPartStyle sliderFillDefault = styleSystem.ResolvePartStyle(SdSliderFloat::TargetTypeId, SdSliderFloat::Parts::Fill, sliderDefault, SdStyleInteractionState::Normal);
+		Check(sliderTrackDefault.backgroundColor == styleSystem.GetTheme().GetColorVariable(SdThemeVariableLiteral("panel.bg")), "slider track default background resolves through part style");
+		Check(sliderFillDefault.backgroundColor == styleSystem.GetTheme().GetColorVariable(SdThemeVariableLiteral("accent")), "slider fill default background resolves through part style");
 
 		const SdWidgetRootStyle textInputDefault = styleSystem.ResolveRootStyle(SdTextInput::TargetTypeId, SdStyleInteractionState::Normal);
 		Check(textInputDefault.width.unit == SdLengthUnit::Pixels && textInputDefault.width.value == 220.0f, "text input default width resolves through root style");

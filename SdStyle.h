@@ -955,6 +955,22 @@ namespace Sodium
 				.Set(&SdBoxStyle::fontSize, ThemeMetric("font.button"))
 				.Set(&SdBoxStyle::lineHeight, 0.0f)
 				.Set(&SdBoxStyle::gap, SdLength::Pixels(smallSpacing));
+			typedStyleSheet.PartForTarget(SdWidgetTargetIds::Slider, SdStylePart::Make("Sodium.Slider.Part.Track"))
+				.Cascade(SdCascadeLayer::UserAgent)
+				.Set(&SdBoxStyle::backgroundColor, ThemeColor("panel.bg"))
+				.Set(&SdBoxStyle::border, ThemeColor("border"))
+				.Set(&SdBoxStyle::radius, ThemeMetric("radius.small"));
+			typedStyleSheet.PartForTarget(SdWidgetTargetIds::Slider, SdStylePart::Make("Sodium.Slider.Part.Track"))
+				.Cascade(SdCascadeLayer::UserAgent)
+				.Pseudo(SdStyleInteractionState::Hovered)
+				.Set(&SdBoxStyle::backgroundColor, ThemeColor("button.bg.hover"));
+			typedStyleSheet.PartForTarget(SdWidgetTargetIds::Slider, SdStylePart::Make("Sodium.Slider.Part.Track"))
+				.Cascade(SdCascadeLayer::UserAgent)
+				.Pseudo(SdStyleInteractionState::Pressed)
+				.Set(&SdBoxStyle::backgroundColor, ThemeColor("button.bg.pressed"));
+			typedStyleSheet.PartForTarget(SdWidgetTargetIds::Slider, SdStylePart::Make("Sodium.Slider.Part.Fill"))
+				.Cascade(SdCascadeLayer::UserAgent)
+				.Set(&SdBoxStyle::backgroundColor, ThemeColor("accent"));
 			typedStyleSheet.RuleForTarget<SdWidgetRootStyle>(SdWidgetTargetIds::TextInput)
 				.Cascade(SdCascadeLayer::UserAgent)
 				.Set(&SdBoxStyle::width, SdLength::Pixels(220.0f))
