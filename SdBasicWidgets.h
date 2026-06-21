@@ -1252,37 +1252,22 @@ namespace Sodium
 
 		struct Style final
 		{
-			SdSpacing padding = { 8.0f, 8.0f, 8.0f, 8.0f };
-			float width = 240.0f;
-			float height = 160.0f;
 			float childSpacing = 6.0f;
 			float scrollbarWidth = 5.0f;
-			float radius = 5.0f;
-			float opacity = 1.0f;
 
 			static Style Default(const SdStyleContext& context)
 			{
 				Style style = {};
 				const float smallSpacing = context.theme.GetMetricVariable(SdThemeVariableLiteral("spacing.small"));
-				style.padding = { smallSpacing, smallSpacing, smallSpacing, smallSpacing };
-				style.width = 240.0f;
-				style.height = 160.0f;
 				style.childSpacing = smallSpacing;
 				style.scrollbarWidth = 5.0f;
-				style.radius = context.theme.GetMetricVariable(SdThemeVariableLiteral("radius.small"));
-				style.opacity = 1.0f;
 				return style;
 			}
 
 			static void Describe(SdStyleContract<Style>& contract)
 			{
-				contract.Layout(&Style::padding);
-				contract.Layout(&Style::width);
-				contract.Layout(&Style::height);
 				contract.Layout(&Style::childSpacing);
 				contract.Layout(&Style::scrollbarWidth);
-				contract.Paint(&Style::radius).InterpolatesAsFloat();
-				contract.Composite(&Style::opacity).InterpolatesAsFloat();
 			}
 		};
 
@@ -1309,10 +1294,17 @@ namespace Sodium
 		void OnLayout(SdLayoutContext& context)
 		{
 			const Style& style = context.RootResolvedStyle<SdScrollView>();
-			context.SetDesiredSize({ std::max(0.0f, style.width), std::max(0.0f, style.height) });
+			const SdBoxStyle& rootStyle = context.RootStyleNode().resolvedStyle;
+			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(rootStyle, context.constraints.maxSize, { 240.0f, 160.0f });
+			context.SetDesiredSize({ std::max(0.0f, usedStyle.width), std::max(0.0f, usedStyle.height) });
 			context.widgetState.arrangeChildren = true;
 			context.widgetState.clipChildren = true;
-			context.widgetState.childPadding = style.padding;
+			context.widgetState.childPadding = {
+				usedStyle.padding.left,
+				usedStyle.padding.top,
+				usedStyle.padding.right,
+				usedStyle.padding.bottom
+			};
 			context.widgetState.childSpacing = std::max(0.0f, style.childSpacing);
 		}
 
@@ -1321,13 +1313,14 @@ namespace Sodium
 			const State& state = context.State<State>();
 			const Style& style = context.RootPresentationStyle<SdScrollView>();
 			const SdBoxStyle& presentation = context.RootStyleNode().presentationStyle;
-			const SdColor background = BasicWidgetDetail::ApplyOpacity(presentation.backgroundColor, context.opacity * style.opacity);
-			const SdColor border = BasicWidgetDetail::ApplyOpacity(presentation.border.left.color, context.opacity * style.opacity);
+			const SdColor background = BasicWidgetDetail::ApplyOpacity(presentation.backgroundColor, context.opacity * presentation.opacity);
+			const SdColor border = BasicWidgetDetail::ApplyOpacity(presentation.border.left.color, context.opacity * presentation.opacity);
 			const SdColor accent = BasicWidgetDetail::ApplyOpacity(
 				context.instance.GetStyleSystem().GetTheme().GetColorVariable(SdThemeVariableLiteral("accent")),
-				context.opacity * style.opacity);
-			context.renderList.AddRectFilled(context.animatedRect, background, context.clipRect, style.radius);
-			context.renderList.AddRect(context.animatedRect, border, context.clipRect, 1.0f, style.radius);
+				context.opacity * presentation.opacity);
+			const float radius = SdResolveLength(presentation.radius, context.animatedRect.Width());
+			context.renderList.AddRectFilled(context.animatedRect, background, context.clipRect, radius);
+			context.renderList.AddRect(context.animatedRect, border, context.clipRect, 1.0f, radius);
 
 			if (style.scrollbarWidth > 0.0f && state.scrollOffset > 0.0f)
 			{

@@ -33,8 +33,10 @@ namespace SodiumDynamicExample
 	constexpr Sodium::SdStyleClassId kOverlayAccentTextClass = Sodium::SdStyleClassLiteral("Sodium.DynamicExample.Text.Accent");
 	constexpr Sodium::SdStyleClassId kOverlayMutedTextClass = Sodium::SdStyleClassLiteral("Sodium.DynamicExample.Text.Muted");
 	constexpr Sodium::SdStyleClassId kOverlayBasicPanelClass = Sodium::SdStyleClassLiteral("Sodium.DynamicExample.Panel.Basic");
+	constexpr Sodium::SdStyleClassId kOverlayBasicScrollClass = Sodium::SdStyleClassLiteral("Sodium.DynamicExample.Scroll.Basic");
 	constexpr Sodium::SdStyleScopeId kOverlayTextScope = Sodium::SdStyleScopeLiteral("Sodium.DynamicExample.Scope.Overlay");
 	constexpr Sodium::SdStyleScopeId kOverlayPanelScope = Sodium::SdStyleScopeLiteral("Sodium.DynamicExample.Scope.Panel");
+	constexpr Sodium::SdStyleScopeId kOverlayScrollScope = Sodium::SdStyleScopeLiteral("Sodium.DynamicExample.Scope.Scroll");
 
 	void ConfigureBuiltInThemeTransitions(Sodium::SdStyleSystem& styleSystem)
 	{
@@ -42,8 +44,6 @@ namespace SodiumDynamicExample
 		const Sodium::SdAnimationEasing easing = Sodium::SdAnimationEasing::OutCubic;
 		styleSystem.Rule<Sodium::SdWindow>()
 			.Transition(&Sodium::SdWindow::Style::radius, themeTransition, easing);
-		styleSystem.Rule<Sodium::SdScrollView>()
-			.Transition(&Sodium::SdScrollView::Style::radius, themeTransition, easing);
 		styleSystem.Rule<Sodium::SdPopup>()
 			.Transition(&Sodium::SdPopup::Style::radius, themeTransition, easing);
 		styleSystem.Rule<Sodium::SdContextMenu>()
@@ -310,12 +310,14 @@ namespace SodiumDynamicExample
 				context.ui.DeclareKeyed<Sodium::SdTextInput>("overlay_text_input", controls.textInputValue, "SdTextInput");
 				context.ui.DeclareKeyed<Sodium::SdImageViewer>("overlay_image", fontAtlasTexture, Sodium::SdVec2{ 96.0f, 30.0f });
 
+				const Sodium::SdStyleClassId scrollClasses[] = { kOverlayBasicScrollClass };
+				const Sodium::SdStyleIdentity scrollIdentity{
+					Sodium::SdSpan<const Sodium::SdStyleClassId>(scrollClasses, 1),
+					kOverlayScrollScope
+				};
 				Sodium::SdScrollView::Style scrollStyle = {};
-				scrollStyle.width = 472.0f;
-				scrollStyle.height = 74.0f;
-				scrollStyle.padding = { 8.0f, 8.0f, 8.0f, 8.0f };
 				scrollStyle.childSpacing = 3.0f;
-				context.ui.DeclareStyledKeyed<Sodium::SdScrollView>("overlay_scroll", &scrollStyle, [](Sodium::SdUi& ui)
+				context.ui.DeclareStyledKeyed<Sodium::SdScrollView>("overlay_scroll", scrollIdentity, &scrollStyle, [](Sodium::SdUi& ui)
 				{
 					ui.Declare<Sodium::SdText>("SdScrollView row");
 					ui.Declare<Sodium::SdButton>("Child button");
@@ -428,6 +430,12 @@ namespace SodiumDynamicExample
 				.Class(kOverlayBasicPanelClass)
 				.Set(&Sodium::SdBoxStyle::width, Sodium::SdLength::Pixels(472.0f))
 				.Set(&Sodium::SdBoxStyle::height, Sodium::SdLength::Pixels(64.0f))
+				.Set(&Sodium::SdBoxStyle::padding, Sodium::SdStyleValue::FromSpacing({ 8.0f, 8.0f, 8.0f, 8.0f }));
+			styleSystem.RootRule(Sodium::SdScrollView::TargetTypeId)
+				.Scope(kOverlayScrollScope)
+				.Class(kOverlayBasicScrollClass)
+				.Set(&Sodium::SdBoxStyle::width, Sodium::SdLength::Pixels(472.0f))
+				.Set(&Sodium::SdBoxStyle::height, Sodium::SdLength::Pixels(74.0f))
 				.Set(&Sodium::SdBoxStyle::padding, Sodium::SdStyleValue::FromSpacing({ 8.0f, 8.0f, 8.0f, 8.0f }));
 			styleConfigured = true;
 		}

@@ -519,6 +519,11 @@ namespace
 		Check(imageViewerDefault.width.unit == SdLengthUnit::Pixels && imageViewerDefault.width.value == 160.0f, "image viewer default width resolves through root style");
 		Check(imageViewerDefault.height.unit == SdLengthUnit::Pixels && imageViewerDefault.height.value == 120.0f, "image viewer default height resolves through root style");
 
+		const SdWidgetRootStyle scrollViewDefault = styleSystem.ResolveRootStyle(SdScrollView::TargetTypeId, SdStyleInteractionState::Normal);
+		Check(scrollViewDefault.width.unit == SdLengthUnit::Pixels && scrollViewDefault.width.value == 240.0f, "scroll view default width resolves through root style");
+		Check(scrollViewDefault.height.unit == SdLengthUnit::Pixels && scrollViewDefault.height.value == 160.0f, "scroll view default height resolves through root style");
+		Check(scrollViewDefault.padding.left.value == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableLiteral("spacing.small")), "scroll view default padding resolves through root style");
+
 		constexpr SdStyleClassId panelClass = SdStyleClassLiteral("Tests.Panel.RootStyle");
 		constexpr SdStyleScopeId panelScope = SdStyleScopeLiteral("Tests.Panel.Scope");
 		const SdStyleClassId panelClasses[] = { panelClass };

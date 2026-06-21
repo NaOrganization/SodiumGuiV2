@@ -940,6 +940,11 @@ namespace Sodium
 				.Cascade(SdCascadeLayer::UserAgent)
 				.Set(&SdBoxStyle::width, SdLength::Pixels(160.0f))
 				.Set(&SdBoxStyle::height, SdLength::Pixels(120.0f));
+			typedStyleSheet.RuleForTarget<SdWidgetRootStyle>(SdWidgetTargetIds::ScrollView)
+				.Cascade(SdCascadeLayer::UserAgent)
+				.Set(&SdBoxStyle::width, SdLength::Pixels(240.0f))
+				.Set(&SdBoxStyle::height, SdLength::Pixels(160.0f))
+				.Set(&SdBoxStyle::padding, SdStyleValue::FromSpacing({ smallSpacing, smallSpacing, smallSpacing, smallSpacing }));
 
 			AddDefaultRootBackgroundRule(SdWidgetTargetIds::Default, SdStyleInteractionState::Normal, SdLayerPriority::Content, "background");
 			AddDefaultRootBackgroundRule(SdWidgetTargetIds::Panel, SdStyleInteractionState::Normal, SdLayerPriority::Content, "panel.bg");
