@@ -1007,6 +1007,28 @@ namespace
 		}
 		Check(hasUsedBox, "runtime writes used geometry to root style node");
 		Check(hasPartUsedBox, "runtime writes used geometry to part style nodes");
+
+		SdInstance panelInstance;
+		panelInstance.BeginFrame({ 320.0f, 200.0f });
+		panelInstance.ui.Declare<SdPanel>([](SdUi& ui)
+		{
+			ui.Declare<SdText>("child");
+		});
+		PumpFrame(panelInstance);
+		bool hasContentRectFromUsedBox = false;
+		for (const auto& [id, record] : panelInstance.GetStateStorage().GetWidgetRecords())
+		{
+			(void)id;
+			if (record.widgetType == std::type_index(typeid(SdPanel)))
+			{
+				const SdStyleNode& root = panelInstance.GetRootStyleNode(record.state.id);
+				hasContentRectFromUsedBox = record.state.childContentRect.min.x == root.usedBox.contentBox.min.x
+					&& record.state.childContentRect.min.y == root.usedBox.contentBox.min.y
+					&& record.state.childContentRect.max.x == root.usedBox.contentBox.max.x
+					&& record.state.childContentRect.max.y == root.usedBox.contentBox.max.y;
+			}
+		}
+		Check(hasContentRectFromUsedBox, "runtime child content rect matches root used content box");
 	}
 
 	void TestIdAndKeySemantics()
@@ -1628,6 +1650,7 @@ namespace
 			{},
 			SdLayoutResult{ { 120.0f, 120.0f } },
 			{ 10.0f, 10.0f, 130.0f, 130.0f },
+			{},
 			{ 4.0f, 6.0f, 4.0f, 6.0f },
 			1.0f,
 			5.0f,
@@ -1642,6 +1665,7 @@ namespace
 			SdLayoutResult{ { 50.0f, 20.0f } },
 			{},
 			{},
+			{},
 			1.0f,
 			0.0f,
 			false,
@@ -1653,6 +1677,7 @@ namespace
 			1,
 			{},
 			SdLayoutResult{ { 50.0f, 40.0f } },
+			{},
 			{},
 			{},
 			0.5f,

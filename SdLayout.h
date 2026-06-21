@@ -21,6 +21,7 @@ namespace Sodium
 		SdRect manualRect = {};
 		SdRect childContentRect = {};
 		SdRect computedClipRect = {};
+		SdSpacing childBorder = {};
 		SdSpacing childPadding = {};
 		float layoutWeight = 1.0f;
 		float childSpacing = 0.0f;
@@ -36,6 +37,7 @@ namespace Sodium
 		SdLayoutConstraints constraints = {};
 		SdLayoutResult result = {};
 		SdRect manualRect = {};
+		SdSpacing childBorder = {};
 		SdSpacing childPadding = {};
 		float layoutWeight = 1.0f;
 		float childSpacing = 0.0f;
@@ -101,7 +103,7 @@ namespace Sodium
 			node.targetRect = targetRect;
 			node.result.finalRect = targetRect;
 			node.computedClipRect = clipRect;
-			node.childContentRect = InsetRect(targetRect, node.childPadding);
+			node.childContentRect = InsetRect(InsetRect(targetRect, node.childBorder), node.childPadding);
 		}
 
 		void ArrangeChildren(SdUInt32 parentIndex)
@@ -162,6 +164,7 @@ namespace Sodium
 			node.constraints = input.constraints;
 			node.result = input.result;
 			node.manualRect = input.manualRect;
+			node.childBorder = input.childBorder;
 			node.childPadding = input.childPadding;
 			node.layoutWeight = input.layoutWeight;
 			node.childSpacing = input.childSpacing;
