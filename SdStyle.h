@@ -819,12 +819,6 @@ namespace Sodium
 			return typedRules.back();
 		}
 
-		template<class TStyle, class TField>
-		void RegisterTypedProperty(TField TStyle::* member)
-		{
-			(void)member;
-		}
-
 		template<class TStyle>
 		const SdStyleContract<TStyle>& GetStyleContract() const
 		{
@@ -1381,7 +1375,6 @@ namespace Sodium
 			template<class TField>
 			SdStyleRuleBuilder& SetValue(TField Style::* member, SdStyleValue value)
 			{
-				system.template RegisterTypedProperty<Style>(member);
 				BuildCompiledRule().Set(member, value);
 				system.compiledStyleSheet = system.typedStyleSheet.Compile();
 				system.Touch();
