@@ -308,6 +308,8 @@ namespace Sodium
 		SdWidgetState state = {};
 		SdComputedStyle style = {};
 		SdStyleNode rootStyleNode = {};
+		SdStyleNodeId rootStyleNodeId = SdInvalidStyleNodeId;
+		std::vector<SdStyleNodeId> partStyleNodeIds = {};
 		SdLayoutCache layoutCache = {};
 		SdStyleCache styleCache = {};
 		SdAnimationWidgetState animation = {};
@@ -340,6 +342,7 @@ namespace Sodium
 		SdUInt32 leavingWidgetCount = 0;
 		SdUInt32 removedWidgetCount = 0;
 		SdUInt32 modelCount = 0;
+		SdUInt32 styleNodeCount = 0;
 		SdUInt32 liveObjectCount = 0;
 
 		void ResetFrameTransient() noexcept
@@ -357,11 +360,51 @@ namespace Sodium
 		std::unordered_map<SdWidgetId, SdWidgetRecord> widgetRecords = {};
 		std::unordered_map<SdResolvedKey, SdWidgetId> widgetIdByResolvedKey = {};
 		std::unordered_map<SdResolvedKey, std::unordered_map<std::type_index, Detail::SdObjectHandle>> keyedModels = {};
+		std::vector<SdStyleNode> styleNodes = {};
 		Detail::SdObjectStore objectStore = {};
 		SdStateStorageStats stats = {};
 
+		SdStyleNode& CreateStyleNode(SdWidgetRecord& record, SdWidgetId widgetId, SdStylePart part, SdStyleNodeKind kind)
+		{
+			const SdStyleNodeId index = static_cast<SdStyleNodeId>(styleNodes.size());
+			SdStyleNode& node = styleNodes.emplace_back();
+			node.styleNodeId = index;
+			node.widgetId = widgetId;
+			node.part = part;
+			node.kind = kind;
+			node.parentStyleNodeId = kind == SdStyleNodeKind::Root ? SdInvalidStyleNodeId : record.rootStyleNodeId;
+			if (kind == SdStyleNodeKind::Root)
+			{
+				record.rootStyleNodeId = index;
+				record.styleCache.rootStyleNodeId = index;
+				record.rootStyleNode = node;
+			}
+			else
+			{
+				record.partStyleNodeIds.push_back(index);
+			}
+			stats.styleNodeCount = CountLiveStyleNodes();
+			return node;
+		}
+
+		void ReleaseStyleNodes(SdWidgetRecord& record) noexcept
+		{
+			if (record.rootStyleNodeId != SdInvalidStyleNodeId && record.rootStyleNodeId < styleNodes.size())
+				styleNodes[record.rootStyleNodeId].widgetId = 0;
+			for (SdStyleNodeId partNodeId : record.partStyleNodeIds)
+			{
+				if (partNodeId < styleNodes.size())
+					styleNodes[partNodeId].widgetId = 0;
+			}
+			record.rootStyleNodeId = SdInvalidStyleNodeId;
+			record.styleCache.rootStyleNodeId = SdInvalidStyleNodeId;
+			record.partStyleNodeIds.clear();
+			stats.styleNodeCount = CountLiveStyleNodes();
+		}
+
 		void DestroyWidgetRecordObjects(SdWidgetRecord& record)
 		{
+			ReleaseStyleNodes(record);
 			objectStore.Destroy(record.widgetObject);
 			for (auto& [type, handle] : record.userStates)
 				objectStore.Destroy(handle);
@@ -392,6 +435,7 @@ namespace Sodium
 			widgetRecords.clear();
 			widgetIdByResolvedKey.clear();
 			keyedModels.clear();
+			styleNodes.clear();
 			objectStore.Clear();
 			stats = {};
 		}
@@ -400,6 +444,7 @@ namespace Sodium
 		{
 			stats.ResetFrameTransient();
 			stats.modelCount = static_cast<SdUInt32>(keyedModels.size());
+			stats.styleNodeCount = CountLiveStyleNodes();
 			stats.liveObjectCount = objectStore.GetLiveObjectCount();
 		}
 
@@ -435,6 +480,99 @@ namespace Sodium
 		const std::unordered_map<SdWidgetId, SdWidgetRecord>& GetWidgetRecords() const noexcept
 		{
 			return widgetRecords;
+		}
+
+		SdStyleNode& EnsureRootStyleNode(SdWidgetRecord& record, SdWidgetId widgetId)
+		{
+			if (record.rootStyleNodeId != SdInvalidStyleNodeId
+				&& record.rootStyleNodeId < styleNodes.size()
+				&& styleNodes[record.rootStyleNodeId].kind == SdStyleNodeKind::Root)
+			{
+				SdStyleNode& node = styleNodes[record.rootStyleNodeId];
+				node.widgetId = widgetId;
+				node.part = SdStylePart::Root();
+				node.parentStyleNodeId = SdInvalidStyleNodeId;
+				record.rootStyleNode = node;
+				record.styleCache.rootStyleNodeId = record.rootStyleNodeId;
+				return node;
+			}
+
+			return CreateStyleNode(record, widgetId, SdStylePart::Root(), SdStyleNodeKind::Root);
+		}
+
+		SdStyleNode& EnsurePartStyleNode(SdWidgetRecord& record, SdStylePart part)
+		{
+			if (part.IsRoot())
+				return EnsureRootStyleNode(record, record.state.id);
+
+			EnsureRootStyleNode(record, record.state.id);
+			for (SdStyleNodeId partNodeId : record.partStyleNodeIds)
+			{
+				if (partNodeId >= styleNodes.size())
+					continue;
+				SdStyleNode& node = styleNodes[partNodeId];
+				if (node.part == part)
+				{
+					node.widgetId = record.state.id;
+					node.parentStyleNodeId = record.rootStyleNodeId;
+					return node;
+				}
+			}
+
+			SdStyleNode& node = CreateStyleNode(record, record.state.id, part, SdStyleNodeKind::Part);
+			const SdStyleNode& root = styleNodes[record.rootStyleNodeId];
+			node.scopeId = root.scopeId;
+			node.pseudoState = root.pseudoState;
+			node.specifiedStyle = root.resolvedStyle;
+			node.resolvedStyle = root.resolvedStyle;
+			node.presentationStyle = root.presentationStyle;
+			return node;
+		}
+
+		SdStyleNode* FindStyleNode(SdWidgetRecord& record, SdStylePart part) noexcept
+		{
+			if (part.IsRoot())
+				return (record.rootStyleNodeId != SdInvalidStyleNodeId && record.rootStyleNodeId < styleNodes.size())
+					? &styleNodes[record.rootStyleNodeId]
+					: nullptr;
+
+			for (SdStyleNodeId partNodeId : record.partStyleNodeIds)
+			{
+				if (partNodeId < styleNodes.size() && styleNodes[partNodeId].part == part)
+					return &styleNodes[partNodeId];
+			}
+			return nullptr;
+		}
+
+		const SdStyleNode* FindStyleNode(const SdWidgetRecord& record, SdStylePart part) const noexcept
+		{
+			return const_cast<SdStateStorage*>(this)->FindStyleNode(const_cast<SdWidgetRecord&>(record), part);
+		}
+
+		SdStyleNode* FindStyleNodeById(SdStyleNodeId styleNodeId) noexcept
+		{
+			return styleNodeId < styleNodes.size() ? &styleNodes[styleNodeId] : nullptr;
+		}
+
+		const SdStyleNode* FindStyleNodeById(SdStyleNodeId styleNodeId) const noexcept
+		{
+			return styleNodeId < styleNodes.size() ? &styleNodes[styleNodeId] : nullptr;
+		}
+
+		const std::vector<SdStyleNode>& GetStyleNodes() const noexcept
+		{
+			return styleNodes;
+		}
+
+		SdUInt32 CountLiveStyleNodes() const noexcept
+		{
+			SdUInt32 count = 0;
+			for (const SdStyleNode& node : styleNodes)
+			{
+				if (node.widgetId != 0)
+					++count;
+			}
+			return count;
 		}
 
 		void RegisterResolvedKey(SdResolvedKey resolvedKey, SdWidgetId widgetId)

@@ -157,6 +157,8 @@ namespace
 
 	float gTypedStyleLayoutWidth = 0.0f;
 	SdColor gTypedStylePaintColor = {};
+	bool gContextStyleNodeApiObservedRoot = false;
+	bool gContextStyleNodeApiObservedPart = false;
 
 	struct TypedStyleWidget final : SdWidgetTag
 	{
@@ -197,6 +199,50 @@ namespace
 		{
 			const Style& style = context.ComputedStyle<TypedStyleWidget>();
 			gTypedStylePaintColor = style.color;
+		}
+	};
+
+	struct StyleNodeApiWidget final : SdWidgetTag
+	{
+		struct Parts final
+		{
+			static constexpr SdStylePart Label = SdStylePart::Make("Tests.StyleNodeApiWidget.Part.Label");
+		};
+
+		struct Style final
+		{
+			float width = 32.0f;
+			SdColor color = SdColorWhite;
+
+			static void Describe(SdStyleContract<Style>& contract)
+			{
+				contract.Layout(&Style::width);
+				contract.Paint(&Style::color).InterpolatesAsColor();
+			}
+		};
+
+		void OnUpdate(SdUpdateContext& context)
+		{
+			context.EnsurePart(Parts::Label);
+		}
+
+		void OnLayout(SdLayoutContext& context)
+		{
+			const Style& style = context.RootResolvedStyle<StyleNodeApiWidget>();
+			context.SetDesiredSize({ style.width, 12.0f });
+		}
+
+		void OnPaint(SdPaintContext& context)
+		{
+			const SdStyleNode& root = context.RootStyleNode();
+			const SdStyleNode& label = context.Part(Parts::Label);
+			const Style& style = context.RootPresentationStyle<StyleNodeApiWidget>();
+			gContextStyleNodeApiObservedRoot = root.kind == SdStyleNodeKind::Root
+				&& root.widgetId == context.id
+				&& style.width == 32.0f;
+			gContextStyleNodeApiObservedPart = label.kind == SdStyleNodeKind::Part
+				&& label.parentStyleNodeId == root.styleNodeId
+				&& label.part == Parts::Label;
 		}
 	};
 
@@ -310,6 +356,46 @@ namespace
 		Check(rootNode.pseudoState.Has(SdPseudoStateFlag::Active), "pseudo state maps active bit");
 		Check(rootNode.presentationStyle.width.unit == SdLengthUnit::Pixels, "presentation style carries CSS-like length");
 		Check(rootNode.presentationStyle.backgroundColor == SdColor(9, 8, 7, 255), "presentation style carries paint color");
+	}
+
+	void TestStyleNodeRuntimeParts()
+	{
+		SdInstance instance;
+		SdUtf8String text = "Value";
+		bool windowOpen = true;
+		instance.BeginFrame({ 640.0f, 480.0f });
+		instance.ui.Declare<SdButton>("Parted");
+		instance.ui.Declare<SdTextInput>(text, "Placeholder");
+		instance.ui.Declare<SdWindow>("Window", windowOpen);
+		PumpFrame(instance);
+
+		bool buttonHasLabel = false;
+		bool inputHasCaret = false;
+		bool windowHasTitlebar = false;
+		for (const auto& [id, record] : instance.GetStateStorage().GetWidgetRecords())
+		{
+			(void)id;
+			if (record.widgetType == std::type_index(typeid(SdButton)))
+				buttonHasLabel = instance.GetStylePart(record.state.id, SdButton::Parts::Label).part == SdButton::Parts::Label;
+			if (record.widgetType == std::type_index(typeid(SdTextInput)))
+				inputHasCaret = instance.GetStylePart(record.state.id, SdTextInput::Parts::Caret).part == SdTextInput::Parts::Caret;
+			if (record.widgetType == std::type_index(typeid(SdWindow)))
+				windowHasTitlebar = instance.GetStylePart(record.state.id, SdWindow::Parts::Titlebar).part == SdWindow::Parts::Titlebar;
+		}
+
+		Check(instance.GetDiagnostics().styleNodeCount >= 16, "runtime owns root and part style nodes");
+		Check(buttonHasLabel, "button label part style node exists");
+		Check(inputHasCaret, "text input caret part style node exists");
+		Check(windowHasTitlebar, "window titlebar part style node exists");
+
+		gContextStyleNodeApiObservedRoot = false;
+		gContextStyleNodeApiObservedPart = false;
+		SdInstance contextInstance;
+		contextInstance.BeginFrame({ 320.0f, 200.0f });
+		contextInstance.ui.Declare<StyleNodeApiWidget>();
+		PumpFrame(contextInstance);
+		Check(gContextStyleNodeApiObservedRoot, "context exposes root style node and root presentation style");
+		Check(gContextStyleNodeApiObservedPart, "context exposes part style node");
 	}
 
 	void TestIdAndKeySemantics()
@@ -1048,6 +1134,7 @@ int main()
 {
 	TestSmokeAndDrawPacket();
 	TestStyleCorePhaseOneTypes();
+	TestStyleNodeRuntimeParts();
 	TestIdAndKeySemantics();
 	TestLifecycleStateAndModel();
 	TestBasicTextModelI18n();

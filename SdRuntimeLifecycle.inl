@@ -8,6 +8,7 @@ namespace Sodium
 		if (record.state.id == 0)
 		{
 			record.state.id = id;
+			context.stateStorage.EnsureRootStyleNode(record, id);
 			record.state.lifePhase = SdWidgetLifePhase::Entering;
 			record.state.layoutWeight = 0.0f;
 			record.state.opacity = 0.0f;
@@ -41,6 +42,7 @@ namespace Sodium
 		record.resolvedKey = resolvedKey;
 		record.debugKey.assign(debugKey.data(), debugKey.size());
 		record.state.id = id;
+		context.stateStorage.EnsureRootStyleNode(record, id);
 		record.state.submittedThisFrame = true;
 		record.state.lastSubmittedFrame = context.frame.frameIndex;
 		record.state.inputEnabled = true;

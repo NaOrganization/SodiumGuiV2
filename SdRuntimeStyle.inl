@@ -77,18 +77,19 @@ namespace Sodium
 
 		const bool firstStyle = !record.styleCache.valid;
 		record.style = context.styleSystem.Resolve(record.state.styleTokenTag, interactionState, layerPriority, record.styleClasses, record.styleScope);
+		SdStyleNode& rootNode = context.stateStorage.EnsureRootStyleNode(record, record.state.id);
 		record.styleCache.computed = record.style;
 		record.styleCache.presentation = record.style;
-		record.styleCache.rootStyleNodeId = 0;
-		record.rootStyleNode.styleNodeId = 0;
-		record.rootStyleNode.widgetId = record.state.id;
-		record.rootStyleNode.kind = SdStyleNodeKind::Root;
-		record.rootStyleNode.part = SdStylePart::Root();
-		record.rootStyleNode.scopeId = record.styleScope;
-		record.rootStyleNode.pseudoState = SdPseudoState::FromInteraction(interactionState);
-		record.rootStyleNode.specifiedStyle = SdPresentationStyleFromLegacyComputed(record.style);
-		record.rootStyleNode.resolvedStyle = record.rootStyleNode.specifiedStyle;
-		record.rootStyleNode.presentationStyle = record.rootStyleNode.resolvedStyle;
+		record.styleCache.rootStyleNodeId = rootNode.styleNodeId;
+		rootNode.widgetId = record.state.id;
+		rootNode.kind = SdStyleNodeKind::Root;
+		rootNode.part = SdStylePart::Root();
+		rootNode.scopeId = record.styleScope;
+		rootNode.pseudoState = SdPseudoState::FromInteraction(interactionState);
+		rootNode.specifiedStyle = SdPresentationStyleFromLegacyComputed(record.style);
+		rootNode.resolvedStyle = rootNode.specifiedStyle;
+		rootNode.presentationStyle = rootNode.resolvedStyle;
+		record.rootStyleNode = rootNode;
 		record.styleCache.styleTokenTag = record.state.styleTokenTag;
 		record.styleCache.interactionState = interactionState;
 		record.styleCache.layerPriority = layerPriority;
@@ -200,7 +201,11 @@ namespace Sodium
 				record.animation.styleBorderB,
 				record.animation.styleBorderA);
 		record.styleCache.presentation = record.style;
-		record.rootStyleNode.presentationStyle = SdPresentationStyleFromLegacyComputed(record.style);
+		if (SdStyleNode* rootNode = context.stateStorage.FindStyleNodeById(record.rootStyleNodeId))
+		{
+			rootNode->presentationStyle = SdPresentationStyleFromLegacyComputed(record.style);
+			record.rootStyleNode = *rootNode;
+		}
 	}
 
 	template<class TWidget>

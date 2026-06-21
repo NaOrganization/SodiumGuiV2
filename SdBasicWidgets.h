@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "SdRuntime.h"
 #include "SdText.h"
@@ -347,6 +347,13 @@ namespace Sodium
 
 	struct SdButton final : SdWidgetTag
 	{
+		struct Parts final
+		{
+			static constexpr SdStylePart Content = SdStylePart::Make("Sodium.Button.Part.Content");
+			static constexpr SdStylePart Icon = SdStylePart::Make("Sodium.Button.Part.Icon");
+			static constexpr SdStylePart Label = SdStylePart::Make("Sodium.Button.Part.Label");
+		};
+
 		struct Style final
 		{
 			static constexpr SdStyleTokenTag TokenTag = SdStyleTargetTags::Button;
@@ -453,6 +460,9 @@ namespace Sodium
 			context.widgetState.styleTokenTag = Style::TokenTag;
 			context.widgetState.inputEnabled = true;
 			context.widgetState.layoutWeight = 1.0f;
+			context.EnsurePart(Parts::Content);
+			context.EnsurePart(Parts::Icon);
+			context.EnsurePart(Parts::Label);
 		}
 	};
 
@@ -769,6 +779,15 @@ namespace Sodium
 
 	struct SdTextInput final : SdWidgetTag
 	{
+		struct Parts final
+		{
+			static constexpr SdStylePart Field = SdStylePart::Make("Sodium.TextInput.Part.Field");
+			static constexpr SdStylePart Value = SdStylePart::Make("Sodium.TextInput.Part.Value");
+			static constexpr SdStylePart Placeholder = SdStylePart::Make("Sodium.TextInput.Part.Placeholder");
+			static constexpr SdStylePart Selection = SdStylePart::Make("Sodium.TextInput.Part.Selection");
+			static constexpr SdStylePart Caret = SdStylePart::Make("Sodium.TextInput.Part.Caret");
+		};
+
 		struct Style final
 		{
 			static constexpr SdStyleTokenTag TokenTag = SdStyleTargetTags::TextInput;
@@ -944,6 +963,11 @@ namespace Sodium
 			context.widgetState.styleTokenTag = Style::TokenTag;
 			context.widgetState.inputEnabled = true;
 			context.widgetState.layoutWeight = 1.0f;
+			context.EnsurePart(Parts::Field);
+			context.EnsurePart(Parts::Value);
+			context.EnsurePart(Parts::Placeholder);
+			context.EnsurePart(Parts::Selection);
+			context.EnsurePart(Parts::Caret);
 		}
 	};
 
@@ -957,6 +981,15 @@ namespace Sodium
 
 	struct SdWindow final : SdWidgetTag
 	{
+		struct Parts final
+		{
+			static constexpr SdStylePart Titlebar = SdStylePart::Make("Sodium.Window.Part.Titlebar");
+			static constexpr SdStylePart Title = SdStylePart::Make("Sodium.Window.Part.Title");
+			static constexpr SdStylePart CloseButton = SdStylePart::Make("Sodium.Window.Part.CloseButton");
+			static constexpr SdStylePart Content = SdStylePart::Make("Sodium.Window.Part.Content");
+			static constexpr SdStylePart ResizeHandle = SdStylePart::Make("Sodium.Window.Part.ResizeHandle");
+		};
+
 		struct Style final
 		{
 			static constexpr SdStyleTokenTag TokenTag = SdStyleTargetTags::Window;
@@ -1163,6 +1196,11 @@ namespace Sodium
 			context.widgetState.layerPriority = SdLayerPriority::Floating;
 			context.widgetState.inputEnabled = open;
 			context.widgetState.layoutWeight = open ? 1.0f : 0.0f;
+			context.EnsurePart(Parts::Titlebar);
+			context.EnsurePart(Parts::Title);
+			context.EnsurePart(Parts::CloseButton);
+			context.EnsurePart(Parts::Content);
+			context.EnsurePart(Parts::ResizeHandle);
 			if (!open)
 			{
 				state.dragging = false;

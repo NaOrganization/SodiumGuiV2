@@ -42,6 +42,43 @@ namespace Sodium
 		return *style;
 	}
 
+	template<class TWidget>
+	const typename TWidget::Style& SdInstance::GetResolvedStyle(SdWidgetId widgetId)
+	{
+		return GetTargetStyle<TWidget>(widgetId);
+	}
+
+	template<class TWidget>
+	const typename TWidget::Style& SdInstance::GetPresentationStyle(SdWidgetId widgetId)
+	{
+		return GetComputedStyle<TWidget>(widgetId);
+	}
+
+	inline const SdStyleNode& SdInstance::GetRootStyleNode(SdWidgetId widgetId) const
+	{
+		const SdWidgetRecord* record = context.stateStorage.FindWidgetRecord(widgetId);
+		assert(record);
+		const SdStyleNode* node = record ? context.stateStorage.FindStyleNode(*record, SdStylePart::Root()) : nullptr;
+		assert(node);
+		return node ? *node : record->rootStyleNode;
+	}
+
+	inline const SdStyleNode& SdInstance::GetStylePart(SdWidgetId widgetId, SdStylePart part) const
+	{
+		const SdWidgetRecord* record = context.stateStorage.FindWidgetRecord(widgetId);
+		assert(record);
+		const SdStyleNode* node = record ? context.stateStorage.FindStyleNode(*record, part) : nullptr;
+		assert(node);
+		return node ? *node : GetRootStyleNode(widgetId);
+	}
+
+	inline SdStyleNode& SdInstance::EnsureStylePart(SdWidgetId widgetId, SdStylePart part)
+	{
+		SdWidgetRecord* record = context.stateStorage.FindWidgetRecord(widgetId);
+		assert(record);
+		return context.stateStorage.EnsurePartStyleNode(*record, part);
+	}
+
 	template<class T>
 	T& SdWidgetContextBase::State()
 	{
@@ -65,6 +102,33 @@ namespace Sodium
 	const typename TWidget::Style& SdWidgetContextBase::ComputedStyle()
 	{
 		return instance.GetComputedStyle<TWidget>(id);
+	}
+
+	inline const SdStyleNode& SdWidgetContextBase::RootStyleNode() const
+	{
+		return instance.GetRootStyleNode(id);
+	}
+
+	inline const SdStyleNode& SdWidgetContextBase::Part(SdStylePart part) const
+	{
+		return instance.GetStylePart(id, part);
+	}
+
+	inline SdStyleNode& SdWidgetContextBase::EnsurePart(SdStylePart part)
+	{
+		return instance.EnsureStylePart(id, part);
+	}
+
+	template<class TWidget>
+	const typename TWidget::Style& SdWidgetContextBase::RootResolvedStyle()
+	{
+		return instance.GetResolvedStyle<TWidget>(id);
+	}
+
+	template<class TWidget>
+	const typename TWidget::Style& SdWidgetContextBase::RootPresentationStyle()
+	{
+		return instance.GetPresentationStyle<TWidget>(id);
 	}
 
 	inline bool SdWidgetContextBase::HasModelKey() const noexcept

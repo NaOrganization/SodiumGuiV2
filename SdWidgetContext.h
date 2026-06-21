@@ -2,7 +2,7 @@
 
 #include "SdDrawList.h"
 #include "SdInput.h"
-#include "SdUiCore.h"
+#include "SdStyleCore.h"
 
 #include <concepts>
 
@@ -81,6 +81,16 @@ namespace Sodium
 
 		template<class TWidget>
 		const typename TWidget::Style& ComputedStyle();
+
+		const SdStyleNode& RootStyleNode() const;
+		const SdStyleNode& Part(SdStylePart part) const;
+		SdStyleNode& EnsurePart(SdStylePart part);
+
+		template<class TWidget>
+		const typename TWidget::Style& RootResolvedStyle();
+
+		template<class TWidget>
+		const typename TWidget::Style& RootPresentationStyle();
 
 		bool HasModelKey() const noexcept;
 		bool IsHovered() const noexcept;

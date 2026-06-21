@@ -51,6 +51,7 @@ namespace Sodium
 		diagnostics.createdWidgetCount = context.stateStorage.GetStats().createdWidgetCount;
 		diagnostics.reusedWidgetCount = context.stateStorage.GetStats().reusedWidgetCount;
 		diagnostics.modelCount = context.stateStorage.GetStats().modelCount;
+		diagnostics.styleNodeCount = context.stateStorage.CountLiveStyleNodes();
 		diagnostics.liveObjectCount = context.stateStorage.GetStats().liveObjectCount;
 	}
 }

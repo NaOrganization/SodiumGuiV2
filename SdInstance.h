@@ -33,6 +33,7 @@ namespace Sodium
 		SdUInt32 createdWidgetCount = 0;
 		SdUInt32 reusedWidgetCount = 0;
 		SdUInt32 modelCount = 0;
+		SdUInt32 styleNodeCount = 0;
 		SdUInt32 liveObjectCount = 0;
 
 		void ResetFrameTransient() noexcept
@@ -54,6 +55,7 @@ namespace Sodium
 			resourceUploadCount = 0;
 			createdWidgetCount = 0;
 			reusedWidgetCount = 0;
+			styleNodeCount = 0;
 			liveObjectCount = 0;
 		}
 	};
@@ -210,6 +212,16 @@ namespace Sodium
 
 		template<class TWidget>
 		const typename TWidget::Style& GetComputedStyle(SdWidgetId widgetId);
+
+		template<class TWidget>
+		const typename TWidget::Style& GetResolvedStyle(SdWidgetId widgetId);
+
+		template<class TWidget>
+		const typename TWidget::Style& GetPresentationStyle(SdWidgetId widgetId);
+
+		const SdStyleNode& GetRootStyleNode(SdWidgetId widgetId) const;
+		const SdStyleNode& GetStylePart(SdWidgetId widgetId, SdStylePart part) const;
+		SdStyleNode& EnsureStylePart(SdWidgetId widgetId, SdStylePart part);
 
 	private:
 		void BeginInputFrame();
