@@ -420,27 +420,6 @@ namespace Sodium
 		}
 	};
 
-	struct SdTypedStyleTransition final
-	{
-		std::type_index styleType = std::type_index(typeid(void));
-		SdUInt64 fieldId = 0;
-		SdTransition transition = {};
-	};
-
-	struct SdTypedStyleRule final
-	{
-		std::type_index styleType = std::type_index(typeid(void));
-		SdStyleId targetTag = SdWidgetTargetIds::Global;
-		SdStyleInteractionState interactionState = SdStyleInteractionState::Normal;
-		SdLayerPriority layerPriority = SdLayerPriority::Content;
-		SdStyleClassId classId = 0;
-		SdStyleScopeId scopeId = 0;
-		bool matchLayer = false;
-		bool matchClass = false;
-		bool matchScope = false;
-		std::vector<SdTypedStyleTransition> transitions = {};
-	};
-
 	template<class TWidget>
 	class SdStyleRuleBuilder;
 
@@ -582,7 +561,6 @@ namespace Sodium
 
 	private:
 		SdTheme theme = {};
-		std::vector<SdTypedStyleRule> typedRules = {};
 		SdStyleSheet typedStyleSheet = {};
 		SdCompiledStyleSheet compiledStyleSheet = {};
 		SdPropertyRegistry propertyRegistry = {};
@@ -629,7 +607,6 @@ namespace Sodium
 
 		void ClearRules()
 		{
-			typedRules.clear();
 			typedStyleSheet.Clear();
 			compiledStyleSheet.Clear();
 			InstallDefaultUserAgentStyleSheet(false);
@@ -807,16 +784,6 @@ namespace Sodium
 			style.radius = SdLength::Pixels(theme.GetMetricVariable(SdThemeVariableLiteral("radius.small")));
 			style.opacity = 1.0f;
 			return style;
-		}
-
-		SdTypedStyleRule& AddTypedRule(std::type_index styleType, SdStyleId targetTag)
-		{
-			SdTypedStyleRule rule = {};
-			rule.styleType = styleType;
-			rule.targetTag = targetTag;
-			typedRules.push_back(std::move(rule));
-			Touch();
-			return typedRules.back();
 		}
 
 		template<class TStyle>
@@ -1245,39 +1212,6 @@ namespace Sodium
 			}
 		}
 
-		bool MatchesTypedRule(
-			const SdTypedStyleRule& rule,
-			std::type_index styleType,
-			SdStyleId targetTag,
-			SdStyleInteractionState interactionState,
-			SdLayerPriority layerPriority,
-			SdSpan<const SdStyleClassId> styleClasses,
-			SdStyleScopeId styleScope) const noexcept
-		{
-			if (rule.styleType != styleType)
-				return false;
-			if (rule.targetTag != SdWidgetTargetIds::Global && rule.targetTag != targetTag)
-				return false;
-			if (rule.interactionState != SdStyleInteractionState::Normal && rule.interactionState != interactionState)
-				return false;
-			if (rule.matchLayer && rule.layerPriority != layerPriority)
-				return false;
-			if (rule.matchClass && !HasStyleClass(styleClasses, rule.classId))
-				return false;
-			if (rule.matchScope && rule.scopeId != styleScope)
-				return false;
-			return true;
-		}
-
-		static bool HasStyleClass(SdSpan<const SdStyleClassId> styleClasses, SdStyleClassId classId) noexcept
-		{
-			for (SdStyleClassId styleClass : styleClasses)
-			{
-				if (styleClass == classId)
-					return true;
-			}
-			return false;
-		}
 	};
 
 	template<class TWidget>
@@ -1287,43 +1221,36 @@ namespace Sodium
 		using Style = typename TWidget::Style;
 
 		SdStyleSystem& system;
-		SdTypedStyleRule& rule;
+		SdStyleSheetRuleBuilder<Style> builder;
 
-		SdStyleSheetRuleBuilder<Style> BuildCompiledRule()
+		void TouchCompiledSheet()
 		{
-			SdStyleSheetRuleBuilder<Style> compiledRule = system.typedStyleSheet.Rule<TWidget>();
-			if (rule.interactionState != SdStyleInteractionState::Normal)
-				compiledRule.Pseudo(rule.interactionState);
-			if (rule.matchLayer)
-				compiledRule.Layer(rule.layerPriority);
-			if (rule.matchClass)
-				compiledRule.Class(rule.classId);
-			if (rule.matchScope)
-				compiledRule.Scope(rule.scopeId);
-			return compiledRule;
+			system.compiledStyleSheet = system.typedStyleSheet.Compile();
+			system.Touch();
 		}
 
 	public:
-		SdStyleRuleBuilder(SdStyleSystem& owner, SdTypedStyleRule& styleRule)
-			: system(owner), rule(styleRule) {}
+		SdStyleRuleBuilder(SdStyleSystem& owner, SdStyleSheetRuleBuilder<Style> ruleBuilder)
+			: system(owner), builder(ruleBuilder) {}
 
 		SdStyleRuleBuilder& Pseudo(SdStyleInteractionState interactionState) noexcept
 		{
-			rule.interactionState = interactionState;
+			builder.Pseudo(interactionState);
+			TouchCompiledSheet();
 			return *this;
 		}
 
 		SdStyleRuleBuilder& Layer(SdLayerPriority layerPriority) noexcept
 		{
-			rule.layerPriority = layerPriority;
-			rule.matchLayer = true;
+			builder.Layer(layerPriority);
+			TouchCompiledSheet();
 			return *this;
 		}
 
 		SdStyleRuleBuilder& Class(SdStyleClassId classId) noexcept
 		{
-			rule.classId = classId;
-			rule.matchClass = true;
+			builder.Class(classId);
+			TouchCompiledSheet();
 			return *this;
 		}
 
@@ -1334,8 +1261,8 @@ namespace Sodium
 
 		SdStyleRuleBuilder& Scope(SdStyleScopeId scopeId) noexcept
 		{
-			rule.scopeId = scopeId;
-			rule.matchScope = true;
+			builder.Scope(scopeId);
+			TouchCompiledSheet();
 			return *this;
 		}
 
@@ -1359,15 +1286,8 @@ namespace Sodium
 		template<class TField>
 		SdStyleRuleBuilder& Transition(TField Style::* member, SdDuration duration, SdAnimationEasing easing)
 		{
-			const SdTransition transitionValue{ duration, easing };
-			SdTypedStyleTransition transition = {};
-			transition.styleType = std::type_index(typeid(Style));
-			transition.fieldId = Detail::SdStyleFieldId(member);
-			transition.transition = transitionValue;
-			rule.transitions.push_back(transition);
-			BuildCompiledRule().Transition(member, duration, easing);
-			system.compiledStyleSheet = system.typedStyleSheet.Compile();
-			system.Touch();
+			builder.Transition(member, duration, easing);
+			TouchCompiledSheet();
 			return *this;
 		}
 
@@ -1375,9 +1295,8 @@ namespace Sodium
 			template<class TField>
 			SdStyleRuleBuilder& SetValue(TField Style::* member, SdStyleValue value)
 			{
-				BuildCompiledRule().Set(member, value);
-				system.compiledStyleSheet = system.typedStyleSheet.Compile();
-				system.Touch();
+				builder.Set(member, value);
+				TouchCompiledSheet();
 				return *this;
 			}
 	};
@@ -1385,9 +1304,7 @@ namespace Sodium
 	template<class TWidget>
 	SdStyleRuleBuilder<TWidget> SdStyleSystem::Rule()
 	{
-		using Style = typename TWidget::Style;
-		SdTypedStyleRule& rule = AddTypedRule(std::type_index(typeid(Style)), GetTargetTag<TWidget>());
-		return SdStyleRuleBuilder<TWidget>(*this, rule);
+		return SdStyleRuleBuilder<TWidget>(*this, typedStyleSheet.Rule<TWidget>());
 	}
 
 	template<class TWidget>
@@ -1445,21 +1362,6 @@ namespace Sodium
 			transition);
 		if (found)
 			return true;
-
-		for (const SdTypedStyleRule& rule : typedRules)
-		{
-			if (!MatchesTypedRule(rule, styleType, GetTargetTag<TWidget>(), interactionState, layerPriority, styleClasses, styleScope))
-				continue;
-
-			for (const SdTypedStyleTransition& candidate : rule.transitions)
-			{
-				if (candidate.styleType == styleType && candidate.fieldId == fieldId)
-				{
-					transition = candidate.transition;
-					found = true;
-				}
-			}
-		}
 		return found;
 	}
 
