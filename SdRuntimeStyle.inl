@@ -298,16 +298,8 @@ namespace Sodium
 			if (SdStyleNode* partNode = context.stateStorage.FindStyleNodeById(partNodeId))
 				ApplyBoxStyleAnimation(*partNode);
 		}
-		for (const SdPropertyAnimationChannel& channel : context.styleAnimationChannels.GetChannels())
-		{
-			if (channel.active && channel.styleNodeId == record.rootStyleNodeId)
-				record.state.animationActive = true;
-			for (SdStyleNodeId partNodeId : record.partStyleNodeIds)
-			{
-				if (channel.active && channel.styleNodeId == partNodeId)
-					record.state.animationActive = true;
-			}
-		}
+		record.state.animationActive = record.state.animationActive
+			|| context.styleAnimationChannels.HasActiveAny(record.rootStyleNodeId, record.partStyleNodeIds);
 	}
 
 	template<class TWidget>

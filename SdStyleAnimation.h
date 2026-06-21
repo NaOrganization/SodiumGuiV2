@@ -145,6 +145,28 @@ namespace Sodium
 			return count;
 		}
 
+		bool HasActiveStyleNode(SdStyleNodeId styleNodeId) const noexcept
+		{
+			for (const SdPropertyAnimationChannel& channel : channels)
+			{
+				if (channel.active && channel.styleNodeId == styleNodeId)
+					return true;
+			}
+			return false;
+		}
+
+		bool HasActiveAny(SdStyleNodeId rootStyleNodeId, SdSpan<const SdStyleNodeId> partStyleNodeIds) const noexcept
+		{
+			if (HasActiveStyleNode(rootStyleNodeId))
+				return true;
+			for (SdStyleNodeId partStyleNodeId : partStyleNodeIds)
+			{
+				if (HasActiveStyleNode(partStyleNodeId))
+					return true;
+			}
+			return false;
+		}
+
 		const std::vector<SdPropertyAnimationChannel>& GetChannels() const noexcept
 		{
 			return channels;

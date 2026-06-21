@@ -1897,16 +1897,34 @@ namespace
 		colorChannel.targetValue = SdStyleValue::FromColor({ 100, 50, 25, 255 });
 		colorChannel.currentValue = colorChannel.startValue;
 		colorChannel.active = true;
-		styleChannels.Update(std::chrono::milliseconds(50));
+		SdPropertyAnimationChannel& partChannel = styleChannels.Ensure(9, Detail::SdStylePropertyId(&SdBoxStyle::backgroundColor));
+		partChannel.impact = SdStyleFieldImpact::Paint;
+		partChannel.interpolation = SdStyleInterpolation::Color;
+		partChannel.transition = SdTransition{ std::chrono::milliseconds(100), SdAnimationEasing::Linear };
+		partChannel.startValue = SdStyleValue::FromColor({ 10, 20, 30, 255 });
+		partChannel.targetValue = SdStyleValue::FromColor({ 80, 90, 100, 255 });
+		partChannel.currentValue = partChannel.startValue;
+		partChannel.active = true;
+		const SdStyleNodeId partNodeIds[] = { 9 };
 		Check(
-			colorChannel.currentValue.kind == SdStyleValueKind::Color
-			&& colorChannel.currentValue.color.r > 0
-			&& colorChannel.currentValue.color.r < 100
-			&& styleChannels.CountActive() == 1,
+			styleChannels.HasActiveStyleNode(7)
+			&& styleChannels.HasActiveAny(7, {})
+			&& styleChannels.HasActiveAny(3, SdSpan<const SdStyleNodeId>(partNodeIds, 1)),
+			"style node animation channels expose active root and part lookup");
+		styleChannels.Update(std::chrono::milliseconds(50));
+		const SdPropertyAnimationChannel* updatedColorChannel = styleChannels.Find(7, Detail::SdStylePropertyId(&SdBoxStyle::color));
+		Check(
+			updatedColorChannel
+			&& updatedColorChannel->currentValue.kind == SdStyleValueKind::Color
+			&& updatedColorChannel->currentValue.color.r > 0
+			&& updatedColorChannel->currentValue.color.r < 100
+			&& styleChannels.CountActive() == 2,
 			"style node animation channel advances property color");
 		styleChannels.Update(std::chrono::milliseconds(100));
+		const SdPropertyAnimationChannel* completedColorChannel = styleChannels.Find(7, Detail::SdStylePropertyId(&SdBoxStyle::color));
 		Check(
-			colorChannel.currentValue.color == colorChannel.targetValue.color
+			completedColorChannel
+			&& completedColorChannel->currentValue.color == completedColorChannel->targetValue.color
 			&& styleChannels.CountActive() == 0,
 			"style node animation channel completes property color");
 	}
