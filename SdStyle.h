@@ -2,7 +2,6 @@
 
 #include "SdStyleResolver.h"
 
-#include <array>
 #include <cstring>
 #include <functional>
 #include <unordered_map>
@@ -14,53 +13,23 @@ namespace Sodium
 {
 	struct SdTheme final
 	{
-		std::array<SdColor, static_cast<SdSize>(SdStyleToken::Count)> colors = {};
-		std::array<float, static_cast<SdSize>(SdStyleToken::Count)> metrics = {};
 		std::unordered_map<SdThemeVariableId, SdColor> colorVariables = {};
 		std::unordered_map<SdThemeVariableId, float> metricVariables = {};
 
 		SdTheme()
 		{
-			colors[static_cast<SdSize>(SdStyleToken::ColorText)] = SdColorWhite;
-			colors[static_cast<SdSize>(SdStyleToken::ColorWindowBg)] = { 24, 30, 39, 242 };
-			colors[static_cast<SdSize>(SdStyleToken::ColorPanelBg)] = { 35, 42, 52, 235 };
-			colors[static_cast<SdSize>(SdStyleToken::ColorButton)] = { 48, 72, 96, 255 };
-			colors[static_cast<SdSize>(SdStyleToken::ColorButtonHovered)] = { 62, 100, 138, 255 };
-			colors[static_cast<SdSize>(SdStyleToken::ColorButtonPressed)] = { 68, 118, 160, 255 };
-			colors[static_cast<SdSize>(SdStyleToken::ColorAccent)] = { 82, 170, 128, 255 };
-			colors[static_cast<SdSize>(SdStyleToken::ColorBorder)] = { 91, 109, 128, 255 };
-			colors[static_cast<SdSize>(SdStyleToken::ColorBorderStrong)] = { 128, 154, 180, 255 };
-			colors[static_cast<SdSize>(SdStyleToken::ColorDanger)] = { 164, 66, 66, 255 };
-			colors[static_cast<SdSize>(SdStyleToken::ColorSelection)] = { 82, 170, 128, 96 };
-			colors[static_cast<SdSize>(SdStyleToken::ColorBackground)] = { 24, 30, 39, 242 };
-			metrics[static_cast<SdSize>(SdStyleToken::SpacingSmall)] = 6.0f;
-			metrics[static_cast<SdSize>(SdStyleToken::SpacingMedium)] = 10.0f;
-			metrics[static_cast<SdSize>(SdStyleToken::RadiusSmall)] = 5.0f;
-			metrics[static_cast<SdSize>(SdStyleToken::DurationFast)] = 0.16f;
-			PublishLegacyTokenVariables();
+			SetDefaultVariables();
 			metricVariables[SdThemeVariableLiteral("font.button")] = 16.0f;
-		}
-
-		SdColor GetColor(SdStyleToken token) const noexcept
-		{
-			return colors[static_cast<SdSize>(token)];
-		}
-
-		float GetMetric(SdStyleToken token) const noexcept
-		{
-			return metrics[static_cast<SdSize>(token)];
 		}
 
 		void SetColorVariable(SdThemeVariableId variableId, SdColor color)
 		{
 			colorVariables[variableId] = color;
-			SyncLegacyColorToken(variableId, color);
 		}
 
 		void SetMetricVariable(SdThemeVariableId variableId, float value)
 		{
 			metricVariables[variableId] = value;
-			SyncLegacyMetricToken(variableId, value);
 		}
 
 		SdColor GetColorVariable(SdThemeVariableId variableId, SdColor fallback = SdColorTransparent) const noexcept
@@ -76,65 +45,25 @@ namespace Sodium
 		}
 
 	private:
-		void PublishLegacyTokenVariables()
+		void SetDefaultVariables()
 		{
-			colorVariables[SdThemeVariableLiteral("text")] = colors[static_cast<SdSize>(SdStyleToken::ColorText)];
-			colorVariables[SdThemeVariableLiteral("background")] = colors[static_cast<SdSize>(SdStyleToken::ColorBackground)];
-			colorVariables[SdThemeVariableLiteral("window.bg")] = colors[static_cast<SdSize>(SdStyleToken::ColorWindowBg)];
-			colorVariables[SdThemeVariableLiteral("panel.bg")] = colors[static_cast<SdSize>(SdStyleToken::ColorPanelBg)];
-			colorVariables[SdThemeVariableLiteral("button.bg")] = colors[static_cast<SdSize>(SdStyleToken::ColorButton)];
-			colorVariables[SdThemeVariableLiteral("button.bg.hover")] = colors[static_cast<SdSize>(SdStyleToken::ColorButtonHovered)];
-			colorVariables[SdThemeVariableLiteral("button.bg.pressed")] = colors[static_cast<SdSize>(SdStyleToken::ColorButtonPressed)];
-			colorVariables[SdThemeVariableLiteral("button.text")] = colors[static_cast<SdSize>(SdStyleToken::ColorText)];
-			colorVariables[SdThemeVariableLiteral("accent")] = colors[static_cast<SdSize>(SdStyleToken::ColorAccent)];
-			colorVariables[SdThemeVariableLiteral("border")] = colors[static_cast<SdSize>(SdStyleToken::ColorBorder)];
-			colorVariables[SdThemeVariableLiteral("border.strong")] = colors[static_cast<SdSize>(SdStyleToken::ColorBorderStrong)];
-			colorVariables[SdThemeVariableLiteral("danger")] = colors[static_cast<SdSize>(SdStyleToken::ColorDanger)];
-			colorVariables[SdThemeVariableLiteral("selection")] = colors[static_cast<SdSize>(SdStyleToken::ColorSelection)];
-			metricVariables[SdThemeVariableLiteral("spacing.small")] = metrics[static_cast<SdSize>(SdStyleToken::SpacingSmall)];
-			metricVariables[SdThemeVariableLiteral("spacing.medium")] = metrics[static_cast<SdSize>(SdStyleToken::SpacingMedium)];
-			metricVariables[SdThemeVariableLiteral("radius.small")] = metrics[static_cast<SdSize>(SdStyleToken::RadiusSmall)];
-			metricVariables[SdThemeVariableLiteral("duration.fast")] = metrics[static_cast<SdSize>(SdStyleToken::DurationFast)];
-		}
-
-		void SyncLegacyColorToken(SdThemeVariableId variableId, SdColor color)
-		{
-			if (variableId == SdThemeVariableLiteral("text") || variableId == SdThemeVariableLiteral("button.text"))
-				colors[static_cast<SdSize>(SdStyleToken::ColorText)] = color;
-			else if (variableId == SdThemeVariableLiteral("background"))
-				colors[static_cast<SdSize>(SdStyleToken::ColorBackground)] = color;
-			else if (variableId == SdThemeVariableLiteral("window.bg"))
-				colors[static_cast<SdSize>(SdStyleToken::ColorWindowBg)] = color;
-			else if (variableId == SdThemeVariableLiteral("panel.bg"))
-				colors[static_cast<SdSize>(SdStyleToken::ColorPanelBg)] = color;
-			else if (variableId == SdThemeVariableLiteral("button.bg"))
-				colors[static_cast<SdSize>(SdStyleToken::ColorButton)] = color;
-			else if (variableId == SdThemeVariableLiteral("button.bg.hover"))
-				colors[static_cast<SdSize>(SdStyleToken::ColorButtonHovered)] = color;
-			else if (variableId == SdThemeVariableLiteral("button.bg.pressed"))
-				colors[static_cast<SdSize>(SdStyleToken::ColorButtonPressed)] = color;
-			else if (variableId == SdThemeVariableLiteral("accent"))
-				colors[static_cast<SdSize>(SdStyleToken::ColorAccent)] = color;
-			else if (variableId == SdThemeVariableLiteral("border"))
-				colors[static_cast<SdSize>(SdStyleToken::ColorBorder)] = color;
-			else if (variableId == SdThemeVariableLiteral("border.strong"))
-				colors[static_cast<SdSize>(SdStyleToken::ColorBorderStrong)] = color;
-			else if (variableId == SdThemeVariableLiteral("danger"))
-				colors[static_cast<SdSize>(SdStyleToken::ColorDanger)] = color;
-			else if (variableId == SdThemeVariableLiteral("selection"))
-				colors[static_cast<SdSize>(SdStyleToken::ColorSelection)] = color;
-		}
-
-		void SyncLegacyMetricToken(SdThemeVariableId variableId, float value)
-		{
-			if (variableId == SdThemeVariableLiteral("spacing.small"))
-				metrics[static_cast<SdSize>(SdStyleToken::SpacingSmall)] = value;
-			else if (variableId == SdThemeVariableLiteral("spacing.medium"))
-				metrics[static_cast<SdSize>(SdStyleToken::SpacingMedium)] = value;
-			else if (variableId == SdThemeVariableLiteral("radius.small"))
-				metrics[static_cast<SdSize>(SdStyleToken::RadiusSmall)] = value;
-			else if (variableId == SdThemeVariableLiteral("duration.fast"))
-				metrics[static_cast<SdSize>(SdStyleToken::DurationFast)] = value;
+			colorVariables[SdThemeVariableLiteral("text")] = SdColorWhite;
+			colorVariables[SdThemeVariableLiteral("background")] = { 24, 30, 39, 242 };
+			colorVariables[SdThemeVariableLiteral("window.bg")] = { 24, 30, 39, 242 };
+			colorVariables[SdThemeVariableLiteral("panel.bg")] = { 35, 42, 52, 235 };
+			colorVariables[SdThemeVariableLiteral("button.bg")] = { 48, 72, 96, 255 };
+			colorVariables[SdThemeVariableLiteral("button.bg.hover")] = { 62, 100, 138, 255 };
+			colorVariables[SdThemeVariableLiteral("button.bg.pressed")] = { 68, 118, 160, 255 };
+			colorVariables[SdThemeVariableLiteral("button.text")] = SdColorWhite;
+			colorVariables[SdThemeVariableLiteral("accent")] = { 82, 170, 128, 255 };
+			colorVariables[SdThemeVariableLiteral("border")] = { 91, 109, 128, 255 };
+			colorVariables[SdThemeVariableLiteral("border.strong")] = { 128, 154, 180, 255 };
+			colorVariables[SdThemeVariableLiteral("danger")] = { 164, 66, 66, 255 };
+			colorVariables[SdThemeVariableLiteral("selection")] = { 82, 170, 128, 96 };
+			metricVariables[SdThemeVariableLiteral("spacing.small")] = 6.0f;
+			metricVariables[SdThemeVariableLiteral("spacing.medium")] = 10.0f;
+			metricVariables[SdThemeVariableLiteral("radius.small")] = 5.0f;
+			metricVariables[SdThemeVariableLiteral("duration.fast")] = 0.16f;
 		}
 	};
 
@@ -215,11 +144,6 @@ namespace Sodium
 					outValue = value.color;
 					return true;
 				}
-				if (value.kind == SdStyleValueKind::ColorToken)
-				{
-					outValue = theme.GetColor(value.token);
-					return true;
-				}
 				if (value.kind == SdStyleValueKind::ColorVariable)
 				{
 					outValue = theme.GetColorVariable(value.variableId);
@@ -231,11 +155,6 @@ namespace Sodium
 				if (value.kind == SdStyleValueKind::Float)
 				{
 					outValue = value.number;
-					return true;
-				}
-				if (value.kind == SdStyleValueKind::MetricToken)
-				{
-					outValue = theme.GetMetric(value.token);
 					return true;
 				}
 				if (value.kind == SdStyleValueKind::MetricVariable)
@@ -280,9 +199,6 @@ namespace Sodium
 					&& left.spacing.bottom == right.spacing.bottom;
 			case SdStyleValueKind::Vec2:
 				return left.vec2.x == right.vec2.x && left.vec2.y == right.vec2.y;
-			case SdStyleValueKind::ColorToken:
-			case SdStyleValueKind::MetricToken:
-				return left.token == right.token;
 			case SdStyleValueKind::ColorVariable:
 			case SdStyleValueKind::MetricVariable:
 				return left.variableId == right.variableId;
@@ -655,21 +571,6 @@ namespace Sodium
 				return *this;
 			}
 
-			template<class TField>
-			SdStyleSystemSheetRuleBuilder& SetColorToken(TField TStyle::* member, SdStyleToken token)
-			{
-				builder.SetColorToken(member, token);
-				TouchCompiledSheet();
-				return *this;
-			}
-
-			template<class TField>
-			SdStyleSystemSheetRuleBuilder& SetMetricToken(TField TStyle::* member, SdStyleToken token)
-			{
-				builder.SetMetricToken(member, token);
-				TouchCompiledSheet();
-				return *this;
-			}
 		};
 
 	private:
@@ -695,20 +596,6 @@ namespace Sodium
 		SdUInt64 GetRevision() const noexcept
 		{
 			return revision;
-		}
-
-		void SetColor(SdStyleToken token, SdColor color)
-		{
-			theme.colors[static_cast<SdSize>(token)] = color;
-			PublishThemeVariableForToken(token);
-			Touch();
-		}
-
-		void SetMetric(SdStyleToken token, float value)
-		{
-			theme.metrics[static_cast<SdSize>(token)] = value;
-			PublishThemeVariableForToken(token);
-			Touch();
 		}
 
 		void SetColorVariable(SdThemeVariableId variableId, SdColor color)
@@ -811,65 +698,6 @@ namespace Sodium
 		}
 
 	private:
-		void PublishThemeVariableForToken(SdStyleToken token)
-		{
-			switch (token)
-			{
-			case SdStyleToken::ColorText:
-				theme.SetColorVariable(SdThemeVariableLiteral("text"), theme.GetColor(token));
-				theme.SetColorVariable(SdThemeVariableLiteral("button.text"), theme.GetColor(token));
-				break;
-			case SdStyleToken::ColorBackground:
-				theme.SetColorVariable(SdThemeVariableLiteral("background"), theme.GetColor(token));
-				break;
-			case SdStyleToken::ColorWindowBg:
-				theme.SetColorVariable(SdThemeVariableLiteral("window.bg"), theme.GetColor(token));
-				break;
-			case SdStyleToken::ColorPanelBg:
-				theme.SetColorVariable(SdThemeVariableLiteral("panel.bg"), theme.GetColor(token));
-				break;
-			case SdStyleToken::ColorButton:
-				theme.SetColorVariable(SdThemeVariableLiteral("button.bg"), theme.GetColor(token));
-				break;
-			case SdStyleToken::ColorButtonHovered:
-				theme.SetColorVariable(SdThemeVariableLiteral("button.bg.hover"), theme.GetColor(token));
-				break;
-			case SdStyleToken::ColorButtonPressed:
-				theme.SetColorVariable(SdThemeVariableLiteral("button.bg.pressed"), theme.GetColor(token));
-				break;
-			case SdStyleToken::ColorAccent:
-				theme.SetColorVariable(SdThemeVariableLiteral("accent"), theme.GetColor(token));
-				break;
-			case SdStyleToken::ColorBorder:
-				theme.SetColorVariable(SdThemeVariableLiteral("border"), theme.GetColor(token));
-				break;
-			case SdStyleToken::ColorBorderStrong:
-				theme.SetColorVariable(SdThemeVariableLiteral("border.strong"), theme.GetColor(token));
-				break;
-			case SdStyleToken::ColorDanger:
-				theme.SetColorVariable(SdThemeVariableLiteral("danger"), theme.GetColor(token));
-				break;
-			case SdStyleToken::ColorSelection:
-				theme.SetColorVariable(SdThemeVariableLiteral("selection"), theme.GetColor(token));
-				break;
-			case SdStyleToken::SpacingSmall:
-				theme.SetMetricVariable(SdThemeVariableLiteral("spacing.small"), theme.GetMetric(token));
-				break;
-			case SdStyleToken::SpacingMedium:
-				theme.SetMetricVariable(SdThemeVariableLiteral("spacing.medium"), theme.GetMetric(token));
-				break;
-			case SdStyleToken::RadiusSmall:
-				theme.SetMetricVariable(SdThemeVariableLiteral("radius.small"), theme.GetMetric(token));
-				break;
-			case SdStyleToken::DurationFast:
-				theme.SetMetricVariable(SdThemeVariableLiteral("duration.fast"), theme.GetMetric(token));
-				break;
-			case SdStyleToken::Count:
-			default:
-				break;
-			}
-		}
-
 		template<class TWidget>
 		static constexpr SdStyleTokenTag GetTargetTag() noexcept
 		{
@@ -893,10 +721,10 @@ namespace Sodium
 		SdWidgetRootStyle BuildDefaultRootStyle() const
 		{
 			SdWidgetRootStyle style = {};
-			style.color = theme.GetColor(SdStyleToken::ColorText);
-			style.backgroundColor = theme.GetColor(SdStyleToken::ColorBackground);
-			style.border = SdBorder::All(SdLength::Pixels(1.0f), theme.GetColor(SdStyleToken::ColorBorder));
-			style.radius = SdLength::Pixels(theme.GetMetric(SdStyleToken::RadiusSmall));
+			style.color = theme.GetColorVariable(SdThemeVariableLiteral("text"));
+			style.backgroundColor = theme.GetColorVariable(SdThemeVariableLiteral("background"));
+			style.border = SdBorder::All(SdLength::Pixels(1.0f), theme.GetColorVariable(SdThemeVariableLiteral("border")));
+			style.radius = SdLength::Pixels(theme.GetMetricVariable(SdThemeVariableLiteral("radius.small")));
 			style.opacity = 1.0f;
 			return style;
 		}
@@ -1060,14 +888,10 @@ namespace Sodium
 				rule.Layer(layerPriority);
 		}
 
-		SdStyleValue ResolveValue(const SdStyleValue& value) const
+			SdStyleValue ResolveValue(const SdStyleValue& value) const
 		{
 			switch (value.kind)
 			{
-			case SdStyleValueKind::ColorToken:
-				return SdStyleValue::FromColor(theme.GetColor(value.token));
-			case SdStyleValueKind::MetricToken:
-				return SdStyleValue::FromFloat(theme.GetMetric(value.token));
 			case SdStyleValueKind::ColorVariable:
 				return SdStyleValue::FromColor(theme.GetColorVariable(value.variableId));
 			case SdStyleValueKind::MetricVariable:
@@ -1172,20 +996,6 @@ namespace Sodium
 		SdStyleRuleBuilder& Set(TField Style::* member, SdStyleValue value)
 		{
 			return SetValue(member, value);
-		}
-
-		template<class TField>
-		SdStyleRuleBuilder& SetColorToken(TField Style::* member, SdStyleToken token)
-		{
-			static_assert(std::is_same_v<TField, SdColor>, "SetColorToken requires an SdColor style field.");
-			return SetValue(member, SdStyleValue::FromColorToken(token));
-		}
-
-		template<class TField>
-		SdStyleRuleBuilder& SetMetricToken(TField Style::* member, SdStyleToken token)
-		{
-			static_assert(std::is_same_v<TField, float>, "SetMetricToken requires a float style field.");
-			return SetValue(member, SdStyleValue::FromMetricToken(token));
 		}
 
 		template<class TField>

@@ -186,20 +186,6 @@ namespace Sodium
 			return SetValue(member, value, true);
 		}
 
-		template<class TOwner, class TField>
-		SdStyleSheetRuleBuilder& SetColorToken(TField TOwner::* member, SdStyleToken token)
-		{
-			static_assert(std::is_same_v<TField, SdColor>, "SetColorToken requires an SdColor style field.");
-			return SetValue(member, SdStyleValue::FromColorToken(token), false);
-		}
-
-		template<class TOwner, class TField>
-		SdStyleSheetRuleBuilder& SetMetricToken(TField TOwner::* member, SdStyleToken token)
-		{
-			static_assert(std::is_same_v<TField, float>, "SetMetricToken requires a float style field.");
-			return SetValue(member, SdStyleValue::FromMetricToken(token), false);
-		}
-
 	private:
 		template<class TOwner, class TField>
 		SdStyleSheetRuleBuilder& SetValue(TField TOwner::* member, SdStyleValue value, bool important)

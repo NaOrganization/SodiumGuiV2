@@ -121,7 +121,7 @@ namespace Sodium
 
 	inline SdTransition SdInstance::GetDefaultTransition() const noexcept
 	{
-		const float seconds = std::max(0.001f, context.styleSystem.GetTheme().GetMetric(SdStyleToken::DurationFast));
+		const float seconds = std::max(0.001f, context.styleSystem.GetTheme().GetMetricVariable(SdThemeVariableLiteral("duration.fast")));
 		return {
 			std::chrono::duration_cast<SdDuration>(std::chrono::duration<float>(seconds)),
 			SdAnimationEasing::OutCubic

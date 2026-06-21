@@ -151,7 +151,7 @@ namespace Sodium
 				Style style = {};
 				style.fontSize = 16.0f;
 				style.lineHeight = 0.0f;
-				style.color = context.theme.GetColor(SdStyleToken::ColorText);
+				style.color = context.theme.GetColorVariable(SdThemeVariableLiteral("text"));
 				style.opacity = 1.0f;
 				return style;
 			}
@@ -270,15 +270,15 @@ namespace Sodium
 			{
 				Style style = {};
 				style.padding = {
-					context.theme.GetMetric(SdStyleToken::SpacingMedium),
-					context.theme.GetMetric(SdStyleToken::SpacingMedium),
-					context.theme.GetMetric(SdStyleToken::SpacingMedium),
-					context.theme.GetMetric(SdStyleToken::SpacingMedium)
+					context.theme.GetMetricVariable(SdThemeVariableLiteral("spacing.medium")),
+					context.theme.GetMetricVariable(SdThemeVariableLiteral("spacing.medium")),
+					context.theme.GetMetricVariable(SdThemeVariableLiteral("spacing.medium")),
+					context.theme.GetMetricVariable(SdThemeVariableLiteral("spacing.medium"))
 				};
 				style.width = 240.0f;
 				style.height = 120.0f;
-				style.childSpacing = context.theme.GetMetric(SdStyleToken::SpacingSmall);
-				style.radius = context.theme.GetMetric(SdStyleToken::RadiusSmall);
+				style.childSpacing = context.theme.GetMetricVariable(SdThemeVariableLiteral("spacing.small"));
+				style.radius = context.theme.GetMetricVariable(SdThemeVariableLiteral("radius.small"));
 				style.opacity = 1.0f;
 				return style;
 			}
@@ -369,14 +369,14 @@ namespace Sodium
 			static Style Default(const SdStyleContext& context)
 			{
 				Style style = {};
-				const float smallSpacing = context.theme.GetMetric(SdStyleToken::SpacingSmall);
-				const float mediumSpacing = context.theme.GetMetric(SdStyleToken::SpacingMedium);
+				const float smallSpacing = context.theme.GetMetricVariable(SdThemeVariableLiteral("spacing.small"));
+				const float mediumSpacing = context.theme.GetMetricVariable(SdThemeVariableLiteral("spacing.medium"));
 				style.padding = { mediumSpacing, smallSpacing, mediumSpacing, smallSpacing };
 				style.minWidth = 82.0f;
 				style.minHeight = 30.0f;
 				style.fontSize = BasicWidgetDetail::kDefaultFontSize;
 				style.lineHeight = 0.0f;
-				style.radius = context.theme.GetMetric(SdStyleToken::RadiusSmall);
+				style.radius = context.theme.GetMetricVariable(SdThemeVariableLiteral("radius.small"));
 				style.opacity = 1.0f;
 				return style;
 			}
@@ -485,14 +485,14 @@ namespace Sodium
 			static Style Default(const SdStyleContext& context)
 			{
 				Style style = {};
-				const float smallSpacing = context.theme.GetMetric(SdStyleToken::SpacingSmall);
+				const float smallSpacing = context.theme.GetMetricVariable(SdThemeVariableLiteral("spacing.small"));
 				style.padding = { smallSpacing, smallSpacing, smallSpacing, smallSpacing };
 				style.boxSize = 18.0f;
 				style.gap = smallSpacing;
 				style.minHeight = 28.0f;
 				style.fontSize = BasicWidgetDetail::kDefaultFontSize;
 				style.lineHeight = 0.0f;
-				style.radius = std::max(2.0f, context.theme.GetMetric(SdStyleToken::RadiusSmall) - 1.0f);
+				style.radius = std::max(2.0f, context.theme.GetMetricVariable(SdThemeVariableLiteral("radius.small")) - 1.0f);
 				style.opacity = 1.0f;
 				return style;
 			}
@@ -583,7 +583,7 @@ namespace Sodium
 			const SdColor border = BasicWidgetDetail::ApplyOpacity(presentation.border.left.color, context.opacity * style.opacity);
 			const SdColor textColor = BasicWidgetDetail::ApplyOpacity(presentation.color, context.opacity * style.opacity);
 			const SdColor accent = BasicWidgetDetail::ApplyOpacity(
-				context.instance.GetStyleSystem().GetTheme().GetColor(SdStyleToken::ColorAccent),
+				context.instance.GetStyleSystem().GetTheme().GetColorVariable(SdThemeVariableLiteral("accent")),
 				context.opacity * style.opacity);
 
 			context.renderList.AddRectFilled(boxRect, background, context.clipRect, style.radius);
@@ -634,7 +634,7 @@ namespace Sodium
 			static Style Default(const SdStyleContext& context)
 			{
 				Style style = {};
-				const float smallSpacing = context.theme.GetMetric(SdStyleToken::SpacingSmall);
+				const float smallSpacing = context.theme.GetMetricVariable(SdThemeVariableLiteral("spacing.small"));
 				style.padding = { smallSpacing, smallSpacing, smallSpacing, smallSpacing };
 				style.width = 180.0f;
 				style.height = 30.0f;
@@ -643,7 +643,7 @@ namespace Sodium
 				style.labelGap = smallSpacing;
 				style.fontSize = BasicWidgetDetail::kDefaultFontSize;
 				style.lineHeight = 0.0f;
-				style.radius = context.theme.GetMetric(SdStyleToken::RadiusSmall);
+				style.radius = context.theme.GetMetricVariable(SdThemeVariableLiteral("radius.small"));
 				style.opacity = 1.0f;
 				return style;
 			}
@@ -731,7 +731,7 @@ namespace Sodium
 			const SdColor trackColor = BasicWidgetDetail::ApplyOpacity(presentation.backgroundColor, context.opacity * style.opacity);
 			const SdColor border = BasicWidgetDetail::ApplyOpacity(presentation.border.left.color, context.opacity * style.opacity);
 			const SdColor accent = BasicWidgetDetail::ApplyOpacity(
-				context.instance.GetStyleSystem().GetTheme().GetColor(SdStyleToken::ColorAccent),
+				context.instance.GetStyleSystem().GetTheme().GetColorVariable(SdThemeVariableLiteral("accent")),
 				context.opacity * style.opacity);
 
 			float trackStartX = context.animatedRect.min.x + style.padding.left;
@@ -806,14 +806,14 @@ namespace Sodium
 			static Style Default(const SdStyleContext& context)
 			{
 				Style style = {};
-				const float smallSpacing = context.theme.GetMetric(SdStyleToken::SpacingSmall);
-				const float mediumSpacing = context.theme.GetMetric(SdStyleToken::SpacingMedium);
+				const float smallSpacing = context.theme.GetMetricVariable(SdThemeVariableLiteral("spacing.small"));
+				const float mediumSpacing = context.theme.GetMetricVariable(SdThemeVariableLiteral("spacing.medium"));
 				style.padding = { mediumSpacing, smallSpacing, mediumSpacing, smallSpacing };
 				style.width = 220.0f;
 				style.minHeight = 32.0f;
 				style.fontSize = BasicWidgetDetail::kDefaultFontSize;
 				style.lineHeight = 0.0f;
-				style.radius = context.theme.GetMetric(SdStyleToken::RadiusSmall);
+				style.radius = context.theme.GetMetricVariable(SdThemeVariableLiteral("radius.small"));
 				style.opacity = 1.0f;
 				return style;
 			}
@@ -1011,15 +1011,15 @@ namespace Sodium
 			static Style Default(const SdStyleContext& context)
 			{
 				Style style = {};
-				const float mediumSpacing = context.theme.GetMetric(SdStyleToken::SpacingMedium);
+				const float mediumSpacing = context.theme.GetMetricVariable(SdThemeVariableLiteral("spacing.medium"));
 				style.padding = { mediumSpacing, 40.0f, mediumSpacing, mediumSpacing };
 				style.width = 420.0f;
 				style.height = 260.0f;
 				style.titleHeight = 30.0f;
-				style.childSpacing = context.theme.GetMetric(SdStyleToken::SpacingSmall);
+				style.childSpacing = context.theme.GetMetricVariable(SdThemeVariableLiteral("spacing.small"));
 				style.fontSize = BasicWidgetDetail::kDefaultFontSize;
 				style.lineHeight = 0.0f;
-				style.radius = context.theme.GetMetric(SdStyleToken::RadiusSmall);
+				style.radius = context.theme.GetMetricVariable(SdThemeVariableLiteral("radius.small"));
 				style.opacity = 1.0f;
 				return style;
 			}
@@ -1133,7 +1133,7 @@ namespace Sodium
 			const SdColor border = BasicWidgetDetail::ApplyOpacity(presentation.border.left.color, context.opacity * style.opacity);
 			const SdColor textColor = BasicWidgetDetail::ApplyOpacity(presentation.color, context.opacity * style.opacity);
 			const SdColor titleColor = BasicWidgetDetail::ApplyOpacity(
-				context.instance.GetStyleSystem().GetTheme().GetColor(SdStyleToken::ColorButton),
+				context.instance.GetStyleSystem().GetTheme().GetColorVariable(SdThemeVariableLiteral("button.bg")),
 				context.opacity * style.opacity);
 
 			context.renderList.AddRectFilled(context.animatedRect, background, context.clipRect, style.radius);
@@ -1261,7 +1261,7 @@ namespace Sodium
 				Style style = {};
 				style.width = 160.0f;
 				style.height = 120.0f;
-				style.radius = context.theme.GetMetric(SdStyleToken::RadiusSmall);
+				style.radius = context.theme.GetMetricVariable(SdThemeVariableLiteral("radius.small"));
 				style.opacity = 1.0f;
 				return style;
 			}
@@ -1351,13 +1351,13 @@ namespace Sodium
 			static Style Default(const SdStyleContext& context)
 			{
 				Style style = {};
-				const float smallSpacing = context.theme.GetMetric(SdStyleToken::SpacingSmall);
+				const float smallSpacing = context.theme.GetMetricVariable(SdThemeVariableLiteral("spacing.small"));
 				style.padding = { smallSpacing, smallSpacing, smallSpacing, smallSpacing };
 				style.width = 240.0f;
 				style.height = 160.0f;
 				style.childSpacing = smallSpacing;
 				style.scrollbarWidth = 5.0f;
-				style.radius = context.theme.GetMetric(SdStyleToken::RadiusSmall);
+				style.radius = context.theme.GetMetricVariable(SdThemeVariableLiteral("radius.small"));
 				style.opacity = 1.0f;
 				return style;
 			}
@@ -1412,7 +1412,7 @@ namespace Sodium
 			const SdColor background = BasicWidgetDetail::ApplyOpacity(presentation.backgroundColor, context.opacity * style.opacity);
 			const SdColor border = BasicWidgetDetail::ApplyOpacity(presentation.border.left.color, context.opacity * style.opacity);
 			const SdColor accent = BasicWidgetDetail::ApplyOpacity(
-				context.instance.GetStyleSystem().GetTheme().GetColor(SdStyleToken::ColorAccent),
+				context.instance.GetStyleSystem().GetTheme().GetColorVariable(SdThemeVariableLiteral("accent")),
 				context.opacity * style.opacity);
 			context.renderList.AddRectFilled(context.animatedRect, background, context.clipRect, style.radius);
 			context.renderList.AddRect(context.animatedRect, border, context.clipRect, 1.0f, style.radius);
@@ -1448,12 +1448,12 @@ namespace Sodium
 			static Style Default(const SdStyleContext& context)
 			{
 				Style style = {};
-				const float smallSpacing = context.theme.GetMetric(SdStyleToken::SpacingSmall);
+				const float smallSpacing = context.theme.GetMetricVariable(SdThemeVariableLiteral("spacing.small"));
 				style.padding = { smallSpacing, smallSpacing, smallSpacing, smallSpacing };
 				style.width = 220.0f;
 				style.height = 140.0f;
 				style.childSpacing = smallSpacing;
-				style.radius = context.theme.GetMetric(SdStyleToken::RadiusSmall);
+				style.radius = context.theme.GetMetricVariable(SdThemeVariableLiteral("radius.small"));
 				style.opacity = 1.0f;
 				return style;
 			}
@@ -1549,12 +1549,12 @@ namespace Sodium
 			static Style Default(const SdStyleContext& context)
 			{
 				Style style = {};
-				const float smallSpacing = context.theme.GetMetric(SdStyleToken::SpacingSmall);
+				const float smallSpacing = context.theme.GetMetricVariable(SdThemeVariableLiteral("spacing.small"));
 				style.padding = { smallSpacing, smallSpacing, smallSpacing, smallSpacing };
 				style.width = 220.0f;
 				style.height = 140.0f;
 				style.childSpacing = smallSpacing;
-				style.radius = context.theme.GetMetric(SdStyleToken::RadiusSmall);
+				style.radius = context.theme.GetMetricVariable(SdThemeVariableLiteral("radius.small"));
 				style.opacity = 1.0f;
 				return style;
 			}
@@ -1636,11 +1636,11 @@ namespace Sodium
 			static Style Default(const SdStyleContext& context)
 			{
 				Style style = {};
-				const float smallSpacing = context.theme.GetMetric(SdStyleToken::SpacingSmall);
+				const float smallSpacing = context.theme.GetMetricVariable(SdThemeVariableLiteral("spacing.small"));
 				style.padding = { smallSpacing, smallSpacing, smallSpacing, smallSpacing };
 				style.fontSize = BasicWidgetDetail::kDefaultFontSize;
 				style.lineHeight = 0.0f;
-				style.radius = context.theme.GetMetric(SdStyleToken::RadiusSmall);
+				style.radius = context.theme.GetMetricVariable(SdThemeVariableLiteral("radius.small"));
 				style.opacity = 1.0f;
 				return style;
 			}

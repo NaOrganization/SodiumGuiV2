@@ -201,7 +201,7 @@ namespace
 			{
 				Style style = {};
 				style.width = 24.0f;
-				style.color = context.theme.GetColor(SdStyleToken::ColorText);
+				style.color = context.theme.GetColorVariable(SdThemeVariableLiteral("text"));
 				return style;
 			}
 
@@ -670,11 +670,11 @@ namespace
 		const SdWidgetRootStyle normal = instance.GetStyleSystem().ResolveRootStyle(TestDrawWidget::Style::TargetTypeId, SdStyleInteractionState::Normal);
 		const SdWidgetRootStyle hovered = instance.GetStyleSystem().ResolveRootStyle(TestDrawWidget::Style::TargetTypeId, SdStyleInteractionState::Hovered);
 		Check(normal.backgroundColor != hovered.backgroundColor, "style interaction selector changes button background");
-		Check(normal.border.left.color == instance.GetStyleSystem().GetTheme().GetColor(SdStyleToken::ColorBorder), "presentation style carries theme border color");
+		Check(normal.border.left.color == instance.GetStyleSystem().GetTheme().GetColorVariable(SdThemeVariableLiteral("border")), "presentation style carries theme border color");
 
 		const SdUInt64 previousStyleRevision = instance.GetStyleSystem().GetRevision();
 		const SdColor updatedButtonColor = { 11, 22, 33, 255 };
-		instance.GetStyleSystem().SetColor(SdStyleToken::ColorButton, updatedButtonColor);
+		instance.GetStyleSystem().SetColorVariable("button.bg", updatedButtonColor);
 		instance.BeginFrame({ 640.0f, 480.0f });
 		instance.ui.DeclareKeyed<TestContainer>("container", [](SdUi& ui)
 		{
@@ -751,7 +751,7 @@ namespace
 		const SdWidgetRootStyle text = styleSystem.ResolveRootStyle(SdWidgetTargetIds::Text, SdStyleInteractionState::Normal);
 		Check(custom.highlight == SdColor(9, 8, 7, 6), "component target id resolves typed component style");
 		Check(custom.contentPadding.left == 3.0f, "component target id resolves typed layout property");
-		Check(text.backgroundColor == styleSystem.GetTheme().GetColor(SdStyleToken::ColorBackground), "typed component style does not leak to unrelated root targets");
+		Check(text.backgroundColor == styleSystem.GetTheme().GetColorVariable(SdThemeVariableLiteral("background")), "typed component style does not leak to unrelated root targets");
 	}
 
 	void TestTypedStyleContractAndRuntimeCache()

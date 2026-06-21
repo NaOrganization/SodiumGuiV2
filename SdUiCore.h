@@ -43,27 +43,6 @@ namespace Sodium
 		float baseline = 0.0f;
 	};
 
-	enum class SdStyleToken : SdUInt16
-	{
-		ColorText,
-		ColorBackground,
-		ColorWindowBg,
-		ColorPanelBg,
-		ColorButton,
-		ColorButtonHovered,
-		ColorButtonPressed,
-		ColorAccent,
-		ColorBorder,
-		ColorBorderStrong,
-		ColorDanger,
-		ColorSelection,
-		SpacingSmall,
-		SpacingMedium,
-		RadiusSmall,
-		DurationFast,
-		Count
-	};
-
 	using SdStyleTokenTag = SdUInt64;
 	using SdStyleClassId = SdUInt64;
 	using SdStyleScopeId = SdUInt64;
@@ -173,8 +152,6 @@ namespace Sodium
 		Float,
 		Spacing,
 		Vec2,
-		ColorToken,
-		MetricToken,
 		ColorVariable,
 		MetricVariable
 	};
@@ -186,7 +163,6 @@ namespace Sodium
 		float number = 0.0f;
 		SdSpacing spacing = {};
 		SdVec2 vec2 = {};
-		SdStyleToken token = SdStyleToken::Count;
 		SdThemeVariableId variableId = 0;
 
 		static constexpr SdStyleValue FromColor(SdColor value) noexcept
@@ -218,22 +194,6 @@ namespace Sodium
 			SdStyleValue result = {};
 			result.kind = SdStyleValueKind::Vec2;
 			result.vec2 = value;
-			return result;
-		}
-
-		static constexpr SdStyleValue FromColorToken(SdStyleToken value) noexcept
-		{
-			SdStyleValue result = {};
-			result.kind = SdStyleValueKind::ColorToken;
-			result.token = value;
-			return result;
-		}
-
-		static constexpr SdStyleValue FromMetricToken(SdStyleToken value) noexcept
-		{
-			SdStyleValue result = {};
-			result.kind = SdStyleValueKind::MetricToken;
-			result.token = value;
 			return result;
 		}
 
