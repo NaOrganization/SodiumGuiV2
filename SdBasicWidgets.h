@@ -961,12 +961,14 @@ namespace Sodium
 
 			const Style& style = context.RootPresentationStyle<SdWindow>();
 			const SdBoxStyle& presentation = context.RootStyleNode().presentationStyle;
+			const SdBoxStyle& titlePresentation = context.Part(Parts::Title).presentationStyle;
 			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(presentation, context.animatedRect.Size(), { 420.0f, 260.0f });
-			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, presentation.fontSize, presentation.lineHeight);
+			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, titlePresentation.fontSize, titlePresentation.lineHeight);
 			const float lineHeight = BasicWidgetDetail::ResolveLineHeight(textStyle);
 			const SdColor background = BasicWidgetDetail::ApplyOpacity(presentation.backgroundColor, context.opacity * presentation.opacity);
 			const SdColor border = BasicWidgetDetail::ApplyOpacity(presentation.border.left.color, context.opacity * presentation.opacity);
-			const SdColor textColor = BasicWidgetDetail::ApplyOpacity(presentation.color, context.opacity * presentation.opacity);
+			const SdColor textColor = BasicWidgetDetail::ApplyOpacity(titlePresentation.color, context.opacity * titlePresentation.opacity);
+			const SdColor closeColor = BasicWidgetDetail::ApplyOpacity(presentation.color, context.opacity * presentation.opacity);
 			const SdColor titleColor = BasicWidgetDetail::ApplyOpacity(
 				context.instance.GetStyleSystem().GetTheme().GetColorVariable(SdThemeVariableLiteral("button.bg")),
 				context.opacity * presentation.opacity);
@@ -994,13 +996,13 @@ namespace Sodium
 				context.renderList.AddLine(
 					{ closeRect.min.x + 5.0f, closeRect.min.y + 5.0f },
 					{ closeRect.max.x - 5.0f, closeRect.max.y - 5.0f },
-					textColor,
+					closeColor,
 					context.clipRect,
 					1.5f);
 				context.renderList.AddLine(
 					{ closeRect.max.x - 5.0f, closeRect.min.y + 5.0f },
 					{ closeRect.min.x + 5.0f, closeRect.max.y - 5.0f },
-					textColor,
+					closeColor,
 					context.clipRect,
 					1.5f);
 			}

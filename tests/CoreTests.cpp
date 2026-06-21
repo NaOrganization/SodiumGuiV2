@@ -477,6 +477,24 @@ namespace
 			&& inputPartFontBackend.lastPaintColor.g == placeholderPartColor.g
 			&& inputPartFontBackend.lastPaintColor.b == placeholderPartColor.b,
 			"text input placeholder part color drives text paint");
+
+		SdInstance windowPartStyleInstance;
+		RecordingFontBackend windowPartFontBackend = {};
+		windowPartStyleInstance.SetFontBackend(&windowPartFontBackend);
+		const SdColor titlePartColor = SdColor(22, 88, 143, 255);
+		windowPartStyleInstance.GetStyleSystem().Part<SdWindow>(SdWindow::Parts::Title)
+			.Set(&SdBoxStyle::color, titlePartColor)
+			.Set(&SdBoxStyle::opacity, 1.0f);
+		bool titleWindowOpen = true;
+		windowPartStyleInstance.BeginFrame({ 320.0f, 200.0f });
+		windowPartStyleInstance.ui.Declare<SdWindow>("Part title", titleWindowOpen);
+		PumpFrame(windowPartStyleInstance);
+		Check(windowPartFontBackend.lastPaintText == "Part title", "window title part drives text paint");
+		Check(
+			windowPartFontBackend.lastPaintColor.r == titlePartColor.r
+			&& windowPartFontBackend.lastPaintColor.g == titlePartColor.g
+			&& windowPartFontBackend.lastPaintColor.b == titlePartColor.b,
+			"window title part color drives text paint");
 	}
 
 	void TestStyleSheetCascadeAndRegistry()
