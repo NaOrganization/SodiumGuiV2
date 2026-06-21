@@ -112,6 +112,7 @@ namespace Sodium
 
 			ResolveWidgetStyle(record, styleInteraction, record.state.layerPriority);
 			record.state.measuredSize = result.desiredSize;
+			const SdResolvedBoxStyle rootUsedStyle = SdResolveBoxStyle(record.styleCache.resolvedStyle, constraints.maxSize, result.desiredSize);
 			const SdResolvedBoxEdges rootBorder = SdResolveBorderEdges(record.styleCache.resolvedStyle.border, record.state.measuredSize);
 
 			context.layoutSystem.AddNode({
@@ -121,9 +122,14 @@ namespace Sodium
 				result,
 				record.state.manualRect,
 				{ rootBorder.left, rootBorder.top, rootBorder.right, rootBorder.bottom },
-				record.state.contentPadding,
+				{
+					rootUsedStyle.padding.left,
+					rootUsedStyle.padding.top,
+					rootUsedStyle.padding.right,
+					rootUsedStyle.padding.bottom
+				},
 				record.state.layoutWeight,
-				record.state.gap,
+				std::max(0.0f, rootUsedStyle.gap),
 				record.state.manualLayout,
 				record.state.arrangeChildren,
 				record.state.clipChildren

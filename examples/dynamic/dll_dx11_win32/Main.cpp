@@ -33,8 +33,10 @@ namespace SodiumDynamicExample
 	constexpr Sodium::SdStyleClassId kOverlayAccentTextClass = Sodium::SdStyleClassLiteral("Sodium.DynamicExample.Text.Accent");
 	constexpr Sodium::SdStyleClassId kOverlayMutedTextClass = Sodium::SdStyleClassLiteral("Sodium.DynamicExample.Text.Muted");
 	constexpr Sodium::SdStyleClassId kOverlayPaddedTextClass = Sodium::SdStyleClassLiteral("Sodium.DynamicExample.Text.Padded");
+	constexpr Sodium::SdStyleClassId kOverlayWindowClass = Sodium::SdStyleClassLiteral("Sodium.DynamicExample.Window.Overlay");
 	constexpr Sodium::SdStyleClassId kOverlayBasicPanelClass = Sodium::SdStyleClassLiteral("Sodium.DynamicExample.Panel.Basic");
 	constexpr Sodium::SdStyleClassId kOverlayBasicScrollClass = Sodium::SdStyleClassLiteral("Sodium.DynamicExample.Scroll.Basic");
+	constexpr Sodium::SdStyleScopeId kOverlayWindowScope = Sodium::SdStyleScopeLiteral("Sodium.DynamicExample.Scope.Overlay.Root");
 	constexpr Sodium::SdStyleScopeId kOverlayTextScope = Sodium::SdStyleScopeLiteral("Sodium.DynamicExample.Scope.Overlay");
 	constexpr Sodium::SdStyleScopeId kOverlayPanelScope = Sodium::SdStyleScopeLiteral("Sodium.DynamicExample.Scope.Panel");
 	constexpr Sodium::SdStyleScopeId kOverlayScrollScope = Sodium::SdStyleScopeLiteral("Sodium.DynamicExample.Scope.Scroll");
@@ -238,6 +240,8 @@ namespace SodiumDynamicExample
 		class OverlayWindow final : public Sodium::SdWidgetTag
 		{
 		public:
+			using Style = Sodium::SdWidgetRootStyle;
+
 			struct State
 			{
 				bool hovered = false;
@@ -324,8 +328,6 @@ namespace SodiumDynamicExample
 				context.widgetState.layerPriority = Sodium::SdLayerPriority::Overlay;
 				context.widgetState.arrangeChildren = true;
 				context.widgetState.clipChildren = true;
-				context.widgetState.contentPadding = { 14.0f, 96.0f, 14.0f, 10.0f };
-				context.widgetState.gap = 5.0f;
 				context.widgetState.targetTypeId = Sodium::SdWidgetTargetIds::Panel;
 			}
 
@@ -401,6 +403,11 @@ namespace SodiumDynamicExample
 
 			Sodium::SdStyleSystem& styleSystem = gui.GetStyleSystem();
 			ConfigureBuiltInThemeTransitions(styleSystem);
+			styleSystem.RootRule(Sodium::SdWidgetTargetIds::Panel)
+				.Scope(kOverlayWindowScope)
+				.Class(kOverlayWindowClass)
+				.Set(&Sodium::SdBoxStyle::padding, Sodium::SdStyleValue::FromSpacing({ 14.0f, 96.0f, 14.0f, 10.0f }))
+				.Set(&Sodium::SdBoxStyle::gap, Sodium::SdLength::Pixels(5.0f));
 			styleSystem.RootRule(Sodium::SdText::TargetTypeId)
 				.Scope(kOverlayTextScope)
 				.Set(&Sodium::SdBoxStyle::fontSize, 15.0f)
@@ -531,7 +538,14 @@ namespace SodiumDynamicExample
 			const auto frameStart = std::chrono::steady_clock::now();
 			ApplyGlobalTheme();
 			gui.BeginFrame(platform, dx.displaySize);
-			gui.ui.Declare<OverlayWindow>(overlayWindowOpen, controls, frameCount, liveFps, fontBackend.GetAtlasTexture());
+			const Sodium::SdStyleClassId overlayWindowClasses[] = { kOverlayWindowClass };
+			gui.ui.DeclareStyled<OverlayWindow>(
+				{ Sodium::SdSpan<const Sodium::SdStyleClassId>(overlayWindowClasses, 1), kOverlayWindowScope },
+				overlayWindowOpen,
+				controls,
+				frameCount,
+				liveFps,
+				fontBackend.GetAtlasTexture());
 			DeclareFloatingBuiltInWidgets();
 			gui.EndFrame();
 

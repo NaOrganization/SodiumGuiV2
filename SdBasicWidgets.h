@@ -256,13 +256,6 @@ namespace Sodium
 			});
 			context.widgetState.arrangeChildren = true;
 			context.widgetState.clipChildren = true;
-			context.widgetState.contentPadding = {
-				usedStyle.padding.left,
-				usedStyle.padding.top,
-				usedStyle.padding.right,
-				usedStyle.padding.bottom
-			};
-			context.widgetState.gap = std::max(0.0f, usedStyle.gap);
 		}
 
 		void OnPaint(SdPaintContext& context)
@@ -972,13 +965,6 @@ namespace Sodium
 			context.widgetState.manualRect = state.open ? state.rect : SdRect{};
 			context.widgetState.arrangeChildren = state.open;
 			context.widgetState.clipChildren = true;
-			context.widgetState.contentPadding = {
-				usedStyle.padding.left,
-				usedStyle.padding.top,
-				usedStyle.padding.right,
-				usedStyle.padding.bottom
-			};
-			context.widgetState.gap = std::max(0.0f, usedStyle.gap);
 			context.SetDesiredSize(state.open ? state.rect.Size() : SdVec2{});
 		}
 
@@ -1245,13 +1231,6 @@ namespace Sodium
 			context.SetDesiredSize({ std::max(0.0f, usedStyle.width), std::max(0.0f, usedStyle.height) });
 			context.widgetState.arrangeChildren = true;
 			context.widgetState.clipChildren = true;
-			context.widgetState.contentPadding = {
-				usedStyle.padding.left,
-				usedStyle.padding.top,
-				usedStyle.padding.right,
-				usedStyle.padding.bottom
-			};
-			context.widgetState.gap = std::max(0.0f, usedStyle.gap);
 		}
 
 		void OnPaint(SdPaintContext& context)
@@ -1325,13 +1304,6 @@ namespace Sodium
 				: SdRect{};
 			context.widgetState.arrangeChildren = state.open;
 			context.widgetState.clipChildren = true;
-			context.widgetState.contentPadding = {
-				usedStyle.padding.left,
-				usedStyle.padding.top,
-				usedStyle.padding.right,
-				usedStyle.padding.bottom
-			};
-			context.widgetState.gap = std::max(0.0f, usedStyle.gap);
 			context.SetDesiredSize(state.open ? SdVec2{ usedStyle.width, usedStyle.height } : SdVec2{});
 		}
 
@@ -1397,13 +1369,6 @@ namespace Sodium
 				: SdRect{};
 			context.widgetState.arrangeChildren = state.open;
 			context.widgetState.clipChildren = true;
-			context.widgetState.contentPadding = {
-				usedStyle.padding.left,
-				usedStyle.padding.top,
-				usedStyle.padding.right,
-				usedStyle.padding.bottom
-			};
-			context.widgetState.gap = std::max(0.0f, usedStyle.gap);
 			context.SetDesiredSize(state.open ? SdVec2{ usedStyle.width, usedStyle.height } : SdVec2{});
 		}
 

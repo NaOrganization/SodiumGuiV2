@@ -52,10 +52,8 @@ namespace Sodium
 		SdRect childContentRect = {};
 		SdRect computedClipRect = {};
 		SdVec2 measuredSize = {};
-		SdSpacing contentPadding = {};
 		float layoutWeight = 0.0f;
 		float opacity = 0.0f;
-		float gap = 0.0f;
 		SdFrameIndex lastSubmittedFrame = 0;
 	};
 

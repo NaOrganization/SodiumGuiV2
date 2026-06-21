@@ -41,8 +41,6 @@ namespace Sodium
 		record.state.manualRect = {};
 		record.state.childContentRect = {};
 		record.state.computedClipRect = {};
-		record.state.contentPadding = {};
-		record.state.gap = 0.0f;
 		if (record.state.lifePhase == SdWidgetLifePhase::Leaving || record.state.lifePhase == SdWidgetLifePhase::Dead)
 			record.state.lifePhase = SdWidgetLifePhase::Entering;
 		context.stateStorage.RegisterResolvedKey(resolvedKey, id);

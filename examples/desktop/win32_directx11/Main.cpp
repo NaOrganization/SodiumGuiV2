@@ -32,8 +32,10 @@ namespace
 	constexpr Sodium::SdStyleClassId kExampleAccentTextClass = Sodium::SdStyleClassLiteral("Sodium.Example.Text.Accent");
 	constexpr Sodium::SdStyleClassId kExampleWarningTextClass = Sodium::SdStyleClassLiteral("Sodium.Example.Text.Warning");
 	constexpr Sodium::SdStyleClassId kExamplePaddedTextClass = Sodium::SdStyleClassLiteral("Sodium.Example.Text.Padded");
+	constexpr Sodium::SdStyleClassId kExampleDemoWindowClass = Sodium::SdStyleClassLiteral("Sodium.Example.Window.Demo");
 	constexpr Sodium::SdStyleClassId kExampleBasicPanelClass = Sodium::SdStyleClassLiteral("Sodium.Example.Panel.Basic");
 	constexpr Sodium::SdStyleClassId kExampleBasicScrollClass = Sodium::SdStyleClassLiteral("Sodium.Example.Scroll.Basic");
+	constexpr Sodium::SdStyleScopeId kExampleDemoWindowScope = Sodium::SdStyleScopeLiteral("Sodium.Example.Scope.DemoWindow.Root");
 	constexpr Sodium::SdStyleScopeId kExampleDemoTextScope = Sodium::SdStyleScopeLiteral("Sodium.Example.Scope.DemoWindow");
 	constexpr Sodium::SdStyleScopeId kExampleDemoPanelScope = Sodium::SdStyleScopeLiteral("Sodium.Example.Scope.DemoPanel");
 	constexpr Sodium::SdStyleScopeId kExampleDemoScrollScope = Sodium::SdStyleScopeLiteral("Sodium.Example.Scope.DemoScroll");
@@ -214,6 +216,8 @@ namespace
 		class DemoWindow final : public Sodium::SdWidgetTag
 		{
 		public:
+			using Style = Sodium::SdWidgetRootStyle;
+
 			struct State
 			{
 				bool hovered = false;
@@ -321,8 +325,6 @@ namespace
 				context.widgetState.manualRect = { 48.0f, 42.0f, 568.0f, 662.0f };
 				context.widgetState.arrangeChildren = true;
 				context.widgetState.clipChildren = true;
-				context.widgetState.contentPadding = { 14.0f, 108.0f, 14.0f, 12.0f };
-				context.widgetState.gap = 5.0f;
 				context.widgetState.targetTypeId = Sodium::SdWidgetTargetIds::Panel;
 			}
 
@@ -396,6 +398,11 @@ namespace
 		{
 			Sodium::SdStyleSystem& styleSystem = gui.GetStyleSystem();
 			ConfigureBuiltInThemeTransitions(styleSystem);
+			styleSystem.RootRule(Sodium::SdWidgetTargetIds::Panel)
+				.Scope(kExampleDemoWindowScope)
+				.Class(kExampleDemoWindowClass)
+				.Set(&Sodium::SdBoxStyle::padding, Sodium::SdStyleValue::FromSpacing({ 14.0f, 108.0f, 14.0f, 12.0f }))
+				.Set(&Sodium::SdBoxStyle::gap, Sodium::SdLength::Pixels(5.0f));
 			styleSystem.RootRule(Sodium::SdText::TargetTypeId)
 				.Scope(kExampleDemoTextScope)
 				.Set(&Sodium::SdBoxStyle::fontSize, 17.0f)
@@ -550,7 +557,14 @@ namespace
 				dx.BeginFrame(clearColor);
 				const Sodium::SdVec2 displaySize = { static_cast<float>(dx.width), static_cast<float>(dx.height) };
 				gui.BeginFrame(platform, displaySize);
-				gui.ui.Declare<DemoWindow>(demoWindowOpen, demoControls, frameCount, liveFps, fontBackend.GetAtlasTexture());
+				const Sodium::SdStyleClassId demoWindowClasses[] = { kExampleDemoWindowClass };
+				gui.ui.DeclareStyled<DemoWindow>(
+					{ Sodium::SdSpan<const Sodium::SdStyleClassId>(demoWindowClasses, 1), kExampleDemoWindowScope },
+					demoWindowOpen,
+					demoControls,
+					frameCount,
+					liveFps,
+					fontBackend.GetAtlasTexture());
 				DeclareFloatingBuiltInWidgets();
 				gui.EndFrame();
 				gui.Render();

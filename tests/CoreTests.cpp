@@ -108,8 +108,6 @@ namespace
 			context.SetDesiredSize({ 220.0f, 110.0f });
 			context.widgetState.arrangeChildren = true;
 			context.widgetState.clipChildren = true;
-			context.widgetState.contentPadding = { 6.0f, 6.0f, 6.0f, 6.0f };
-			context.widgetState.gap = 4.0f;
 		}
 
 		void OnPaint(SdPaintContext& context)
@@ -1177,6 +1175,9 @@ namespace
 	void TestLayoutAnimationAndStyle()
 	{
 		SdInstance instance;
+		instance.GetStyleSystem().RootRule(TestContainer::TargetTypeId)
+			.Set(&SdBoxStyle::padding, SdStyleValue::FromSpacing({ 6.0f, 6.0f, 6.0f, 6.0f }))
+			.Set(&SdBoxStyle::gap, SdLength::Pixels(4.0f));
 		instance.BeginFrame({ 640.0f, 480.0f });
 		instance.ui.DeclareKeyed<TestContainer>("container", [](SdUi& ui)
 		{
