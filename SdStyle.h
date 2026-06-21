@@ -123,6 +123,9 @@ namespace Sodium
 		template<>
 		inline constexpr bool SdIsStyleValueField<SdVec2> = true;
 
+		template<>
+		inline constexpr bool SdIsStyleValueField<SdLength> = true;
+
 		inline SdStyleValue MakeStyleValue(SdColor value) noexcept
 		{
 			return SdStyleValue::FromColor(value);
@@ -141,6 +144,11 @@ namespace Sodium
 		inline SdStyleValue MakeStyleValue(SdVec2 value) noexcept
 		{
 			return SdStyleValue::FromVec2(value);
+		}
+
+		inline SdStyleValue MakeStyleValue(SdLength value) noexcept
+		{
+			return SdStyleValueFromLength(value);
 		}
 
 		template<class TField>
@@ -187,6 +195,11 @@ namespace Sodium
 					outValue = value.vec2;
 					return true;
 				}
+			}
+			else if constexpr (std::is_same_v<TField, SdLength>)
+			{
+				outValue = SdStyleValueToLength(value);
+				return true;
 			}
 			return false;
 		}
@@ -262,6 +275,10 @@ namespace Sodium
 					&& left.spacing.bottom == right.spacing.bottom;
 			case SdStyleValueKind::Vec2:
 				return left.vec2.x == right.vec2.x && left.vec2.y == right.vec2.y;
+			case SdStyleValueKind::Length:
+				return left.lengthUnit == right.lengthUnit
+					&& left.lengthValue == right.lengthValue
+					&& left.lengthVariableId == right.lengthVariableId;
 			case SdStyleValueKind::ColorVariable:
 			case SdStyleValueKind::MetricVariable:
 				return left.variableId == right.variableId;

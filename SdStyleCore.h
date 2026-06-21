@@ -349,6 +349,29 @@ namespace Sodium
 		SdUsedBox usedBox = {};
 	};
 
+	inline SdStyleValue SdStyleValueFromLength(SdLength value) noexcept
+	{
+		return SdStyleValue::FromLength(static_cast<SdUInt8>(value.unit), value.value, value.variableId);
+	}
+
+	inline SdLength SdStyleValueToLength(const SdStyleValue& value) noexcept
+	{
+		if (value.kind == SdStyleValueKind::MetricVariable)
+			return SdLength::Variable(value.variableId);
+
+		if (value.kind == SdStyleValueKind::Float)
+			return SdLength::Pixels(value.number);
+
+		if (value.kind != SdStyleValueKind::Length)
+			return {};
+
+		SdLength result = {};
+		result.unit = static_cast<SdLengthUnit>(value.lengthUnit);
+		result.value = value.lengthValue;
+		result.variableId = value.lengthVariableId;
+		return result;
+	}
+
 	template<class TEnum>
 		requires std::is_enum_v<TEnum>
 	SdStyleValue SdStyleValueFromEnum(TEnum value) noexcept

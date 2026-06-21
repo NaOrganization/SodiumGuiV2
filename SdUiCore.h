@@ -162,6 +162,7 @@ namespace Sodium
 		Float,
 		Spacing,
 		Vec2,
+		Length,
 		ColorVariable,
 		MetricVariable
 	};
@@ -173,6 +174,9 @@ namespace Sodium
 		float number = 0.0f;
 		SdSpacing spacing = {};
 		SdVec2 vec2 = {};
+		SdUInt8 lengthUnit = 0;
+		float lengthValue = 0.0f;
+		SdThemeVariableId lengthVariableId = 0;
 		SdThemeVariableId variableId = 0;
 
 		static constexpr SdStyleValue FromColor(SdColor value) noexcept
@@ -204,6 +208,16 @@ namespace Sodium
 			SdStyleValue result = {};
 			result.kind = SdStyleValueKind::Vec2;
 			result.vec2 = value;
+			return result;
+		}
+
+		static constexpr SdStyleValue FromLength(SdUInt8 unit, float value, SdThemeVariableId variableId = 0) noexcept
+		{
+			SdStyleValue result = {};
+			result.kind = SdStyleValueKind::Length;
+			result.lengthUnit = unit;
+			result.lengthValue = value;
+			result.lengthVariableId = variableId;
 			return result;
 		}
 

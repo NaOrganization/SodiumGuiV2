@@ -82,13 +82,7 @@ namespace Sodium
 			else if constexpr (std::is_same_v<T, SdVec2>)
 				return SdStyleValue::FromVec2(value);
 			else if constexpr (std::is_same_v<T, SdLength>)
-			{
-				if (value.unit == SdLengthUnit::Pixels)
-					return SdStyleValue::FromFloat(value.value);
-				if (value.unit == SdLengthUnit::Variable)
-					return SdStyleValue::FromMetricVariable(value.variableId);
-				return {};
-			}
+				return SdStyleValueFromLength(value);
 			else if constexpr (std::is_same_v<T, SdBoxEdges>)
 				return SdStyleValue::FromSpacing({
 					value.left.value,
@@ -136,9 +130,7 @@ namespace Sodium
 			}
 			else if constexpr (std::is_same_v<T, SdLength>)
 			{
-				if (value.kind != SdStyleValueKind::Float)
-					return false;
-				destination = SdLength::Pixels(value.number);
+				destination = SdStyleValueToLength(value);
 				return true;
 			}
 			else if constexpr (std::is_same_v<T, SdBoxEdges>)

@@ -1062,7 +1062,7 @@ namespace
 		styleSystem.RootRule(SdPanel::TargetTypeId)
 			.Scope(panelScope)
 			.Class(panelClass)
-			.Set(&SdBoxStyle::width, SdLength::Pixels(333.0f))
+			.Set(&SdBoxStyle::width, SdLength::Percent(50.0f))
 			.Set(&SdBoxStyle::padding, SdStyleValue::FromSpacing({ 3.0f, 4.0f, 5.0f, 6.0f }))
 			.Set(&SdBoxStyle::gap, SdLength::Pixels(7.0f));
 		const SdWidgetRootStyle panelScoped = styleSystem.ResolveRootStyle(
@@ -1071,7 +1071,7 @@ namespace
 			SdLayerPriority::Content,
 			SdSpan<const SdStyleClassId>(panelClasses, 1),
 			panelScope);
-		Check(panelScoped.width.unit == SdLengthUnit::Pixels && panelScoped.width.value == 333.0f, "panel scoped root width overrides default");
+		Check(panelScoped.width.unit == SdLengthUnit::Percent && panelScoped.width.value == 50.0f, "panel scoped root width preserves percentage length");
 		Check(panelScoped.padding.left.value == 3.0f && panelScoped.padding.bottom.value == 6.0f, "panel scoped root padding writes box edges");
 		Check(SdResolveLength(panelScoped.gap, 0.0f) == 7.0f, "panel scoped gap writes root gap");
 
@@ -1093,6 +1093,9 @@ namespace
 		Check(used.marginBox.min.x == 7.0f && used.marginBox.max.y == 73.0f, "box model computes margin box");
 		Check(used.paddingBox.min.x == 12.0f && used.paddingBox.max.x == 108.0f, "box model computes padding box");
 		Check(used.contentBox.min.x == 16.0f && used.contentBox.max.x == 104.0f, "box model computes content box");
+		style.width = SdLength::Percent(50.0f);
+		const SdResolvedBoxStyle percentageUsed = SdResolveBoxStyle(style, { 300.0f, 120.0f }, { 42.0f, 18.0f });
+		Check(percentageUsed.width == 150.0f, "box model resolves percentage lengths to used values");
 
 		SdBoxStyle parentStyle = {};
 		parentStyle.display = SdDisplay::Flex;
