@@ -217,6 +217,10 @@ namespace Sodium
 		template<class TWidget>
 		const typename TWidget::Style& GetPresentationStyle(SdWidgetId widgetId);
 
+		SdWidgetRootStyle ResolveRootStyleForWidget(
+			SdWidgetId widgetId,
+			SdStyleInteractionState interactionState,
+			SdLayerPriority layerPriority) const;
 		const SdStyleNode& GetRootStyleNode(SdWidgetId widgetId) const;
 		const SdStyleNode& GetStylePart(SdWidgetId widgetId, SdStylePart part) const;
 		SdStyleNode& EnsureStylePart(SdWidgetId widgetId, SdStylePart part);

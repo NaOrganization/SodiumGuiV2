@@ -40,10 +40,7 @@ namespace SodiumDynamicExample
 
 	void ConfigureBuiltInThemeTransitions(Sodium::SdStyleSystem& styleSystem)
 	{
-		const auto themeTransition = 360ms;
-		const Sodium::SdAnimationEasing easing = Sodium::SdAnimationEasing::OutCubic;
-		styleSystem.Rule<Sodium::SdWindow>()
-			.Transition(&Sodium::SdWindow::Style::radius, themeTransition, easing);
+		(void)styleSystem;
 	}
 
 	class DetourHook final

@@ -914,43 +914,21 @@ namespace Sodium
 
 		struct Style final
 		{
-			SdSpacing padding = { 12.0f, 40.0f, 12.0f, 12.0f };
-			float width = 420.0f;
-			float height = 260.0f;
 			float titleHeight = 30.0f;
 			float childSpacing = 6.0f;
-			float fontSize = 16.0f;
-			float lineHeight = 0.0f;
-			float radius = 5.0f;
-			float opacity = 1.0f;
 
 			static Style Default(const SdStyleContext& context)
 			{
 				Style style = {};
-				const float mediumSpacing = context.theme.GetMetricVariable(SdThemeVariableLiteral("spacing.medium"));
-				style.padding = { mediumSpacing, 40.0f, mediumSpacing, mediumSpacing };
-				style.width = 420.0f;
-				style.height = 260.0f;
 				style.titleHeight = 30.0f;
 				style.childSpacing = context.theme.GetMetricVariable(SdThemeVariableLiteral("spacing.small"));
-				style.fontSize = BasicWidgetDetail::kDefaultFontSize;
-				style.lineHeight = 0.0f;
-				style.radius = context.theme.GetMetricVariable(SdThemeVariableLiteral("radius.small"));
-				style.opacity = 1.0f;
 				return style;
 			}
 
 			static void Describe(SdStyleContract<Style>& contract)
 			{
-				contract.Layout(&Style::padding);
-				contract.Layout(&Style::width);
-				contract.Layout(&Style::height);
 				contract.Layout(&Style::titleHeight);
 				contract.Layout(&Style::childSpacing);
-				contract.Layout(&Style::fontSize);
-				contract.Layout(&Style::lineHeight);
-				contract.Paint(&Style::radius).InterpolatesAsFloat();
-				contract.Composite(&Style::opacity).InterpolatesAsFloat();
 			}
 		};
 
@@ -1016,11 +994,13 @@ namespace Sodium
 		{
 			State& state = context.State<State>();
 			const Style& style = context.RootResolvedStyle<SdWindow>();
+			const SdBoxStyle& rootStyle = context.RootStyleNode().resolvedStyle;
+			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(rootStyle, context.constraints.maxSize, { 420.0f, 260.0f });
 			if (!state.initialized)
 			{
 				const SdVec2 size = {
-					state.options.size.x > 0.0f ? state.options.size.x : style.width,
-					state.options.size.y > 0.0f ? state.options.size.y : style.height
+					state.options.size.x > 0.0f ? state.options.size.x : usedStyle.width,
+					state.options.size.y > 0.0f ? state.options.size.y : usedStyle.height
 				};
 				state.rect = BasicWidgetDetail::MakeRect(state.options.position, size);
 				state.initialized = true;
@@ -1030,7 +1010,12 @@ namespace Sodium
 			context.widgetState.manualRect = state.open ? state.rect : SdRect{};
 			context.widgetState.arrangeChildren = state.open;
 			context.widgetState.clipChildren = true;
-			context.widgetState.childPadding = style.padding;
+			context.widgetState.childPadding = {
+				usedStyle.padding.left,
+				usedStyle.padding.top,
+				usedStyle.padding.right,
+				usedStyle.padding.bottom
+			};
 			context.widgetState.childSpacing = std::max(0.0f, style.childSpacing);
 			context.SetDesiredSize(state.open ? state.rect.Size() : SdVec2{});
 		}
@@ -1043,27 +1028,29 @@ namespace Sodium
 
 			const Style& style = context.RootPresentationStyle<SdWindow>();
 			const SdBoxStyle& presentation = context.RootStyleNode().presentationStyle;
-			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, style.fontSize, style.lineHeight);
+			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(presentation, context.animatedRect.Size(), { 420.0f, 260.0f });
+			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, presentation.fontSize, presentation.lineHeight);
 			const float lineHeight = BasicWidgetDetail::ResolveLineHeight(textStyle);
-			const SdColor background = BasicWidgetDetail::ApplyOpacity(presentation.backgroundColor, context.opacity * style.opacity);
-			const SdColor border = BasicWidgetDetail::ApplyOpacity(presentation.border.left.color, context.opacity * style.opacity);
-			const SdColor textColor = BasicWidgetDetail::ApplyOpacity(presentation.color, context.opacity * style.opacity);
+			const SdColor background = BasicWidgetDetail::ApplyOpacity(presentation.backgroundColor, context.opacity * presentation.opacity);
+			const SdColor border = BasicWidgetDetail::ApplyOpacity(presentation.border.left.color, context.opacity * presentation.opacity);
+			const SdColor textColor = BasicWidgetDetail::ApplyOpacity(presentation.color, context.opacity * presentation.opacity);
 			const SdColor titleColor = BasicWidgetDetail::ApplyOpacity(
 				context.instance.GetStyleSystem().GetTheme().GetColorVariable(SdThemeVariableLiteral("button.bg")),
-				context.opacity * style.opacity);
+				context.opacity * presentation.opacity);
+			const float radius = SdResolveLength(presentation.radius, context.animatedRect.Width());
 
-			context.renderList.AddRectFilled(context.animatedRect, background, context.clipRect, style.radius);
+			context.renderList.AddRectFilled(context.animatedRect, background, context.clipRect, radius);
 			const SdRect titleRect = {
 				context.animatedRect.min.x,
 				context.animatedRect.min.y,
 				context.animatedRect.max.x,
 				std::min(context.animatedRect.max.y, context.animatedRect.min.y + style.titleHeight)
 			};
-			context.renderList.AddRectFilled(titleRect, titleColor, context.clipRect, style.radius);
-			context.renderList.AddRect(context.animatedRect, border, context.clipRect, 1.0f, style.radius);
+			context.renderList.AddRectFilled(titleRect, titleColor, context.clipRect, radius);
+			context.renderList.AddRect(context.animatedRect, border, context.clipRect, 1.0f, radius);
 
 			const SdVec2 titlePosition = {
-				titleRect.min.x + style.padding.left,
+				titleRect.min.x + usedStyle.padding.left,
 				titleRect.min.y + std::max(0.0f, (titleRect.Height() - lineHeight) * 0.5f)
 			};
 			context.renderList.AddText(state.title, textStyle, titlePosition, textColor, context.clipRect);
@@ -1130,11 +1117,13 @@ namespace Sodium
 			}
 
 			const Style& style = context.instance.GetResolvedStyle<SdWindow>(context.id);
+			const SdWidgetRootStyle rootStyle = context.instance.ResolveRootStyleForWidget(context.id, SdStyleInteractionState::Normal, SdLayerPriority::Floating);
+			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(rootStyle, context.widgetState.targetRect.Size(), { 420.0f, 260.0f });
 			if (!state.initialized)
 			{
 				const SdVec2 size = {
-					state.options.size.x > 0.0f ? state.options.size.x : style.width,
-					state.options.size.y > 0.0f ? state.options.size.y : style.height
+					state.options.size.x > 0.0f ? state.options.size.x : usedStyle.width,
+					state.options.size.y > 0.0f ? state.options.size.y : usedStyle.height
 				};
 				state.rect = BasicWidgetDetail::MakeRect(state.options.position, size);
 				state.initialized = true;

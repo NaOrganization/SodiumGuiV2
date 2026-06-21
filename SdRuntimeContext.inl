@@ -42,6 +42,23 @@ namespace Sodium
 		return *style;
 	}
 
+	inline SdWidgetRootStyle SdInstance::ResolveRootStyleForWidget(
+		SdWidgetId widgetId,
+		SdStyleInteractionState interactionState,
+		SdLayerPriority layerPriority) const
+	{
+		const SdWidgetRecord* record = context.stateStorage.FindWidgetRecord(widgetId);
+		assert(record);
+		if (!record)
+			return context.styleSystem.ResolveRootStyle(SdWidgetTargetIds::Default, interactionState, layerPriority);
+		return context.styleSystem.ResolveRootStyle(
+			record->state.targetTypeId,
+			interactionState,
+			layerPriority,
+			record->styleClasses,
+			record->styleScope);
+	}
+
 	inline const SdStyleNode& SdInstance::GetRootStyleNode(SdWidgetId widgetId) const
 	{
 		const SdWidgetRecord* record = context.stateStorage.FindWidgetRecord(widgetId);

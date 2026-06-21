@@ -907,6 +907,15 @@ namespace Sodium
 				.Set(&SdBoxStyle::width, SdLength::Pixels(240.0f))
 				.Set(&SdBoxStyle::height, SdLength::Pixels(120.0f))
 				.Set(&SdBoxStyle::padding, SdStyleValue::FromSpacing({ mediumSpacing, mediumSpacing, mediumSpacing, mediumSpacing }));
+			typedStyleSheet.RuleForTarget<SdWidgetRootStyle>(SdWidgetTargetIds::Window)
+				.Cascade(SdCascadeLayer::UserAgent)
+				.Set(&SdBoxStyle::width, SdLength::Pixels(420.0f))
+				.Set(&SdBoxStyle::height, SdLength::Pixels(260.0f))
+				.Set(&SdBoxStyle::padding, SdStyleValue::FromSpacing({ mediumSpacing, 40.0f, mediumSpacing, mediumSpacing }))
+				.Set(&SdBoxStyle::fontSize, ThemeMetric("font.button"))
+				.Set(&SdBoxStyle::lineHeight, 0.0f)
+				.Set(&SdBoxStyle::radius, ThemeMetric("radius.small"))
+				.Set(&SdBoxStyle::opacity, 1.0f);
 			const float smallSpacing = theme.GetMetricVariable(SdThemeVariableLiteral("spacing.small"));
 			typedStyleSheet.RuleForTarget<SdWidgetRootStyle>(SdWidgetTargetIds::Button)
 				.Cascade(SdCascadeLayer::UserAgent)

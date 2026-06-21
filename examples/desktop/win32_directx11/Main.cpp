@@ -39,10 +39,7 @@ namespace
 
 	void ConfigureBuiltInThemeTransitions(Sodium::SdStyleSystem& styleSystem)
 	{
-		const auto themeTransition = std::chrono::milliseconds(360);
-		const Sodium::SdAnimationEasing easing = Sodium::SdAnimationEasing::OutCubic;
-		styleSystem.Rule<Sodium::SdWindow>()
-			.Transition(&Sodium::SdWindow::Style::radius, themeTransition, easing);
+		(void)styleSystem;
 	}
 
 	struct Dx11DeviceResources final
