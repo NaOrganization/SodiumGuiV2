@@ -39,10 +39,16 @@ namespace Sodium
 		T& DeclareStyled(const typename T::Style* inlineStyle, TArgs&&... args);
 
 		template<SdStylableWidget T, class... TArgs>
+		T& DeclareStyled(SdStyleIdentity styleIdentity, TArgs&&... args);
+
+		template<SdStylableWidget T, class... TArgs>
 		T& DeclareStyled(SdStyleIdentity styleIdentity, const typename T::Style* inlineStyle, TArgs&&... args);
 
 		template<SdStylableWidget T, class... TArgs>
 		T& DeclareStyledKeyed(SdUtf8StringView key, const typename T::Style* inlineStyle, TArgs&&... args);
+
+		template<SdStylableWidget T, class... TArgs>
+		T& DeclareStyledKeyed(SdUtf8StringView key, SdStyleIdentity styleIdentity, TArgs&&... args);
 
 		template<SdStylableWidget T, class... TArgs>
 		T& DeclareStyledKeyed(SdUtf8StringView key, SdStyleIdentity styleIdentity, const typename T::Style* inlineStyle, TArgs&&... args);

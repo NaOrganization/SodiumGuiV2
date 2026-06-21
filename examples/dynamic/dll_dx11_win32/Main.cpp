@@ -264,14 +264,14 @@ namespace SodiumDynamicExample
 				};
 				char overlayStatus[160] = {};
 				std::snprintf(overlayStatus, sizeof(overlayStatus), "Styled overlay text - %.1f FPS", liveFps);
-				context.ui.DeclareStyledKeyed<Sodium::SdText>("overlay_style_status", statusIdentity, nullptr, overlayStatus);
+				context.ui.DeclareStyledKeyed<Sodium::SdText>("overlay_style_status", statusIdentity, overlayStatus);
 
 				const Sodium::SdStyleClassId paddedTextClasses[] = { kOverlayPaddedTextClass };
 				const Sodium::SdStyleIdentity paddedTextIdentity{
 					Sodium::SdSpan<const Sodium::SdStyleClassId>(paddedTextClasses, 1),
 					kOverlayTextScope
 				};
-				context.ui.DeclareStyledKeyed<Sodium::SdText>("overlay_padded_style", paddedTextIdentity, nullptr, "Class/scope padded text");
+				context.ui.DeclareStyledKeyed<Sodium::SdText>("overlay_padded_style", paddedTextIdentity, "Class/scope padded text");
 
 				const Sodium::SdStyleClassId panelClasses[] = { kOverlayBasicPanelClass };
 				const Sodium::SdStyleIdentity panelIdentity{

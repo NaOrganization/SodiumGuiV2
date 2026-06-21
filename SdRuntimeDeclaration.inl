@@ -124,6 +124,20 @@ namespace Sodium
 	}
 
 	template<SdStylableWidget T, class... TArgs>
+	T& SdUi::DeclareStyled(SdStyleIdentity styleIdentity, TArgs&&... args)
+	{
+		const SdWidgetId parentId = idStack.CurrentParentId();
+		const SdWidgetId id = idStack.ResolveAnonymousWidgetId(Detail::SdTypeHash<T>());
+		auto configureStyle = [this, styleIdentity](SdWidgetRecord& record)
+		{
+			instance.SetWidgetStyleIdentity(record, styleIdentity.classes, styleIdentity.scope);
+			if (instance.context.stateStorage.ClearInlineStyle<typename T::Style>(record))
+				record.state.styleDirty = true;
+		};
+		return DeclareResolved<T>(id, parentId, 0, {}, configureStyle, std::forward<TArgs>(args)...);
+	}
+
+	template<SdStylableWidget T, class... TArgs>
 	T& SdUi::DeclareStyledKeyed(SdUtf8StringView key, const typename T::Style* inlineStyle, TArgs&&... args)
 	{
 		return DeclareStyledKeyed<T>(key, SdStyleIdentity{}, inlineStyle, std::forward<TArgs>(args)...);
@@ -139,6 +153,21 @@ namespace Sodium
 		{
 			instance.SetWidgetStyleIdentity(record, styleIdentity.classes, styleIdentity.scope);
 			if (instance.context.stateStorage.SetInlineStyle<typename T::Style>(record, inlineStyle))
+				record.state.styleDirty = true;
+		};
+		return DeclareResolved<T>(id, parentId, resolvedKey, key, configureStyle, std::forward<TArgs>(args)...);
+	}
+
+	template<SdStylableWidget T, class... TArgs>
+	T& SdUi::DeclareStyledKeyed(SdUtf8StringView key, SdStyleIdentity styleIdentity, TArgs&&... args)
+	{
+		const SdWidgetId parentId = idStack.CurrentParentId();
+		SdResolvedKey resolvedKey = 0;
+		const SdWidgetId id = idStack.ResolveKeyedWidgetId(Detail::SdTypeHash<T>(), key, resolvedKey);
+		auto configureStyle = [this, styleIdentity](SdWidgetRecord& record)
+		{
+			instance.SetWidgetStyleIdentity(record, styleIdentity.classes, styleIdentity.scope);
+			if (instance.context.stateStorage.ClearInlineStyle<typename T::Style>(record))
 				record.state.styleDirty = true;
 		};
 		return DeclareResolved<T>(id, parentId, resolvedKey, key, configureStyle, std::forward<TArgs>(args)...);

@@ -241,14 +241,14 @@ namespace
 				};
 				char styledStatus[160] = {};
 				std::snprintf(styledStatus, sizeof(styledStatus), "Class/scope style text - %.1f FPS", liveFps);
-				context.ui.DeclareStyledKeyed<Sodium::SdText>("style_status", statusIdentity, nullptr, styledStatus);
+				context.ui.DeclareStyledKeyed<Sodium::SdText>("style_status", statusIdentity, styledStatus);
 
 				const Sodium::SdStyleClassId paddedTextClasses[] = { kExamplePaddedTextClass };
 				const Sodium::SdStyleIdentity paddedTextIdentity{
 					Sodium::SdSpan<const Sodium::SdStyleClassId>(paddedTextClasses, 1),
 					kExampleDemoTextScope
 				};
-				context.ui.DeclareStyledKeyed<Sodium::SdText>("style_padded", paddedTextIdentity, nullptr, "Class/scope padded style text");
+				context.ui.DeclareStyledKeyed<Sodium::SdText>("style_padded", paddedTextIdentity, "Class/scope padded style text");
 
 				if (!context.input.IsKeyHeld(Sodium::SdKeyCode::W))
 					context.ui.DeclareKeyed<Sodium::SdText>("test_text", "中文");
