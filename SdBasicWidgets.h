@@ -387,21 +387,17 @@ namespace Sodium
 		struct Style final
 		{
 			float boxSize = 18.0f;
-			float gap = 8.0f;
 
-			static Style Default(const SdStyleContext& context)
+			static Style Default(const SdStyleContext&)
 			{
 				Style style = {};
-				const float smallSpacing = context.theme.GetMetricVariable(SdThemeVariableLiteral("spacing.small"));
 				style.boxSize = 18.0f;
-				style.gap = smallSpacing;
 				return style;
 			}
 
 			static void Describe(SdStyleContract<Style>& contract)
 			{
 				contract.Layout(&Style::boxSize);
-				contract.Layout(&Style::gap);
 			}
 		};
 
@@ -455,9 +451,10 @@ namespace Sodium
 			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, rootStyle.fontSize, rootStyle.lineHeight);
 			SdVec2 textSize = BasicWidgetDetail::MeasureText(context, state.label, textStyle);
 			textSize.y = std::max(textSize.y, BasicWidgetDetail::ResolveLineHeight(textStyle));
+			const float labelGap = std::max(0.0f, usedStyle.gap);
 
 			context.SetDesiredSize({
-				usedStyle.padding.left + style.boxSize + style.gap + textSize.x + usedStyle.padding.right,
+				usedStyle.padding.left + style.boxSize + labelGap + textSize.x + usedStyle.padding.right,
 				std::max(usedStyle.minHeight, std::max(style.boxSize, textSize.y) + usedStyle.padding.top + usedStyle.padding.bottom)
 			});
 		}
@@ -468,6 +465,7 @@ namespace Sodium
 			const Style& style = context.RootPresentationStyle<SdCheckBox>();
 			const SdBoxStyle& presentation = context.RootStyleNode().presentationStyle;
 			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(presentation, context.animatedRect.Size(), {});
+			const float labelGap = std::max(0.0f, usedStyle.gap);
 			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, presentation.fontSize, presentation.lineHeight);
 			const float lineHeight = BasicWidgetDetail::ResolveLineHeight(textStyle);
 			const float boxY = context.animatedRect.min.y + (context.animatedRect.Height() - style.boxSize) * 0.5f;
@@ -497,7 +495,7 @@ namespace Sodium
 			}
 
 			const SdVec2 textPosition = {
-				boxRect.max.x + style.gap,
+				boxRect.max.x + labelGap,
 				context.animatedRect.min.y + std::max(usedStyle.padding.top, (context.animatedRect.Height() - lineHeight) * 0.5f)
 			};
 			context.renderList.AddText(state.label, textStyle, textPosition, textColor, context.clipRect);

@@ -525,6 +525,7 @@ namespace
 		const SdWidgetRootStyle checkBoxDefault = styleSystem.ResolveRootStyle(SdCheckBox::TargetTypeId, SdStyleInteractionState::Normal);
 		Check(checkBoxDefault.minHeight.unit == SdLengthUnit::Pixels && checkBoxDefault.minHeight.value == 28.0f, "checkbox default min height resolves through root style");
 		Check(checkBoxDefault.padding.left.value == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableLiteral("spacing.small")), "checkbox default padding resolves through root style");
+		Check(SdResolveLength(checkBoxDefault.gap, 0.0f) == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableLiteral("spacing.small")), "checkbox default label gap resolves through root style");
 		Check(SdResolveLength(checkBoxDefault.radius, 18.0f) >= 2.0f, "checkbox radius resolves through root style");
 
 		const SdWidgetRootStyle sliderDefault = styleSystem.ResolveRootStyle(SdSliderFloat::TargetTypeId, SdStyleInteractionState::Normal);
