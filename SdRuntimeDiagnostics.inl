@@ -40,10 +40,9 @@ namespace Sodium
 		diagnostics.layoutNodeCount = static_cast<SdUInt32>(context.layoutSystem.GetNodes().size());
 		diagnostics.hitTestRecordCount = static_cast<SdUInt32>(context.layerSystem.GetHitTestRecords().size());
 		diagnostics.layerDrawChannelCount = static_cast<SdUInt32>(context.layerSystem.GetDrawChannels().size());
-		diagnostics.activeAnimationChannelCount = static_cast<SdUInt32>(
-			context.animationSystem.GetActiveChannelCount()
-			+ context.stateStorage.CountActiveTypedStyleAnimationChannels());
-		diagnostics.activeStyleNodeAnimationChannelCount = context.styleAnimationChannels.CountActive();
+		diagnostics.activeAnimationChannelCount = static_cast<SdUInt32>(context.animationSystem.GetActiveChannelCount());
+		diagnostics.activeStyleNodeAnimationChannelCount = context.styleAnimationChannels.CountActive()
+			+ context.stateStorage.CountActiveStyleNodeBoundTypedStyleAnimationChannels();
 		diagnostics.activeLayoutTransitionCount = context.styleAnimationChannels.CountActiveLayoutTransitions();
 		diagnostics.drawCommandCount = static_cast<SdUInt32>(drawData.commands.size());
 		diagnostics.drawVertexCount = static_cast<SdUInt32>(drawData.vertices.size());

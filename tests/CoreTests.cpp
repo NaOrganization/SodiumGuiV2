@@ -1438,7 +1438,7 @@ namespace
 		transitionInstance.ui.Declare<TypedStyleWidget>();
 		PumpFrame(transitionInstance);
 		Check(gTypedStylePaintColor != startColor && gTypedStylePaintColor != targetColor, "typed presentation style interpolates between targets");
-		Check(transitionInstance.GetDiagnostics().activeAnimationChannelCount > 0, "typed style transition contributes active animation diagnostics");
+		Check(transitionInstance.GetDiagnostics().activeStyleNodeAnimationChannelCount > 0, "typed style transition contributes style node animation diagnostics");
 		bool typedTransitionBoundToStyleNode = false;
 		const SdPropertyId typedColorPropertyId = Detail::SdStyleFieldId(&TypedStyleWidget::Style::color);
 		for (const auto& [id, record] : transitionInstance.GetStateStorage().GetWidgetRecords())

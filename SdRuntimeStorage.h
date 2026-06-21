@@ -809,7 +809,7 @@ namespace Sodium
 			return true;
 		}
 
-		SdUInt32 CountActiveTypedStyleAnimationChannels() const noexcept
+		SdUInt32 CountActiveStyleNodeBoundTypedStyleAnimationChannels() const noexcept
 		{
 			SdUInt32 count = 0;
 			for (const auto& [id, record] : widgetRecords)
@@ -820,8 +820,12 @@ namespace Sodium
 					(void)type;
 					for (const SdTypedStyleAnimationChannel& channel : styleRecord.animationChannels)
 					{
-						if (channel.active)
+						if (channel.active
+							&& channel.styleNodeId != SdInvalidStyleNodeId
+							&& channel.propertyId != 0)
+						{
 							++count;
+						}
 					}
 				}
 			}
