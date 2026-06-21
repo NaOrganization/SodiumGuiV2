@@ -828,28 +828,6 @@ namespace Sodium
 			return typedRules.back();
 		}
 
-		template<class TStyle>
-		void ApplyTypedRules(
-			TStyle& style,
-			SdStyleId targetTag,
-			SdStyleInteractionState interactionState,
-			SdLayerPriority layerPriority,
-			SdSpan<const SdStyleClassId> styleClasses,
-			SdStyleScopeId styleScope) const
-		{
-			for (const SdTypedStyleRule& rule : typedRules)
-			{
-				if (!MatchesTypedRule(rule, std::type_index(typeid(TStyle)), targetTag, interactionState, layerPriority, styleClasses, styleScope))
-					continue;
-
-				for (const SdTypedStyleDeclaration& declaration : rule.declarations)
-				{
-					if (declaration.apply)
-						declaration.apply(&style, declaration.value, theme);
-				}
-			}
-		}
-
 		template<class TStyle, class TField>
 		void RegisterTypedProperty(TField TStyle::* member)
 		{
@@ -886,13 +864,79 @@ namespace Sodium
 			request.layerPriority = layerPriority;
 			request.classes = styleClasses;
 			request.scope = styleScope;
-			return SdStyleResolver::ResolveStyle<TStyle>(
-				compiledStyleSheet,
-				request,
-				propertyRegistry,
-				style,
-				&SdStyleSystem::ResolveCompiledValue,
-				this);
+			struct AppliedDeclaration final
+			{
+				SdPropertyId propertyId = 0;
+				SdStyleValue value = {};
+				bool important = false;
+				SdCascadeLayer layer = SdCascadeLayer::UserAgent;
+				SdStyleSpecificity specificity = {};
+				SdUInt32 sourceOrder = 0;
+			};
+
+			std::vector<AppliedDeclaration> applied = {};
+			const std::type_index styleType = std::type_index(typeid(TStyle));
+			for (const SdCompiledStyleRule& rule : compiledStyleSheet.GetRules())
+			{
+				if (rule.selector.styleType != styleType)
+					continue;
+				if (!SdStyleResolver::SelectorMatches(rule.selector, request))
+					continue;
+
+				for (const SdCompiledDeclaration& declaration : rule.declarations)
+				{
+					if (declaration.styleType != styleType)
+						continue;
+
+					AppliedDeclaration candidate = {};
+					candidate.propertyId = declaration.propertyId;
+					candidate.value = ResolveValue(declaration.value);
+					candidate.important = declaration.important;
+					candidate.layer = rule.cascadeLayer;
+					candidate.specificity = rule.specificity;
+					candidate.sourceOrder = rule.sourceOrder;
+
+					bool replaced = false;
+					for (AppliedDeclaration& existing : applied)
+					{
+						if (existing.propertyId != candidate.propertyId)
+							continue;
+						if (SdStyleResolver::HasHigherCascadePriority(
+							candidate.important,
+							candidate.layer,
+							candidate.specificity,
+							candidate.sourceOrder,
+							existing.important,
+							existing.layer,
+							existing.specificity,
+							existing.sourceOrder))
+						{
+							existing = candidate;
+						}
+						replaced = true;
+						break;
+					}
+
+					if (!replaced)
+						applied.push_back(candidate);
+				}
+			}
+
+			const SdStyleContract<TStyle>& contract = GetStyleContract<TStyle>();
+			for (const AppliedDeclaration& declaration : applied)
+			{
+				const SdPropertyDescriptor* property = propertyRegistry.Find(declaration.propertyId, styleType);
+				if (property && property->writeValue)
+				{
+					property->writeValue(&style, declaration.value);
+					continue;
+				}
+
+				const SdStyleFieldDescriptor* field = contract.Find(declaration.propertyId);
+				if (field && field->writeValue)
+					field->writeValue(&style, declaration.value, theme);
+			}
+			return style;
 		}
 
 		static SdStyleValue ResolveCompiledValue(const SdStyleValue& value, const void* owner)
@@ -1400,7 +1444,6 @@ namespace Sodium
 			layerPriority,
 			styleClasses,
 			styleScope);
-		ApplyTypedRules(result, GetTargetTag<TWidget>(), interactionState, layerPriority, styleClasses, styleScope);
 		if (inlineStyle)
 			result = *inlineStyle;
 		return result;

@@ -805,7 +805,7 @@ namespace
 		const SdCompiledStyleSheet compiled = sheet.Compile();
 		const SdStyleClassId classes[] = { dangerClass };
 		SdStyleResolveRequest request = {};
-		request.targetTag = SdStyleIdLiteral(typeid(RegistryDispatchWidget).name());
+		request.targetTag = Detail::SdTypeHash<RegistryDispatchWidget>();
 		request.classes = SdSpan<const SdStyleClassId>(classes, 1);
 
 		const RegistryDispatchStyle resolved = SdStyleResolver::ResolveStyle<RegistryDispatchStyle>(

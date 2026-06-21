@@ -16,13 +16,6 @@
 
 namespace Sodium::Detail
 {
-	template<class T>
-	SdUInt64 SdTypeHash() noexcept
-	{
-		static const int anchor = 0;
-		return static_cast<SdUInt64>(reinterpret_cast<std::uintptr_t>(&anchor));
-	}
-
 	struct SdObjectHandle final
 	{
 		std::type_index type = std::type_index(typeid(void));

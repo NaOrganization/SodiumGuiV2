@@ -76,6 +76,16 @@ namespace Sodium
 		return SdStyleIdLiteral(text);
 	}
 
+	namespace Detail
+	{
+		template<class T>
+		SdUInt64 SdTypeHash() noexcept
+		{
+			static const int anchor = 0;
+			return static_cast<SdUInt64>(reinterpret_cast<std::uintptr_t>(&anchor));
+		}
+	}
+
 	struct SdStyleIdentity final
 	{
 		SdSpan<const SdStyleClassId> classes = {};
