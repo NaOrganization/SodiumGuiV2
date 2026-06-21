@@ -1187,10 +1187,12 @@ namespace
 		const SdColor updatedButtonColor = { 11, 22, 33, 255 };
 		const SdColor updatedRootColor = { 17, 29, 41, 255 };
 		const SdColor updatedTextColor = { 203, 191, 179, 255 };
+		const SdColor updatedBorderColor = { 71, 83, 97, 255 };
 		instance.GetStyleSystem().SetColorVariable("button.bg", updatedButtonColor);
 		instance.GetStyleSystem().RootRule(TestDrawWidget::TargetTypeId)
 			.Set(&SdBoxStyle::backgroundColor, updatedRootColor)
-			.Set(&SdBoxStyle::color, updatedTextColor);
+			.Set(&SdBoxStyle::color, updatedTextColor)
+			.Set(&SdBoxStyle::border, SdStyleValue::FromColor(updatedBorderColor));
 		instance.BeginFrame({ 640.0f, 480.0f });
 		instance.ui.DeclareKeyed<TestContainer>("container", [](SdUi& ui)
 		{
@@ -1205,8 +1207,11 @@ namespace
 		bool hasRootBackgroundFromStyleNodeAnimation = false;
 		bool hasRootColorStyleNodeAnimation = false;
 		bool hasRootColorFromStyleNodeAnimation = false;
+		bool hasRootBorderStyleNodeAnimation = false;
+		bool hasRootBorderFromStyleNodeAnimation = false;
 		const SdPropertyId colorPropertyId = Detail::SdStylePropertyId(&SdBoxStyle::color);
 		const SdPropertyId backgroundPropertyId = Detail::SdStylePropertyId(&SdBoxStyle::backgroundColor);
+		const SdPropertyId borderPropertyId = Detail::SdStylePropertyId(&SdBoxStyle::border);
 		for (const auto& [id, record] : instance.GetStateStorage().GetWidgetRecords())
 		{
 			(void)id;
@@ -1246,6 +1251,18 @@ namespace
 							hasRootColorFromStyleNodeAnimation = rootNode.presentationStyle.color == channel.currentValue.color;
 						}
 					}
+					if (channel.styleNodeId == record.rootStyleNodeId
+						&& channel.propertyId == borderPropertyId
+						&& channel.impact == SdStyleFieldImpact::Paint
+						&& channel.interpolation == SdStyleInterpolation::Color)
+					{
+						hasRootBorderStyleNodeAnimation = true;
+						if (channel.currentValue.kind == SdStyleValueKind::Color)
+						{
+							const SdStyleNode& rootNode = instance.GetRootStyleNode(record.state.id);
+							hasRootBorderFromStyleNodeAnimation = rootNode.presentationStyle.border.left.color == channel.currentValue.color;
+						}
+					}
 				}
 			}
 		}
@@ -1255,6 +1272,8 @@ namespace
 		Check(hasRootBackgroundFromStyleNodeAnimation, "root background presentation reads style node property channel");
 		Check(hasRootColorStyleNodeAnimation, "root color transition is tracked by style node property channel");
 		Check(hasRootColorFromStyleNodeAnimation, "root color presentation reads style node property channel");
+		Check(hasRootBorderStyleNodeAnimation, "root border transition is tracked by style node property channel");
+		Check(hasRootBorderFromStyleNodeAnimation, "root border presentation reads style node property channel");
 		Check(instance.GetDiagnostics().activeStyleNodeAnimationChannelCount > 0, "diagnostics expose active style node animation channels");
 	}
 
