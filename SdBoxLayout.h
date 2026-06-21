@@ -221,6 +221,24 @@ namespace Sodium
 			const float parentMainSize = row ? parent.contentBox.Width() : parent.contentBox.Height();
 			float occupiedMainSize = 0.0f;
 			SdSize visibleChildCount = 0;
+			const auto childBorderWidth = [row](const SdBoxNode& child) noexcept
+			{
+				const float contentWidth = row && child.style.flexBasis.unit != SdLengthUnit::Auto
+					? child.usedStyleValues.flexBasis
+					: child.usedStyleValues.width;
+				return std::max(0.0f, contentWidth
+					+ child.usedStyleValues.padding.left + child.usedStyleValues.padding.right
+					+ child.usedStyleValues.border.left + child.usedStyleValues.border.right);
+			};
+			const auto childBorderHeight = [row](const SdBoxNode& child) noexcept
+			{
+				const float contentHeight = !row && child.style.flexBasis.unit != SdLengthUnit::Auto
+					? child.usedStyleValues.flexBasis
+					: child.usedStyleValues.height;
+				return std::max(0.0f, contentHeight
+					+ child.usedStyleValues.padding.top + child.usedStyleValues.padding.bottom
+					+ child.usedStyleValues.border.top + child.usedStyleValues.border.bottom);
+			};
 
 			for (SdUInt32 childIndex = parent.firstChildIndex;
 				childIndex != SdInvalidIndex<SdUInt32>;
@@ -231,12 +249,8 @@ namespace Sodium
 					continue;
 
 				child.usedStyleValues = SdResolveBoxStyle(child.style, parent.contentBox.Size(), child.intrinsicSize);
-				const float childWidth = std::max(0.0f, child.usedStyleValues.width
-					+ child.usedStyleValues.padding.left + child.usedStyleValues.padding.right
-					+ child.usedStyleValues.border.left + child.usedStyleValues.border.right);
-				const float childHeight = std::max(0.0f, child.usedStyleValues.height
-					+ child.usedStyleValues.padding.top + child.usedStyleValues.padding.bottom
-					+ child.usedStyleValues.border.top + child.usedStyleValues.border.bottom);
+				const float childWidth = childBorderWidth(child);
+				const float childHeight = childBorderHeight(child);
 				occupiedMainSize += row
 					? child.usedStyleValues.margin.left + childWidth + child.usedStyleValues.margin.right
 					: child.usedStyleValues.margin.top + childHeight + child.usedStyleValues.margin.bottom;
@@ -274,12 +288,8 @@ namespace Sodium
 				if (child.display == SdDisplay::None)
 					continue;
 
-				const float childWidth = std::max(0.0f, child.usedStyleValues.width
-					+ child.usedStyleValues.padding.left + child.usedStyleValues.padding.right
-					+ child.usedStyleValues.border.left + child.usedStyleValues.border.right);
-				const float childHeight = std::max(0.0f, child.usedStyleValues.height
-					+ child.usedStyleValues.padding.top + child.usedStyleValues.padding.bottom
-					+ child.usedStyleValues.border.top + child.usedStyleValues.border.bottom);
+				const float childWidth = childBorderWidth(child);
+				const float childHeight = childBorderHeight(child);
 				const auto resolveCrossAxis = [&parent](float childCrossSize, float marginStart, float marginEnd, float parentCrossMin, float parentCrossSize)
 				{
 					const float availableCrossSize = std::max(0.0f, parentCrossSize - marginStart - marginEnd);
