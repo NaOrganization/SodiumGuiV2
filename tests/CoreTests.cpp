@@ -462,6 +462,54 @@ namespace
 		Check(localStyle.color == SdColor(1, 2, 3, 4), "property registry dispatch writes typed field");
 	}
 
+	void TestBoxModelAndUsedStyleNodes()
+	{
+		SdBoxStyle style = {};
+		style.padding = SdBoxEdges::All(SdLength::Pixels(4.0f));
+		style.border = SdBorder::All(SdLength::Pixels(2.0f), SdColorWhite);
+		style.margin = SdBoxEdges::All(SdLength::Pixels(3.0f));
+		const SdUsedBox used = SdBuildUsedBox({ 10.0f, 20.0f, 110.0f, 70.0f }, style);
+		Check(used.marginBox.min.x == 7.0f && used.marginBox.max.y == 73.0f, "box model computes margin box");
+		Check(used.paddingBox.min.x == 12.0f && used.paddingBox.max.x == 108.0f, "box model computes padding box");
+		Check(used.contentBox.min.x == 16.0f && used.contentBox.max.x == 104.0f, "box model computes content box");
+
+		SdBoxStyle parentStyle = {};
+		parentStyle.display = SdDisplay::Flex;
+		parentStyle.flexDirection = SdFlexDirection::Row;
+		parentStyle.gap = SdLength::Pixels(5.0f);
+		parentStyle.width = SdLength::Pixels(120.0f);
+		parentStyle.height = SdLength::Pixels(40.0f);
+		SdBoxStyle childStyle = {};
+		childStyle.width = SdLength::Pixels(20.0f);
+		childStyle.height = SdLength::Pixels(10.0f);
+		SdBoxTree tree = {};
+		const SdUInt32 parent = tree.AddBox(1, SdInvalidIndex<SdUInt32>, parentStyle, { 120.0f, 40.0f });
+		tree.AddBox(2, parent, childStyle, { 20.0f, 10.0f });
+		tree.AddBox(3, parent, childStyle, { 20.0f, 10.0f });
+		tree.Layout({ 0.0f, 0.0f, 200.0f, 100.0f });
+		const std::vector<SdBoxNode>& boxes = tree.GetBoxes();
+		Check(boxes.size() == 3, "box tree stores root and children");
+		Check(boxes[1].borderBox.min.x == boxes[0].contentBox.min.x, "flex first child starts at content min");
+		Check(boxes[2].borderBox.min.x == boxes[1].borderBox.max.x + 5.0f, "flex gap advances next child");
+
+		SdInstance instance;
+		instance.BeginFrame({ 320.0f, 200.0f });
+		instance.ui.Declare<SdButton>("Used");
+		PumpFrame(instance);
+		bool hasUsedBox = false;
+		for (const auto& [id, record] : instance.GetStateStorage().GetWidgetRecords())
+		{
+			(void)id;
+			if (record.widgetType == std::type_index(typeid(SdButton)))
+			{
+				const SdStyleNode& root = instance.GetRootStyleNode(record.state.id);
+				hasUsedBox = root.usedBox.borderBox.Width() > 0.0f
+					&& root.usedBox.contentBox.Width() <= root.usedBox.borderBox.Width();
+			}
+		}
+		Check(hasUsedBox, "runtime writes used geometry to root style node");
+	}
+
 	void TestIdAndKeySemantics()
 	{
 		SdInstance instance;
@@ -1200,6 +1248,7 @@ int main()
 	TestStyleCorePhaseOneTypes();
 	TestStyleNodeRuntimeParts();
 	TestStyleSheetCascadeAndRegistry();
+	TestBoxModelAndUsedStyleNodes();
 	TestIdAndKeySemantics();
 	TestLifecycleStateAndModel();
 	TestBasicTextModelI18n();

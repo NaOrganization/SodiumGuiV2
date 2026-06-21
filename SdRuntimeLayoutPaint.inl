@@ -142,6 +142,11 @@ namespace Sodium
 			record.layoutCache.measuredSize = node.result.desiredSize;
 			record.layoutCache.targetRect = node.targetRect;
 			record.layoutCache.clipRect = node.computedClipRect;
+			if (SdStyleNode* rootNode = context.stateStorage.FindStyleNodeById(record.rootStyleNodeId))
+			{
+				rootNode->usedBox = SdBuildUsedBox(node.targetRect, rootNode->resolvedStyle);
+				record.rootStyleNode = *rootNode;
+			}
 			if (node.parentIndex != SdInvalidIndex<SdUInt32> && node.parentIndex < layoutNodes.size())
 			{
 				const SdWidgetRecord& parentRecord = widgets[layoutNodes[node.parentIndex].widgetId];

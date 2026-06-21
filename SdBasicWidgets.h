@@ -438,12 +438,13 @@ namespace Sodium
 		{
 			const State& state = context.State<State>();
 			const Style& style = context.ComputedStyle<SdButton>();
+			const SdBoxStyle& presentation = context.RootStyleNode().presentationStyle;
 			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, style.fontSize, style.lineHeight);
 			const float lineHeight = BasicWidgetDetail::ResolveLineHeight(textStyle);
 			const SdVec2 textSize = BasicWidgetDetail::MeasureText(context.instance, state.label, textStyle);
-			const SdColor background = BasicWidgetDetail::ApplyOpacity(context.style.background, context.opacity * style.opacity);
-			const SdColor border = BasicWidgetDetail::ApplyOpacity(context.style.border, context.opacity * style.opacity);
-			const SdColor color = BasicWidgetDetail::ApplyOpacity(context.style.color, context.opacity * style.opacity);
+			const SdColor background = BasicWidgetDetail::ApplyOpacity(presentation.backgroundColor, context.opacity * style.opacity);
+			const SdColor border = BasicWidgetDetail::ApplyOpacity(presentation.border.left.color, context.opacity * style.opacity);
+			const SdColor color = BasicWidgetDetail::ApplyOpacity(presentation.color, context.opacity * style.opacity);
 
 			context.renderList.AddRectFilled(context.animatedRect, background, context.clipRect, style.radius);
 			context.renderList.AddRect(context.animatedRect, border, context.clipRect, 1.0f, style.radius);
@@ -917,11 +918,12 @@ namespace Sodium
 		{
 			const State& state = context.State<State>();
 			const Style& style = context.ComputedStyle<SdTextInput>();
+			const SdBoxStyle& presentation = context.RootStyleNode().presentationStyle;
 			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, style.fontSize, style.lineHeight);
 			const float lineHeight = BasicWidgetDetail::ResolveLineHeight(textStyle);
-			const SdColor background = BasicWidgetDetail::ApplyOpacity(context.style.background, context.opacity * style.opacity);
-			const SdColor border = BasicWidgetDetail::ApplyOpacity(context.style.border, context.opacity * style.opacity);
-			const SdColor textColor = BasicWidgetDetail::ApplyOpacity(context.style.color, context.opacity * style.opacity);
+			const SdColor background = BasicWidgetDetail::ApplyOpacity(presentation.backgroundColor, context.opacity * style.opacity);
+			const SdColor border = BasicWidgetDetail::ApplyOpacity(presentation.border.left.color, context.opacity * style.opacity);
+			const SdColor textColor = BasicWidgetDetail::ApplyOpacity(presentation.color, context.opacity * style.opacity);
 			SdColor placeholderColor = textColor;
 			placeholderColor.a = static_cast<SdUInt8>(static_cast<float>(placeholderColor.a) * 0.52f);
 
@@ -1121,11 +1123,12 @@ namespace Sodium
 				return;
 
 			const Style& style = context.ComputedStyle<SdWindow>();
+			const SdBoxStyle& presentation = context.RootStyleNode().presentationStyle;
 			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, style.fontSize, style.lineHeight);
 			const float lineHeight = BasicWidgetDetail::ResolveLineHeight(textStyle);
-			const SdColor background = BasicWidgetDetail::ApplyOpacity(context.style.background, context.opacity * style.opacity);
-			const SdColor border = BasicWidgetDetail::ApplyOpacity(context.style.border, context.opacity * style.opacity);
-			const SdColor textColor = BasicWidgetDetail::ApplyOpacity(context.style.color, context.opacity * style.opacity);
+			const SdColor background = BasicWidgetDetail::ApplyOpacity(presentation.backgroundColor, context.opacity * style.opacity);
+			const SdColor border = BasicWidgetDetail::ApplyOpacity(presentation.border.left.color, context.opacity * style.opacity);
+			const SdColor textColor = BasicWidgetDetail::ApplyOpacity(presentation.color, context.opacity * style.opacity);
 			const SdColor titleColor = BasicWidgetDetail::ApplyOpacity(
 				context.instance.GetStyleSystem().GetTheme().GetColor(SdStyleToken::ColorButton),
 				context.opacity * style.opacity);

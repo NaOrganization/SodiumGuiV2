@@ -25,6 +25,8 @@ namespace Sodium
 		SdUInt32 hitTestRecordCount = 0;
 		SdUInt32 layerDrawChannelCount = 0;
 		SdUInt32 activeAnimationChannelCount = 0;
+		SdUInt32 activeStyleNodeAnimationChannelCount = 0;
+		SdUInt32 activeLayoutTransitionCount = 0;
 		SdUInt32 drawCommandCount = 0;
 		SdUInt32 drawVertexCount = 0;
 		SdUInt32 drawIndexCount = 0;
@@ -48,6 +50,8 @@ namespace Sodium
 			hitTestRecordCount = 0;
 			layerDrawChannelCount = 0;
 			activeAnimationChannelCount = 0;
+			activeStyleNodeAnimationChannelCount = 0;
+			activeLayoutTransitionCount = 0;
 			drawCommandCount = 0;
 			drawVertexCount = 0;
 			drawIndexCount = 0;
