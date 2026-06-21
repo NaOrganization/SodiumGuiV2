@@ -275,9 +275,7 @@ namespace
 					Sodium::SdSpan<const Sodium::SdStyleClassId>(panelClasses, 1),
 					kExampleDemoPanelScope
 				};
-				Sodium::SdPanel::Style panelStyle = {};
-				panelStyle.childSpacing = 3.0f;
-				context.ui.DeclareStyledKeyed<Sodium::SdPanel>("basic_panel", panelIdentity, &panelStyle, [](Sodium::SdUi& ui)
+				context.ui.DeclareStyledKeyed<Sodium::SdPanel>("basic_panel", panelIdentity, [](Sodium::SdUi& ui)
 				{
 					ui.Declare<Sodium::SdText>("SdPanel contains regular tagged children");
 					ui.Declare<Sodium::SdText>("Layout, clip, background and border come from the widget");
@@ -422,7 +420,8 @@ namespace
 				.Class(kExampleBasicPanelClass)
 				.Set(&Sodium::SdBoxStyle::width, Sodium::SdLength::Pixels(492.0f))
 				.Set(&Sodium::SdBoxStyle::height, Sodium::SdLength::Pixels(72.0f))
-				.Set(&Sodium::SdBoxStyle::padding, Sodium::SdStyleValue::FromSpacing({ 8.0f, 8.0f, 8.0f, 8.0f }));
+				.Set(&Sodium::SdBoxStyle::padding, Sodium::SdStyleValue::FromSpacing({ 8.0f, 8.0f, 8.0f, 8.0f }))
+				.Set(&Sodium::SdBoxStyle::gap, Sodium::SdLength::Pixels(3.0f));
 			styleSystem.RootRule(Sodium::SdScrollView::TargetTypeId)
 				.Scope(kExampleDemoScrollScope)
 				.Class(kExampleBasicScrollClass)

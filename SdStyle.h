@@ -889,6 +889,10 @@ namespace Sodium
 			propertyRegistry.Register<&SdBoxStyle::lineHeight>(
 				SdStyleFieldImpact::Layout,
 				SdStyleInterpolation::Float);
+			propertyRegistry.Register<&SdBoxStyle::gap>(
+				SdStyleFieldImpact::Layout,
+				SdStyleInterpolation::Float,
+				true);
 		}
 
 		void InstallDefaultUserAgentStyleSheet(bool touchRevision = true)
@@ -906,7 +910,8 @@ namespace Sodium
 				.Cascade(SdCascadeLayer::UserAgent)
 				.Set(&SdBoxStyle::width, SdLength::Pixels(240.0f))
 				.Set(&SdBoxStyle::height, SdLength::Pixels(120.0f))
-				.Set(&SdBoxStyle::padding, SdStyleValue::FromSpacing({ mediumSpacing, mediumSpacing, mediumSpacing, mediumSpacing }));
+				.Set(&SdBoxStyle::padding, SdStyleValue::FromSpacing({ mediumSpacing, mediumSpacing, mediumSpacing, mediumSpacing }))
+				.Set(&SdBoxStyle::gap, SdLength::Pixels(theme.GetMetricVariable(SdThemeVariableLiteral("spacing.small"))));
 			typedStyleSheet.RuleForTarget<SdWidgetRootStyle>(SdWidgetTargetIds::Window)
 				.Cascade(SdCascadeLayer::UserAgent)
 				.Set(&SdBoxStyle::width, SdLength::Pixels(420.0f))

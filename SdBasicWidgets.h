@@ -231,23 +231,7 @@ namespace Sodium
 	struct SdPanel final : SdWidgetTag
 	{
 		static constexpr SdStyleId TargetTypeId = SdWidgetTargetIds::Panel;
-
-		struct Style final
-		{
-			float childSpacing = 6.0f;
-
-			static Style Default(const SdStyleContext& context)
-			{
-				Style style = {};
-				style.childSpacing = context.theme.GetMetricVariable(SdThemeVariableLiteral("spacing.small"));
-				return style;
-			}
-
-			static void Describe(SdStyleContract<Style>& contract)
-			{
-				contract.Layout(&Style::childSpacing);
-			}
-		};
+		using Style = SdWidgetRootStyle;
 
 		void OnUpdate(SdUpdateContext& context)
 		{
@@ -264,7 +248,6 @@ namespace Sodium
 
 		void OnLayout(SdLayoutContext& context)
 		{
-			const Style& style = context.RootResolvedStyle<SdPanel>();
 			const SdBoxStyle& rootStyle = context.RootStyleNode().resolvedStyle;
 			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(rootStyle, context.constraints.maxSize, { 240.0f, 120.0f });
 			context.SetDesiredSize({
@@ -279,7 +262,7 @@ namespace Sodium
 				usedStyle.padding.right,
 				usedStyle.padding.bottom
 			};
-			context.widgetState.childSpacing = std::max(0.0f, style.childSpacing);
+			context.widgetState.childSpacing = std::max(0.0f, usedStyle.gap);
 		}
 
 		void OnPaint(SdPaintContext& context)

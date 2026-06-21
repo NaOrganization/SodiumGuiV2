@@ -494,6 +494,7 @@ namespace
 		const SdWidgetRootStyle panelDefault = styleSystem.ResolveRootStyle(SdPanel::TargetTypeId, SdStyleInteractionState::Normal);
 		Check(panelDefault.width.unit == SdLengthUnit::Pixels && panelDefault.width.value == 240.0f, "panel default width resolves through root style");
 		Check(SdResolveLength(panelDefault.padding.left, 0.0f) > 0.0f, "panel default padding resolves through root style");
+		Check(SdResolveLength(panelDefault.gap, 0.0f) == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableLiteral("spacing.small")), "panel default child spacing resolves through root gap");
 
 		constexpr SdStyleClassId textClass = SdStyleClassLiteral("Tests.Text.RootStyle");
 		constexpr SdStyleScopeId textScope = SdStyleScopeLiteral("Tests.Text.Scope");
@@ -560,7 +561,8 @@ namespace
 			.Scope(panelScope)
 			.Class(panelClass)
 			.Set(&SdBoxStyle::width, SdLength::Pixels(333.0f))
-			.Set(&SdBoxStyle::padding, SdStyleValue::FromSpacing({ 3.0f, 4.0f, 5.0f, 6.0f }));
+			.Set(&SdBoxStyle::padding, SdStyleValue::FromSpacing({ 3.0f, 4.0f, 5.0f, 6.0f }))
+			.Set(&SdBoxStyle::gap, SdLength::Pixels(7.0f));
 		const SdWidgetRootStyle panelScoped = styleSystem.ResolveRootStyle(
 			SdPanel::TargetTypeId,
 			SdStyleInteractionState::Normal,
@@ -569,6 +571,7 @@ namespace
 			panelScope);
 		Check(panelScoped.width.unit == SdLengthUnit::Pixels && panelScoped.width.value == 333.0f, "panel scoped root width overrides default");
 		Check(panelScoped.padding.left.value == 3.0f && panelScoped.padding.bottom.value == 6.0f, "panel scoped root padding writes box edges");
+		Check(SdResolveLength(panelScoped.gap, 0.0f) == 7.0f, "panel scoped child spacing writes root gap");
 
 		RegistryDispatchStyle localStyle = {};
 		const SdPropertyDescriptor* colorProperty = registry.Find(Detail::SdStylePropertyId(&RegistryDispatchStyle::color), std::type_index(typeid(RegistryDispatchStyle)));

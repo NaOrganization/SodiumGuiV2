@@ -278,9 +278,7 @@ namespace SodiumDynamicExample
 					Sodium::SdSpan<const Sodium::SdStyleClassId>(panelClasses, 1),
 					kOverlayPanelScope
 				};
-				Sodium::SdPanel::Style panelStyle = {};
-				panelStyle.childSpacing = 3.0f;
-				context.ui.DeclareStyledKeyed<Sodium::SdPanel>("overlay_basic_panel", panelIdentity, &panelStyle, [](Sodium::SdUi& ui)
+				context.ui.DeclareStyledKeyed<Sodium::SdPanel>("overlay_basic_panel", panelIdentity, [](Sodium::SdUi& ui)
 				{
 					ui.Declare<Sodium::SdText>("SdPanel + SdText inside the DLL overlay");
 					ui.Declare<Sodium::SdText>("Built-in widgets use the same runtime path");
@@ -427,7 +425,8 @@ namespace SodiumDynamicExample
 				.Class(kOverlayBasicPanelClass)
 				.Set(&Sodium::SdBoxStyle::width, Sodium::SdLength::Pixels(472.0f))
 				.Set(&Sodium::SdBoxStyle::height, Sodium::SdLength::Pixels(64.0f))
-				.Set(&Sodium::SdBoxStyle::padding, Sodium::SdStyleValue::FromSpacing({ 8.0f, 8.0f, 8.0f, 8.0f }));
+				.Set(&Sodium::SdBoxStyle::padding, Sodium::SdStyleValue::FromSpacing({ 8.0f, 8.0f, 8.0f, 8.0f }))
+				.Set(&Sodium::SdBoxStyle::gap, Sodium::SdLength::Pixels(3.0f));
 			styleSystem.RootRule(Sodium::SdScrollView::TargetTypeId)
 				.Scope(kOverlayScrollScope)
 				.Class(kOverlayBasicScrollClass)
