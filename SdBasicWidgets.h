@@ -135,9 +135,10 @@ namespace Sodium
 
 	struct SdText final : SdWidgetTag
 	{
+		static constexpr SdStyleTokenTag TargetTypeId = SdWidgetTargetIds::Text;
+
 		struct Style final
 		{
-			static constexpr SdStyleTokenTag TargetTypeId = SdWidgetTargetIds::Text;
 			static constexpr SdStyleTokenTag Color = SdStylePropertyIds::Color;
 			static constexpr SdStyleTokenTag Opacity = SdStylePropertyIds::Opacity;
 			SdSpacing padding = {};
@@ -213,7 +214,7 @@ namespace Sodium
 
 			state.text.assign(resolvedText.data(), resolvedText.size());
 			state.textStyle = textStyle;
-			context.widgetState.targetTypeId = Style::TargetTypeId;
+			context.widgetState.targetTypeId = TargetTypeId;
 			context.widgetState.inputEnabled = false;
 			context.widgetState.layoutWeight = 1.0f;
 		}
@@ -256,9 +257,10 @@ namespace Sodium
 
 	struct SdPanel final : SdWidgetTag
 	{
+		static constexpr SdStyleTokenTag TargetTypeId = SdWidgetTargetIds::Panel;
+
 		struct Style final
 		{
-			static constexpr SdStyleTokenTag TargetTypeId = SdWidgetTargetIds::Panel;
 			SdSpacing padding = { 10.0f, 10.0f, 10.0f, 10.0f };
 			float width = 240.0f;
 			float height = 120.0f;
@@ -340,7 +342,7 @@ namespace Sodium
 	private:
 		static void Configure(SdUpdateContext& context)
 		{
-			context.widgetState.targetTypeId = Style::TargetTypeId;
+			context.widgetState.targetTypeId = TargetTypeId;
 			context.widgetState.inputEnabled = false;
 			context.widgetState.layoutWeight = 1.0f;
 		}
@@ -348,6 +350,8 @@ namespace Sodium
 
 	struct SdButton final : SdWidgetTag
 	{
+		static constexpr SdStyleTokenTag TargetTypeId = SdWidgetTargetIds::Button;
+
 		struct Parts final
 		{
 			static constexpr SdStylePart Content = SdStylePart::Make("Sodium.Button.Part.Content");
@@ -357,7 +361,6 @@ namespace Sodium
 
 		struct Style final
 		{
-			static constexpr SdStyleTokenTag TargetTypeId = SdWidgetTargetIds::Button;
 			SdSpacing padding = { 10.0f, 6.0f, 10.0f, 6.0f };
 			float minWidth = 82.0f;
 			float minHeight = 30.0f;
@@ -459,7 +462,7 @@ namespace Sodium
 	private:
 		static void Configure(SdUpdateContext& context)
 		{
-			context.widgetState.targetTypeId = Style::TargetTypeId;
+			context.widgetState.targetTypeId = TargetTypeId;
 			context.widgetState.inputEnabled = true;
 			context.widgetState.layoutWeight = 1.0f;
 			context.EnsurePart(Parts::Content);
@@ -470,9 +473,10 @@ namespace Sodium
 
 	struct SdCheckBox final : SdWidgetTag
 	{
+		static constexpr SdStyleTokenTag TargetTypeId = SdWidgetTargetIds::CheckBox;
+
 		struct Style final
 		{
-			static constexpr SdStyleTokenTag TargetTypeId = SdWidgetTargetIds::CheckBox;
 			SdSpacing padding = { 8.0f, 5.0f, 8.0f, 5.0f };
 			float boxSize = 18.0f;
 			float gap = 8.0f;
@@ -607,7 +611,7 @@ namespace Sodium
 	private:
 		static void Configure(SdUpdateContext& context)
 		{
-			context.widgetState.targetTypeId = Style::TargetTypeId;
+			context.widgetState.targetTypeId = TargetTypeId;
 			context.widgetState.inputEnabled = true;
 			context.widgetState.layoutWeight = 1.0f;
 		}
@@ -617,9 +621,10 @@ namespace Sodium
 
 	struct SdSliderFloat final : SdWidgetTag
 	{
+		static constexpr SdStyleTokenTag TargetTypeId = SdWidgetTargetIds::Slider;
+
 		struct Style final
 		{
-			static constexpr SdStyleTokenTag TargetTypeId = SdWidgetTargetIds::Slider;
 			SdSpacing padding = { 8.0f, 8.0f, 8.0f, 8.0f };
 			float width = 180.0f;
 			float height = 30.0f;
@@ -766,7 +771,7 @@ namespace Sodium
 	private:
 		static void Configure(SdUpdateContext& context)
 		{
-			context.widgetState.targetTypeId = Style::TargetTypeId;
+			context.widgetState.targetTypeId = TargetTypeId;
 			context.widgetState.inputEnabled = true;
 			context.widgetState.layoutWeight = 1.0f;
 		}
@@ -783,6 +788,8 @@ namespace Sodium
 
 	struct SdTextInput final : SdWidgetTag
 	{
+		static constexpr SdStyleTokenTag TargetTypeId = SdWidgetTargetIds::TextInput;
+
 		struct Parts final
 		{
 			static constexpr SdStylePart Field = SdStylePart::Make("Sodium.TextInput.Part.Field");
@@ -794,7 +801,6 @@ namespace Sodium
 
 		struct Style final
 		{
-			static constexpr SdStyleTokenTag TargetTypeId = SdWidgetTargetIds::TextInput;
 			SdSpacing padding = { 9.0f, 6.0f, 9.0f, 6.0f };
 			float width = 220.0f;
 			float minHeight = 32.0f;
@@ -965,7 +971,7 @@ namespace Sodium
 	private:
 		static void Configure(SdUpdateContext& context)
 		{
-			context.widgetState.targetTypeId = Style::TargetTypeId;
+			context.widgetState.targetTypeId = TargetTypeId;
 			context.widgetState.inputEnabled = true;
 			context.widgetState.layoutWeight = 1.0f;
 			context.EnsurePart(Parts::Field);
@@ -986,6 +992,8 @@ namespace Sodium
 
 	struct SdWindow final : SdWidgetTag
 	{
+		static constexpr SdStyleTokenTag TargetTypeId = SdWidgetTargetIds::Window;
+
 		struct Parts final
 		{
 			static constexpr SdStylePart Titlebar = SdStylePart::Make("Sodium.Window.Part.Titlebar");
@@ -997,7 +1005,6 @@ namespace Sodium
 
 		struct Style final
 		{
-			static constexpr SdStyleTokenTag TargetTypeId = SdWidgetTargetIds::Window;
 			SdSpacing padding = { 12.0f, 40.0f, 12.0f, 12.0f };
 			float width = 420.0f;
 			float height = 260.0f;
@@ -1198,7 +1205,7 @@ namespace Sodium
 			state.title.assign(title.data(), title.size());
 			state.options = options;
 			state.open = open;
-			context.widgetState.targetTypeId = Style::TargetTypeId;
+			context.widgetState.targetTypeId = TargetTypeId;
 			context.widgetState.layerPriority = SdLayerPriority::Floating;
 			context.widgetState.inputEnabled = open;
 			context.widgetState.layoutWeight = open ? 1.0f : 0.0f;
@@ -1247,9 +1254,10 @@ namespace Sodium
 
 	struct SdImageViewer final : SdWidgetTag
 	{
+		static constexpr SdStyleTokenTag TargetTypeId = SdWidgetTargetIds::ImageViewer;
+
 		struct Style final
 		{
-			static constexpr SdStyleTokenTag TargetTypeId = SdWidgetTargetIds::ImageViewer;
 			SdSpacing padding = {};
 			float width = 160.0f;
 			float height = 120.0f;
@@ -1301,7 +1309,7 @@ namespace Sodium
 			state.size = size;
 			state.uvRect = uvRect;
 			state.tint = tint;
-			context.widgetState.targetTypeId = Style::TargetTypeId;
+			context.widgetState.targetTypeId = TargetTypeId;
 			context.widgetState.inputEnabled = false;
 			context.widgetState.layoutWeight = 1.0f;
 		}
@@ -1337,9 +1345,10 @@ namespace Sodium
 
 	struct SdScrollView final : SdWidgetTag
 	{
+		static constexpr SdStyleTokenTag TargetTypeId = SdWidgetTargetIds::ScrollView;
+
 		struct Style final
 		{
-			static constexpr SdStyleTokenTag TargetTypeId = SdWidgetTargetIds::ScrollView;
 			SdSpacing padding = { 8.0f, 8.0f, 8.0f, 8.0f };
 			float width = 240.0f;
 			float height = 160.0f;
@@ -1384,7 +1393,7 @@ namespace Sodium
 		void OnUpdate(SdUpdateContext& context, TContent&& content)
 		{
 			State& state = context.State<State>();
-			context.widgetState.targetTypeId = Style::TargetTypeId;
+			context.widgetState.targetTypeId = TargetTypeId;
 			context.widgetState.inputEnabled = true;
 			context.widgetState.layoutWeight = 1.0f;
 			if (context.IsHovered())
@@ -1435,9 +1444,10 @@ namespace Sodium
 
 	struct SdPopup final : SdWidgetTag
 	{
+		static constexpr SdStyleTokenTag TargetTypeId = SdWidgetTargetIds::Popup;
+
 		struct Style final
 		{
-			static constexpr SdStyleTokenTag TargetTypeId = SdWidgetTargetIds::Popup;
 			SdSpacing padding = { 8.0f, 8.0f, 8.0f, 8.0f };
 			float width = 220.0f;
 			float height = 140.0f;
@@ -1527,7 +1537,7 @@ namespace Sodium
 	protected:
 		static void Configure(SdUpdateContext& context, bool open)
 		{
-			context.widgetState.targetTypeId = Style::TargetTypeId;
+			context.widgetState.targetTypeId = TargetTypeId;
 			context.widgetState.layerPriority = SdLayerPriority::Popup;
 			context.widgetState.inputEnabled = open;
 			context.widgetState.layoutWeight = open ? 1.0f : 0.0f;
@@ -1536,9 +1546,10 @@ namespace Sodium
 
 	struct SdContextMenu final : SdWidgetTag
 	{
+		static constexpr SdStyleTokenTag TargetTypeId = SdWidgetTargetIds::ContextMenu;
+
 		struct Style final
 		{
-			static constexpr SdStyleTokenTag TargetTypeId = SdWidgetTargetIds::ContextMenu;
 			SdSpacing padding = { 8.0f, 8.0f, 8.0f, 8.0f };
 			float width = 220.0f;
 			float height = 140.0f;
@@ -1583,7 +1594,7 @@ namespace Sodium
 			State& state = context.State<State>();
 			state.open = open;
 			state.position = position;
-			context.widgetState.targetTypeId = Style::TargetTypeId;
+			context.widgetState.targetTypeId = TargetTypeId;
 			context.widgetState.layerPriority = SdLayerPriority::Popup;
 			context.widgetState.inputEnabled = open;
 			context.widgetState.layoutWeight = open ? 1.0f : 0.0f;
@@ -1624,9 +1635,10 @@ namespace Sodium
 
 	struct SdTooltip final : SdWidgetTag
 	{
+		static constexpr SdStyleTokenTag TargetTypeId = SdWidgetTargetIds::Tooltip;
+
 		struct Style final
 		{
-			static constexpr SdStyleTokenTag TargetTypeId = SdWidgetTargetIds::Tooltip;
 			SdSpacing padding = { 7.0f, 5.0f, 7.0f, 5.0f };
 			float fontSize = 16.0f;
 			float lineHeight = 0.0f;
@@ -1668,7 +1680,7 @@ namespace Sodium
 			state.visible = visible;
 			state.position = position;
 			state.text.assign(text.data(), text.size());
-			context.widgetState.targetTypeId = Style::TargetTypeId;
+			context.widgetState.targetTypeId = TargetTypeId;
 			context.widgetState.layerPriority = SdLayerPriority::Overlay;
 			context.widgetState.inputEnabled = false;
 			context.widgetState.layoutWeight = visible ? 1.0f : 0.0f;

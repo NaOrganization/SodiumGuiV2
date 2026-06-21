@@ -36,9 +36,10 @@ namespace
 
 	struct TestDrawWidget final : SdWidgetTag
 	{
+		static constexpr SdStyleTokenTag TargetTypeId = SdWidgetTargetIds::Button;
+
 		struct Style final
 		{
-			static constexpr SdStyleTokenTag TargetTypeId = SdWidgetTargetIds::Button;
 			static constexpr SdStyleTokenTag Background = SdStylePropertyIds::Background;
 			static constexpr SdStyleTokenTag Border = SdStylePropertyIds::Border;
 			static constexpr SdStyleTokenTag Color = SdStylePropertyIds::Color;
@@ -56,7 +57,7 @@ namespace
 			State& state = context.State<State>();
 			state.label.assign(label.data(), label.size());
 			state.clicked = context.WasClicked();
-			context.widgetState.targetTypeId = Style::TargetTypeId;
+			context.widgetState.targetTypeId = TargetTypeId;
 		}
 
 		void OnUpdate(SdUpdateContext& context, SdUtf8StringView label, bool& clicked)
@@ -86,9 +87,10 @@ namespace
 
 	struct TestContainer final : SdWidgetTag
 	{
+		static constexpr SdStyleTokenTag TargetTypeId = SdWidgetTargetIds::Panel;
+
 		struct Style final
 		{
-			static constexpr SdStyleTokenTag TargetTypeId = SdWidgetTargetIds::Panel;
 			static constexpr SdStyleTokenTag Background = SdStylePropertyIds::Background;
 			static constexpr SdStyleTokenTag Radius = SdStylePropertyIds::Radius;
 		};
@@ -97,7 +99,7 @@ namespace
 			requires std::is_invocable_v<TContent&, SdUi&>
 		void OnUpdate(SdUpdateContext& context, TContent&& content)
 		{
-			context.widgetState.targetTypeId = Style::TargetTypeId;
+			context.widgetState.targetTypeId = TargetTypeId;
 			std::forward<TContent>(content)(context.ui);
 		}
 
@@ -128,9 +130,10 @@ namespace
 
 	struct CustomComponentWidget final : SdWidgetTag
 	{
+		static constexpr SdStyleTokenTag TargetTypeId = CustomComponentStyle::TargetTypeId;
+
 		struct Style final
 		{
-			static constexpr SdStyleTokenTag TargetTypeId = CustomComponentStyle::TargetTypeId;
 			SdColor highlight = {};
 			SdSpacing contentPadding = {};
 
@@ -191,9 +194,10 @@ namespace
 
 	struct TypedStyleWidget final : SdWidgetTag
 	{
+		static constexpr SdStyleTokenTag TargetTypeId = SdStyleTokenTagLiteral("Tests.TypedStyleWidget");
+
 		struct Style final
 		{
-			static constexpr SdStyleTokenTag TargetTypeId = SdStyleTokenTagLiteral("Tests.TypedStyleWidget");
 			float width = 24.0f;
 			SdColor color = SdColorWhite;
 
@@ -214,7 +218,7 @@ namespace
 
 		void OnUpdate(SdUpdateContext& context)
 		{
-			context.widgetState.targetTypeId = Style::TargetTypeId;
+			context.widgetState.targetTypeId = TargetTypeId;
 		}
 
 		void OnLayout(SdLayoutContext& context)
@@ -644,7 +648,7 @@ namespace
 		bool hasStyleCache = false;
 		bool hasExtendedAnimationChannels = false;
 		bool hasStyleAnimationTarget = false;
-		const SdWidgetRootStyle buttonStyle = instance.GetStyleSystem().ResolveRootStyle(TestDrawWidget::Style::TargetTypeId, SdStyleInteractionState::Normal);
+		const SdWidgetRootStyle buttonStyle = instance.GetStyleSystem().ResolveRootStyle(TestDrawWidget::TargetTypeId, SdStyleInteractionState::Normal);
 		for (const auto& [id, record] : instance.GetStateStorage().GetWidgetRecords())
 		{
 			(void)id;
@@ -652,7 +656,7 @@ namespace
 			hasStyleCache = hasStyleCache || record.styleCache.valid;
 			hasExtendedAnimationChannels = hasExtendedAnimationChannels
 				|| (record.animation.styleColorR != 0 && record.animation.scrollOffset != 0);
-			if (record.state.targetTypeId == TestDrawWidget::Style::TargetTypeId)
+			if (record.state.targetTypeId == TestDrawWidget::TargetTypeId)
 			{
 				const SdAnimationChannel& red = instance.GetContext().animationSystem.GetChannel(record.animation.styleBackgroundR);
 				const SdAnimationChannel& green = instance.GetContext().animationSystem.GetChannel(record.animation.styleBackgroundG);
@@ -667,8 +671,8 @@ namespace
 		Check(hasExtendedAnimationChannels, "widget records own extended animation channel references");
 		Check(hasStyleAnimationTarget, "style color animation targets presentation background");
 
-		const SdWidgetRootStyle normal = instance.GetStyleSystem().ResolveRootStyle(TestDrawWidget::Style::TargetTypeId, SdStyleInteractionState::Normal);
-		const SdWidgetRootStyle hovered = instance.GetStyleSystem().ResolveRootStyle(TestDrawWidget::Style::TargetTypeId, SdStyleInteractionState::Hovered);
+		const SdWidgetRootStyle normal = instance.GetStyleSystem().ResolveRootStyle(TestDrawWidget::TargetTypeId, SdStyleInteractionState::Normal);
+		const SdWidgetRootStyle hovered = instance.GetStyleSystem().ResolveRootStyle(TestDrawWidget::TargetTypeId, SdStyleInteractionState::Hovered);
 		Check(normal.backgroundColor != hovered.backgroundColor, "style interaction selector changes button background");
 		Check(normal.border.left.color == instance.GetStyleSystem().GetTheme().GetColorVariable(SdThemeVariableLiteral("border")), "presentation style carries theme border color");
 
@@ -688,7 +692,7 @@ namespace
 		for (const auto& [id, record] : instance.GetStateStorage().GetWidgetRecords())
 		{
 			(void)id;
-			if (record.state.targetTypeId == TestDrawWidget::Style::TargetTypeId)
+			if (record.state.targetTypeId == TestDrawWidget::TargetTypeId)
 			{
 				hasUpdatedStyleRevision = record.styleCache.valid
 					&& record.styleCache.styleRevision != previousStyleRevision

@@ -211,8 +211,8 @@ namespace Sodium
 		{
 			SdCompiledStyleRule rule = {};
 			rule.selector.styleType = std::type_index(typeid(TStyle));
-			if constexpr (requires { TWidget::Style::TargetTypeId; })
-				rule.selector.targetTag = TWidget::Style::TargetTypeId;
+			if constexpr (requires { TWidget::TargetTypeId; })
+				rule.selector.targetTag = TWidget::TargetTypeId;
 			else
 				rule.selector.targetTag = SdStyleTokenTagLiteral(typeid(TWidget).name());
 			rule.selector.part = part;

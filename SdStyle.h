@@ -701,8 +701,8 @@ namespace Sodium
 		template<class TWidget>
 		static constexpr SdStyleTokenTag GetTargetTag() noexcept
 		{
-			if constexpr (requires { TWidget::Style::TargetTypeId; })
-				return TWidget::Style::TargetTypeId;
+			if constexpr (requires { TWidget::TargetTypeId; })
+				return TWidget::TargetTypeId;
 			else
 				return Detail::SdTypeHash<TWidget>();
 		}
