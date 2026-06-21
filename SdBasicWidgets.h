@@ -318,21 +318,7 @@ namespace Sodium
 			static constexpr SdStylePart Icon = SdStylePart::Make("Sodium.Button.Part.Icon");
 			static constexpr SdStylePart Label = SdStylePart::Make("Sodium.Button.Part.Label");
 		};
-
-		struct Style final
-		{
-			static Style Default(const SdStyleContext& context)
-			{
-				(void)context;
-				Style style = {};
-				return style;
-			}
-
-			static void Describe(SdStyleContract<Style>& contract)
-			{
-				(void)contract;
-			}
-		};
+		using Style = SdWidgetRootStyle;
 
 		struct State final
 		{
@@ -708,21 +694,7 @@ namespace Sodium
 			static constexpr SdStylePart Selection = SdStylePart::Make("Sodium.TextInput.Part.Selection");
 			static constexpr SdStylePart Caret = SdStylePart::Make("Sodium.TextInput.Part.Caret");
 		};
-
-		struct Style final
-		{
-			static Style Default(const SdStyleContext& context)
-			{
-				(void)context;
-				Style style = {};
-				return style;
-			}
-
-			static void Describe(SdStyleContract<Style>& contract)
-			{
-				(void)contract;
-			}
-		};
+		using Style = SdWidgetRootStyle;
 
 		struct State final
 		{
@@ -1135,21 +1107,7 @@ namespace Sodium
 	struct SdImageViewer final : SdWidgetTag
 	{
 		static constexpr SdStyleId TargetTypeId = SdWidgetTargetIds::ImageViewer;
-
-		struct Style final
-		{
-			static Style Default(const SdStyleContext& context)
-			{
-				(void)context;
-				Style style = {};
-				return style;
-			}
-
-			static void Describe(SdStyleContract<Style>& contract)
-			{
-				(void)contract;
-			}
-		};
+		using Style = SdWidgetRootStyle;
 
 		struct State final
 		{
@@ -1487,21 +1445,7 @@ namespace Sodium
 	struct SdTooltip final : SdWidgetTag
 	{
 		static constexpr SdStyleId TargetTypeId = SdWidgetTargetIds::Tooltip;
-
-		struct Style final
-		{
-			static Style Default(const SdStyleContext& context)
-			{
-				(void)context;
-				Style style = {};
-				return style;
-			}
-
-			static void Describe(SdStyleContract<Style>& contract)
-			{
-				(void)contract;
-			}
-		};
+		using Style = SdWidgetRootStyle;
 
 		struct State final
 		{
