@@ -596,7 +596,12 @@ namespace
 		Check(sliderTrackFillThumbPartsApplied, "slider track, fill, and thumb part backgrounds resolve into part style nodes");
 
 		SdInstance scrollViewPartStyleInstance;
+		const SdColor scrollViewScrollbarPartColor = SdColor(36, 68, 102, 255);
+		const SdColor scrollViewScrollbarBorderPartColor = SdColor(102, 68, 36, 255);
 		const SdColor scrollViewThumbPartColor = SdColor(70, 140, 200, 255);
+		scrollViewPartStyleInstance.GetStyleSystem().Part<SdScrollView>(SdScrollView::Parts::Scrollbar)
+			.Set(&SdBoxStyle::backgroundColor, scrollViewScrollbarPartColor)
+			.Set(&SdBoxStyle::border, SdStyleValue::FromColor(scrollViewScrollbarBorderPartColor));
 		scrollViewPartStyleInstance.GetStyleSystem().Part<SdScrollView>(SdScrollView::Parts::Thumb)
 			.Set(&SdBoxStyle::backgroundColor, scrollViewThumbPartColor);
 		scrollViewPartStyleInstance.BeginFrame({ 320.0f, 200.0f });
@@ -605,14 +610,43 @@ namespace
 			ui.Declare<SdText>("Part scroll");
 		});
 		PumpFrame(scrollViewPartStyleInstance);
+		bool scrollViewScrollbarPartApplied = false;
 		bool scrollViewThumbPartApplied = false;
 		for (const auto& [id, record] : scrollViewPartStyleInstance.GetStateStorage().GetWidgetRecords())
 		{
 			(void)id;
 			if (record.widgetType == std::type_index(typeid(SdScrollView)))
-				scrollViewThumbPartApplied = scrollViewPartStyleInstance.GetStylePart(record.state.id, SdScrollView::Parts::Thumb).presentationStyle.backgroundColor == scrollViewThumbPartColor;
+			{
+				const SdBoxStyle& scrollbarStyle = scrollViewPartStyleInstance.GetStylePart(record.state.id, SdScrollView::Parts::Scrollbar).presentationStyle;
+				const SdBoxStyle& thumbStyle = scrollViewPartStyleInstance.GetStylePart(record.state.id, SdScrollView::Parts::Thumb).presentationStyle;
+				scrollViewScrollbarPartApplied = scrollbarStyle.backgroundColor == scrollViewScrollbarPartColor
+					&& scrollbarStyle.border.left.color == scrollViewScrollbarBorderPartColor;
+				scrollViewThumbPartApplied = thumbStyle.backgroundColor == scrollViewThumbPartColor;
+			}
 		}
+		Check(scrollViewScrollbarPartApplied, "scroll view scrollbar part background and border resolve into part style node");
 		Check(scrollViewThumbPartApplied, "scroll view thumb part background resolves into part style node");
+		const SdUInt32 scrollViewScrollbarPartPackedRgb = scrollViewScrollbarPartColor.Pack() & 0x00ffffffu;
+		const SdUInt32 scrollViewScrollbarBorderPartPackedRgb = scrollViewScrollbarBorderPartColor.Pack() & 0x00ffffffu;
+		const SdDrawPacket scrollViewPartDrawPacket = scrollViewPartStyleInstance.GetDrawPacket();
+		const bool scrollViewScrollbarPartPainted = std::any_of(
+			scrollViewPartDrawPacket.vertices.begin(),
+			scrollViewPartDrawPacket.vertices.end(),
+			[scrollViewScrollbarPartPackedRgb](const SdVertex& vertex)
+			{
+				return (vertex.color & 0x00ffffffu) == scrollViewScrollbarPartPackedRgb
+					&& (vertex.color >> 24) > 0u;
+			});
+		const bool scrollViewScrollbarBorderPartPainted = std::any_of(
+			scrollViewPartDrawPacket.vertices.begin(),
+			scrollViewPartDrawPacket.vertices.end(),
+			[scrollViewScrollbarBorderPartPackedRgb](const SdVertex& vertex)
+			{
+				return (vertex.color & 0x00ffffffu) == scrollViewScrollbarBorderPartPackedRgb
+					&& (vertex.color >> 24) > 0u;
+			});
+		Check(scrollViewScrollbarPartPainted, "scroll view scrollbar part background drives scroll view paint");
+		Check(scrollViewScrollbarBorderPartPainted, "scroll view scrollbar part border drives scroll view paint");
 
 		SdInstance inputPartStyleInstance;
 		RecordingFontBackend inputPartFontBackend = {};
@@ -878,7 +912,9 @@ namespace
 		Check(scrollViewDefault.height.unit == SdLengthUnit::Pixels && scrollViewDefault.height.value == 160.0f, "scroll view default height resolves through root style");
 		Check(scrollViewDefault.padding.left.value == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableLiteral("spacing.small")), "scroll view default padding resolves through root style");
 		Check(SdResolveLength(scrollViewDefault.gap, 0.0f) == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableLiteral("spacing.small")), "scroll view default child spacing resolves through root gap");
+		const SdWidgetPartStyle scrollViewScrollbarDefault = styleSystem.ResolvePartStyle(SdScrollView::TargetTypeId, SdScrollView::Parts::Scrollbar, scrollViewDefault, SdStyleInteractionState::Normal);
 		const SdWidgetPartStyle scrollViewThumbDefault = styleSystem.ResolvePartStyle(SdScrollView::TargetTypeId, SdScrollView::Parts::Thumb, scrollViewDefault, SdStyleInteractionState::Normal);
+		Check(scrollViewScrollbarDefault.backgroundColor == styleSystem.GetTheme().GetColorVariable(SdThemeVariableLiteral("panel.bg")), "scroll view scrollbar default background resolves through part style");
 		Check(scrollViewThumbDefault.backgroundColor == styleSystem.GetTheme().GetColorVariable(SdThemeVariableLiteral("accent")), "scroll view thumb default background resolves through part style");
 
 		const SdWidgetRootStyle popupDefault = styleSystem.ResolveRootStyle(SdPopup::TargetTypeId, SdStyleInteractionState::Normal, SdLayerPriority::Popup);

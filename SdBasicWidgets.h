@@ -1259,11 +1259,12 @@ namespace Sodium
 			const State& state = context.State<State>();
 			const Style& style = context.RootPresentationStyle<SdScrollView>();
 			const SdBoxStyle& presentation = context.RootStyleNode().presentationStyle;
+			const SdBoxStyle& scrollbarPresentation = context.Part(Parts::Scrollbar).presentationStyle;
 			const SdBoxStyle& thumbPresentation = context.Part(Parts::Thumb).presentationStyle;
-			const SdColor background = BasicWidgetDetail::ApplyOpacity(presentation.backgroundColor, context.opacity * presentation.opacity);
-			const SdColor border = BasicWidgetDetail::ApplyOpacity(presentation.border.left.color, context.opacity * presentation.opacity);
+			const SdColor background = BasicWidgetDetail::ApplyOpacity(scrollbarPresentation.backgroundColor, context.opacity * scrollbarPresentation.opacity);
+			const SdColor border = BasicWidgetDetail::ApplyOpacity(scrollbarPresentation.border.left.color, context.opacity * scrollbarPresentation.opacity);
 			const SdColor thumbColor = BasicWidgetDetail::ApplyOpacity(thumbPresentation.backgroundColor, context.opacity * thumbPresentation.opacity);
-			const float radius = SdResolveLength(presentation.radius, context.animatedRect.Width());
+			const float radius = SdResolveLength(scrollbarPresentation.radius, context.animatedRect.Width(), SdResolveLength(presentation.radius, context.animatedRect.Width()));
 			context.renderList.AddRectFilled(context.animatedRect, background, context.clipRect, radius);
 			context.renderList.AddRect(context.animatedRect, border, context.clipRect, 1.0f, radius);
 

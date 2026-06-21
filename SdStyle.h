@@ -1034,6 +1034,11 @@ namespace Sodium
 				.Set(&SdBoxStyle::height, SdLength::Pixels(160.0f))
 				.Set(&SdBoxStyle::padding, SdStyleValue::FromSpacing({ smallSpacing, smallSpacing, smallSpacing, smallSpacing }))
 				.Set(&SdBoxStyle::gap, SdLength::Pixels(smallSpacing));
+			typedStyleSheet.PartForTarget(SdWidgetTargetIds::ScrollView, SdStylePart::Make("Sodium.ScrollView.Part.Scrollbar"))
+				.Cascade(SdCascadeLayer::UserAgent)
+				.Set(&SdBoxStyle::backgroundColor, ThemeColor("panel.bg"))
+				.Set(&SdBoxStyle::border, ThemeColor("border"))
+				.Set(&SdBoxStyle::radius, ThemeMetric("radius.small"));
 			typedStyleSheet.PartForTarget(SdWidgetTargetIds::ScrollView, SdStylePart::Make("Sodium.ScrollView.Part.Thumb"))
 				.Cascade(SdCascadeLayer::UserAgent)
 				.Set(&SdBoxStyle::backgroundColor, ThemeColor("accent"));
@@ -1063,7 +1068,6 @@ namespace Sodium
 			AddDefaultRootBackgroundRule(SdWidgetTargetIds::Slider, SdStyleInteractionState::Normal, SdLayerPriority::Content, "panel.bg");
 			AddDefaultRootBackgroundRule(SdWidgetTargetIds::Slider, SdStyleInteractionState::Hovered, SdLayerPriority::Content, "button.bg.hover");
 			AddDefaultRootBackgroundRule(SdWidgetTargetIds::Slider, SdStyleInteractionState::Pressed, SdLayerPriority::Content, "button.bg.pressed");
-			AddDefaultRootBackgroundRule(SdWidgetTargetIds::ScrollView, SdStyleInteractionState::Normal, SdLayerPriority::Content, "panel.bg");
 			AddDefaultRootBackgroundRule(SdWidgetTargetIds::Popup, SdStyleInteractionState::Normal, SdLayerPriority::Popup, "window.bg", true);
 			AddDefaultRootBackgroundRule(SdWidgetTargetIds::ContextMenu, SdStyleInteractionState::Normal, SdLayerPriority::Popup, "window.bg", true);
 			AddDefaultRootBackgroundRule(SdWidgetTargetIds::Tooltip, SdStyleInteractionState::Normal, SdLayerPriority::Overlay, "panel.bg", true);
