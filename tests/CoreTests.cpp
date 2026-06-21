@@ -1161,6 +1161,10 @@ namespace
 		SdInstance overflowInstance;
 		overflowInstance.GetStyleSystem().RootRule(TestOverflowContainer::TargetTypeId)
 			.Set(&SdBoxStyle::display, SdDisplay::Flex)
+			.Set(&SdBoxStyle::boxSizing, SdBoxSizing::BorderBox)
+			.Set(&SdBoxStyle::maxWidth, SdLength::Pixels(96.0f))
+			.Set(&SdBoxStyle::maxHeight, SdLength::Pixels(72.0f))
+			.Set(&SdBoxStyle::margin, SdStyleValue::FromSpacing({ 2.0f, 3.0f, 4.0f, 5.0f }))
 			.Set(&SdBoxStyle::padding, SdStyleValue::FromSpacing({ 5.0f, 6.0f, 7.0f, 8.0f }))
 			.Set(&SdBoxStyle::overflowX, SdOverflow::Hidden)
 			.Set(&SdBoxStyle::overflowY, SdOverflow::Clip);
@@ -1173,17 +1177,30 @@ namespace
 		const SdWidgetRootStyle overflowStyle = overflowInstance.GetStyleSystem().ResolveRootStyle(TestOverflowContainer::TargetTypeId, SdStyleInteractionState::Normal);
 		Check(
 			overflowStyle.display == SdDisplay::Flex
+			&& overflowStyle.boxSizing == SdBoxSizing::BorderBox
+			&& overflowStyle.maxWidth.value == 96.0f
+			&& overflowStyle.maxHeight.value == 72.0f
+			&& overflowStyle.margin.left.value == 2.0f
 			&& overflowStyle.overflowX == SdOverflow::Hidden
 			&& overflowStyle.overflowY == SdOverflow::Clip,
-			"stylesheet resolves root layout enum properties");
+			"stylesheet resolves root box model properties");
 		bool childClipMatchesOverflowContent = false;
 		bool childArrangedFromFlexDisplay = false;
+		bool rootUsedBoxIncludesMargin = false;
+		bool rootUsedBoxIncludesContent = false;
 		SdRect overflowContentRect = {};
 		for (const auto& [id, record] : overflowInstance.GetStateStorage().GetWidgetRecords())
 		{
 			(void)id;
 			if (record.widgetType == std::type_index(typeid(TestOverflowContainer)))
+			{
+				const SdStyleNode& root = overflowInstance.GetRootStyleNode(record.state.id);
 				overflowContentRect = record.state.childContentRect;
+				rootUsedBoxIncludesMargin = root.usedBox.marginBox.min.x == root.usedBox.borderBox.min.x - 2.0f
+					&& root.usedBox.marginBox.max.y == root.usedBox.borderBox.max.y + 5.0f;
+				rootUsedBoxIncludesContent = root.usedBox.contentBox.min.x == record.state.childContentRect.min.x
+					&& root.usedBox.contentBox.max.y == record.state.childContentRect.max.y;
+			}
 		}
 		for (const auto& [id, record] : overflowInstance.GetStateStorage().GetWidgetRecords())
 		{
@@ -1198,6 +1215,8 @@ namespace
 					&& record.state.computedClipRect.max.y == overflowContentRect.max.y;
 			}
 		}
+		Check(rootUsedBoxIncludesMargin, "runtime used geometry resolves root margin box");
+		Check(rootUsedBoxIncludesContent, "runtime used geometry resolves root content box");
 		Check(childArrangedFromFlexDisplay, "runtime derives child arrangement from root flex display style");
 		Check(childClipMatchesOverflowContent, "runtime derives child clipping from root overflow style");
 	}

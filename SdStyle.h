@@ -1060,6 +1060,22 @@ namespace Sodium
 				SdStyleFieldImpact::Layout,
 				SdStyleInterpolation::Float,
 				true);
+			propertyRegistry.Register<&SdBoxStyle::maxWidth>(
+				SdStyleFieldImpact::Layout,
+				SdStyleInterpolation::Float,
+				true);
+			propertyRegistry.Register<&SdBoxStyle::maxHeight>(
+				SdStyleFieldImpact::Layout,
+				SdStyleInterpolation::Float,
+				true);
+			propertyRegistry.Register<&SdBoxStyle::boxSizing>(
+				SdStyleFieldImpact::Layout,
+				SdStyleInterpolation::None,
+				true);
+			propertyRegistry.Register<&SdBoxStyle::margin>(
+				SdStyleFieldImpact::Layout,
+				SdStyleInterpolation::Float,
+				true);
 			propertyRegistry.Register<&SdBoxStyle::overflowX>(
 				SdStyleFieldImpact::Layout,
 				SdStyleInterpolation::None,
