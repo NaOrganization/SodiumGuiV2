@@ -1116,6 +1116,16 @@ namespace
 		Check(boxes[1].borderBox.min.x == boxes[0].contentBox.min.x, "flex first child starts at content min");
 		Check(boxes[2].borderBox.min.x == boxes[1].borderBox.max.x + 5.0f, "flex gap advances next child");
 
+		parentStyle.flexDirection = SdFlexDirection::Column;
+		SdBoxTree columnTree = {};
+		const SdUInt32 columnParent = columnTree.AddBox(4, SdInvalidIndex<SdUInt32>, parentStyle, { 120.0f, 40.0f });
+		columnTree.AddBox(5, columnParent, childStyle, { 20.0f, 10.0f });
+		columnTree.AddBox(6, columnParent, childStyle, { 20.0f, 10.0f });
+		columnTree.Layout({ 0.0f, 0.0f, 200.0f, 100.0f });
+		const std::vector<SdBoxNode>& columnBoxes = columnTree.GetBoxes();
+		Check(columnBoxes[1].borderBox.min.y == columnBoxes[0].contentBox.min.y, "flex column first child starts at content min");
+		Check(columnBoxes[2].borderBox.min.y == columnBoxes[1].borderBox.max.y + 5.0f, "flex column gap advances next child");
+
 		SdInstance instance;
 		instance.BeginFrame({ 320.0f, 200.0f });
 		instance.ui.Declare<SdButton>("Used");
@@ -1164,6 +1174,7 @@ namespace
 		SdInstance overflowInstance;
 		overflowInstance.GetStyleSystem().RootRule(TestOverflowContainer::TargetTypeId)
 			.Set(&SdBoxStyle::display, SdDisplay::Flex)
+			.Set(&SdBoxStyle::flexDirection, SdFlexDirection::Column)
 			.Set(&SdBoxStyle::boxSizing, SdBoxSizing::BorderBox)
 			.Set(&SdBoxStyle::maxWidth, SdLength::Pixels(96.0f))
 			.Set(&SdBoxStyle::maxHeight, SdLength::Pixels(72.0f))
@@ -1180,6 +1191,7 @@ namespace
 		const SdWidgetRootStyle overflowStyle = overflowInstance.GetStyleSystem().ResolveRootStyle(TestOverflowContainer::TargetTypeId, SdStyleInteractionState::Normal);
 		Check(
 			overflowStyle.display == SdDisplay::Flex
+			&& overflowStyle.flexDirection == SdFlexDirection::Column
 			&& overflowStyle.boxSizing == SdBoxSizing::BorderBox
 			&& overflowStyle.maxWidth.value == 96.0f
 			&& overflowStyle.maxHeight.value == 72.0f
