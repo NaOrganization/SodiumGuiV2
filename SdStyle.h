@@ -1007,6 +1007,9 @@ namespace Sodium
 				.Set(&SdBoxStyle::height, SdLength::Pixels(160.0f))
 				.Set(&SdBoxStyle::padding, SdStyleValue::FromSpacing({ smallSpacing, smallSpacing, smallSpacing, smallSpacing }))
 				.Set(&SdBoxStyle::gap, SdLength::Pixels(smallSpacing));
+			typedStyleSheet.PartForTarget(SdWidgetTargetIds::ScrollView, SdStylePart::Make("Sodium.ScrollView.Part.Thumb"))
+				.Cascade(SdCascadeLayer::UserAgent)
+				.Set(&SdBoxStyle::backgroundColor, ThemeColor("accent"));
 			typedStyleSheet.RuleForTarget<SdWidgetRootStyle>(SdWidgetTargetIds::Popup)
 				.Cascade(SdCascadeLayer::UserAgent)
 				.Set(&SdBoxStyle::width, SdLength::Pixels(220.0f))

@@ -1187,6 +1187,12 @@ namespace Sodium
 	{
 		static constexpr SdStyleId TargetTypeId = SdWidgetTargetIds::ScrollView;
 
+		struct Parts final
+		{
+			static constexpr SdStylePart Scrollbar = SdStylePart::Make("Sodium.ScrollView.Part.Scrollbar");
+			static constexpr SdStylePart Thumb = SdStylePart::Make("Sodium.ScrollView.Part.Thumb");
+		};
+
 		struct Style final
 		{
 			float scrollbarWidth = 5.0f;
@@ -1218,6 +1224,8 @@ namespace Sodium
 			context.widgetState.targetTypeId = TargetTypeId;
 			context.widgetState.inputEnabled = true;
 			context.widgetState.layoutWeight = 1.0f;
+			context.EnsurePart(Parts::Scrollbar);
+			context.EnsurePart(Parts::Thumb);
 			if (context.IsHovered())
 			{
 				state.scrollOffset = std::max(0.0f, state.scrollOffset - (context.input.GetMouseWheelDelta().y * 24.0f));
@@ -1247,11 +1255,10 @@ namespace Sodium
 			const State& state = context.State<State>();
 			const Style& style = context.RootPresentationStyle<SdScrollView>();
 			const SdBoxStyle& presentation = context.RootStyleNode().presentationStyle;
+			const SdBoxStyle& thumbPresentation = context.Part(Parts::Thumb).presentationStyle;
 			const SdColor background = BasicWidgetDetail::ApplyOpacity(presentation.backgroundColor, context.opacity * presentation.opacity);
 			const SdColor border = BasicWidgetDetail::ApplyOpacity(presentation.border.left.color, context.opacity * presentation.opacity);
-			const SdColor accent = BasicWidgetDetail::ApplyOpacity(
-				context.instance.GetStyleSystem().GetTheme().GetColorVariable(SdThemeVariableLiteral("accent")),
-				context.opacity * presentation.opacity);
+			const SdColor thumbColor = BasicWidgetDetail::ApplyOpacity(thumbPresentation.backgroundColor, context.opacity * thumbPresentation.opacity);
 			const float radius = SdResolveLength(presentation.radius, context.animatedRect.Width());
 			context.renderList.AddRectFilled(context.animatedRect, background, context.clipRect, radius);
 			context.renderList.AddRect(context.animatedRect, border, context.clipRect, 1.0f, radius);
@@ -1267,7 +1274,7 @@ namespace Sodium
 					context.animatedRect.max.x - 4.0f,
 					thumbY + thumbHeight
 				};
-				context.renderList.AddRectFilled(thumbRect, accent, context.clipRect, style.scrollbarWidth * 0.5f);
+				context.renderList.AddRectFilled(thumbRect, thumbColor, context.clipRect, style.scrollbarWidth * 0.5f);
 			}
 		}
 	};

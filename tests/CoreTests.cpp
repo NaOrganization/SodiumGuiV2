@@ -404,6 +404,10 @@ namespace
 		float sliderValue = 0.5f;
 		instance.ui.Declare<SdSliderFloat>("Slide", sliderValue, 0.0f, 1.0f);
 		instance.ui.Declare<SdTextInput>(text, "Placeholder");
+		instance.ui.Declare<SdScrollView>([](SdUi& ui)
+		{
+			ui.Declare<SdText>("Scroll");
+		});
 		instance.ui.Declare<SdWindow>("Window", windowOpen);
 		PumpFrame(instance);
 
@@ -412,6 +416,7 @@ namespace
 		bool sliderHasLabel = false;
 		bool inputHasCaret = false;
 		bool windowHasTitlebar = false;
+		bool scrollViewHasThumb = false;
 		for (const auto& [id, record] : instance.GetStateStorage().GetWidgetRecords())
 		{
 			(void)id;
@@ -425,14 +430,17 @@ namespace
 				inputHasCaret = instance.GetStylePart(record.state.id, SdTextInput::Parts::Caret).part == SdTextInput::Parts::Caret;
 			if (record.widgetType == std::type_index(typeid(SdWindow)))
 				windowHasTitlebar = instance.GetStylePart(record.state.id, SdWindow::Parts::Titlebar).part == SdWindow::Parts::Titlebar;
+			if (record.widgetType == std::type_index(typeid(SdScrollView)))
+				scrollViewHasThumb = instance.GetStylePart(record.state.id, SdScrollView::Parts::Thumb).part == SdScrollView::Parts::Thumb;
 		}
 
-		Check(instance.GetDiagnostics().styleNodeCount >= 25, "runtime owns root and part style nodes");
+		Check(instance.GetDiagnostics().styleNodeCount >= 28, "runtime owns root and part style nodes");
 		Check(buttonHasLabel, "button label part style node exists");
 		Check(checkBoxHasLabel, "checkbox label part style node exists");
 		Check(sliderHasLabel, "slider label part style node exists");
 		Check(inputHasCaret, "text input caret part style node exists");
 		Check(windowHasTitlebar, "window titlebar part style node exists");
+		Check(scrollViewHasThumb, "scroll view thumb part style node exists");
 
 		gContextStyleNodeApiObservedRoot = false;
 		gContextStyleNodeApiObservedPart = false;
@@ -550,6 +558,25 @@ namespace
 			}
 		}
 		Check(sliderTrackFillThumbPartsApplied, "slider track, fill, and thumb part backgrounds resolve into part style nodes");
+
+		SdInstance scrollViewPartStyleInstance;
+		const SdColor scrollViewThumbPartColor = SdColor(70, 140, 200, 255);
+		scrollViewPartStyleInstance.GetStyleSystem().Part<SdScrollView>(SdScrollView::Parts::Thumb)
+			.Set(&SdBoxStyle::backgroundColor, scrollViewThumbPartColor);
+		scrollViewPartStyleInstance.BeginFrame({ 320.0f, 200.0f });
+		scrollViewPartStyleInstance.ui.Declare<SdScrollView>([](SdUi& ui)
+		{
+			ui.Declare<SdText>("Part scroll");
+		});
+		PumpFrame(scrollViewPartStyleInstance);
+		bool scrollViewThumbPartApplied = false;
+		for (const auto& [id, record] : scrollViewPartStyleInstance.GetStateStorage().GetWidgetRecords())
+		{
+			(void)id;
+			if (record.widgetType == std::type_index(typeid(SdScrollView)))
+				scrollViewThumbPartApplied = scrollViewPartStyleInstance.GetStylePart(record.state.id, SdScrollView::Parts::Thumb).presentationStyle.backgroundColor == scrollViewThumbPartColor;
+		}
+		Check(scrollViewThumbPartApplied, "scroll view thumb part background resolves into part style node");
 
 		SdInstance inputPartStyleInstance;
 		RecordingFontBackend inputPartFontBackend = {};
@@ -713,6 +740,8 @@ namespace
 		Check(scrollViewDefault.height.unit == SdLengthUnit::Pixels && scrollViewDefault.height.value == 160.0f, "scroll view default height resolves through root style");
 		Check(scrollViewDefault.padding.left.value == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableLiteral("spacing.small")), "scroll view default padding resolves through root style");
 		Check(SdResolveLength(scrollViewDefault.gap, 0.0f) == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableLiteral("spacing.small")), "scroll view default child spacing resolves through root gap");
+		const SdWidgetPartStyle scrollViewThumbDefault = styleSystem.ResolvePartStyle(SdScrollView::TargetTypeId, SdScrollView::Parts::Thumb, scrollViewDefault, SdStyleInteractionState::Normal);
+		Check(scrollViewThumbDefault.backgroundColor == styleSystem.GetTheme().GetColorVariable(SdThemeVariableLiteral("accent")), "scroll view thumb default background resolves through part style");
 
 		const SdWidgetRootStyle popupDefault = styleSystem.ResolveRootStyle(SdPopup::TargetTypeId, SdStyleInteractionState::Normal, SdLayerPriority::Popup);
 		const SdWidgetRootStyle contextMenuDefault = styleSystem.ResolveRootStyle(SdContextMenu::TargetTypeId, SdStyleInteractionState::Normal, SdLayerPriority::Popup);
