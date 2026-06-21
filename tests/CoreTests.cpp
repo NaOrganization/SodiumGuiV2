@@ -464,6 +464,7 @@ namespace
 		const SdColor buttonContentBorderPartColor = SdColor(105, 74, 33, 255);
 		partStyleInstance.GetStyleSystem().Part<SdButton>(SdButton::Parts::Content)
 			.Set(&SdBoxStyle::backgroundColor, buttonContentPartColor)
+			.Transition(&SdBoxStyle::backgroundColor, std::chrono::milliseconds(280), SdAnimationEasing::Linear)
 			.Set(&SdBoxStyle::border, SdStyleValue::FromColor(buttonContentBorderPartColor));
 		partStyleInstance.GetStyleSystem().Part<SdButton>(SdButton::Parts::Label)
 			.Set(&SdBoxStyle::opacity, 0.42f)
@@ -515,6 +516,37 @@ namespace
 			&& partFontBackend.lastPaintColor.b == labelPartColor.b
 			&& partFontBackend.lastPaintColor.a <= BasicWidgetDetail::ApplyOpacity(labelPartColor, 0.42f).a,
 			"button label part color drives text paint");
+
+		const SdColor buttonContentPartUpdatedColor = SdColor(120, 44, 24, 255);
+		partStyleInstance.GetStyleSystem().Part<SdButton>(SdButton::Parts::Content)
+			.Set(&SdBoxStyle::backgroundColor, buttonContentPartUpdatedColor)
+			.Transition(&SdBoxStyle::backgroundColor, std::chrono::milliseconds(280), SdAnimationEasing::Linear);
+		partStyleInstance.BeginFrame({ 320.0f, 200.0f });
+		partStyleInstance.ui.Declare<SdButton>("Part style");
+		PumpFrame(partStyleInstance);
+		bool partBackgroundTransitionUsesStylesheet = false;
+		bool partBackgroundPresentationUsesChannel = false;
+		const SdPropertyId partBackgroundPropertyId = Detail::SdStylePropertyId(&SdBoxStyle::backgroundColor);
+		for (const auto& [id, record] : partStyleInstance.GetStateStorage().GetWidgetRecords())
+		{
+			(void)id;
+			if (record.widgetType != std::type_index(typeid(SdButton)))
+				continue;
+			const SdStyleNode& contentNode = partStyleInstance.GetStylePart(record.state.id, SdButton::Parts::Content);
+			for (const SdPropertyAnimationChannel& channel : partStyleInstance.GetContext().styleAnimationChannels.GetChannels())
+			{
+				if (channel.styleNodeId == contentNode.styleNodeId
+					&& channel.propertyId == partBackgroundPropertyId
+					&& channel.transition.duration == std::chrono::milliseconds(280))
+				{
+					partBackgroundTransitionUsesStylesheet = true;
+					if (channel.currentValue.kind == SdStyleValueKind::Color)
+						partBackgroundPresentationUsesChannel = contentNode.presentationStyle.backgroundColor == channel.currentValue.color;
+				}
+			}
+		}
+		Check(partBackgroundTransitionUsesStylesheet, "part background transition uses stylesheet duration");
+		Check(partBackgroundPresentationUsesChannel, "part background presentation reads style node property channel");
 
 		SdInstance checkBoxPartStyleInstance;
 		RecordingFontBackend checkBoxPartFontBackend = {};

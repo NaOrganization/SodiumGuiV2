@@ -154,6 +154,8 @@ namespace Sodium
 			partNode->specifiedStyle = partStyle;
 			partNode->resolvedStyle = partStyle;
 			partNode->presentationStyle = partStyle;
+			SetBoxStyleAnimationTarget(record, *partNode, partNode->resolvedStyle, interactionState, layerPriority, firstStyle);
+			ApplyBoxStyleAnimation(*partNode);
 		}
 		record.styleCache.targetTypeId = record.state.targetTypeId;
 		record.styleCache.interactionState = interactionState;
@@ -168,9 +170,10 @@ namespace Sodium
 			record.styleCallback(*this, record, interactionState, layerPriority);
 	}
 
-	inline void SdInstance::SetWidgetStyleAnimationTarget(
+	inline void SdInstance::SetBoxStyleAnimationTarget(
 		SdWidgetRecord& record,
-		const SdWidgetRootStyle& style,
+		SdStyleNode& node,
+		const SdBoxStyle& style,
 		SdStyleInteractionState interactionState,
 		SdLayerPriority layerPriority,
 		bool immediate)
@@ -180,26 +183,42 @@ namespace Sodium
 		const SdPropertyId borderPropertyId = Detail::SdStylePropertyId(&SdBoxStyle::border);
 
 		const SdTransition defaultTransition = GetDefaultTransition();
-		const auto resolveTransition = [this, &record, interactionState, layerPriority, defaultTransition](SdPropertyId propertyId)
+		const auto resolveTransition = [this, &record, &node, interactionState, layerPriority, defaultTransition](SdPropertyId propertyId)
 		{
 			SdTransition transition = defaultTransition;
-			context.styleSystem.TryResolveRootTransition(
-				record.state.targetTypeId,
-				propertyId,
-				interactionState,
-				layerPriority,
-				record.styleClasses,
-				record.styleScope,
-				transition);
+			if (node.kind == SdStyleNodeKind::Part)
+			{
+				context.styleSystem.TryResolvePartTransition(
+					record.state.targetTypeId,
+					node.part,
+					propertyId,
+					interactionState,
+					layerPriority,
+					record.styleClasses,
+					record.styleScope,
+					transition);
+			}
+			else
+			{
+				context.styleSystem.TryResolveRootTransition(
+					record.state.targetTypeId,
+					propertyId,
+					interactionState,
+					layerPriority,
+					record.styleClasses,
+					record.styleScope,
+					transition);
+			}
 			return transition;
 		};
+
 		Detail::SetStyleColorPropertyChannelTarget(
 			context.styleAnimationChannels,
-			record.rootStyleNodeId,
+			node.styleNodeId,
 			colorPropertyId,
 			Detail::GetStyleColorPropertyChannelValue(
 				context.styleAnimationChannels,
-				record.rootStyleNodeId,
+				node.styleNodeId,
 				colorPropertyId,
 				style.color),
 			style.color,
@@ -207,11 +226,11 @@ namespace Sodium
 			immediate);
 		Detail::SetStyleColorPropertyChannelTarget(
 			context.styleAnimationChannels,
-			record.rootStyleNodeId,
+			node.styleNodeId,
 			backgroundPropertyId,
 			Detail::GetStyleColorPropertyChannelValue(
 				context.styleAnimationChannels,
-				record.rootStyleNodeId,
+				node.styleNodeId,
 				backgroundPropertyId,
 				style.backgroundColor),
 			style.backgroundColor,
@@ -219,11 +238,11 @@ namespace Sodium
 			immediate);
 		Detail::SetStyleColorPropertyChannelTarget(
 			context.styleAnimationChannels,
-			record.rootStyleNodeId,
+			node.styleNodeId,
 			borderPropertyId,
 			Detail::GetStyleColorPropertyChannelValue(
 				context.styleAnimationChannels,
-				record.rootStyleNodeId,
+				node.styleNodeId,
 				borderPropertyId,
 				style.border.left.color),
 			style.border.left.color,
@@ -231,34 +250,63 @@ namespace Sodium
 			immediate);
 	}
 
-	inline void SdInstance::ApplyWidgetStyleAnimation(SdWidgetRecord& record)
+	inline void SdInstance::ApplyBoxStyleAnimation(SdStyleNode& node)
 	{
-		SdWidgetRootStyle presentationStyle = record.styleCache.resolvedStyle;
+		SdBoxStyle presentationStyle = node.resolvedStyle;
 		SdPropertyAnimationChannel& colorChannel = context.styleAnimationChannels.Ensure(
-			record.rootStyleNodeId,
+			node.styleNodeId,
 			Detail::SdStylePropertyId(&SdBoxStyle::color));
-		record.state.animationActive = record.state.animationActive || colorChannel.active;
 		if (colorChannel.currentValue.kind == SdStyleValueKind::Color)
 			presentationStyle.color = colorChannel.currentValue.color;
 		SdPropertyAnimationChannel& backgroundChannel = context.styleAnimationChannels.Ensure(
-			record.rootStyleNodeId,
+			node.styleNodeId,
 			Detail::SdStylePropertyId(&SdBoxStyle::backgroundColor));
-		record.state.animationActive = record.state.animationActive || backgroundChannel.active;
 		if (backgroundChannel.currentValue.kind == SdStyleValueKind::Color)
 			presentationStyle.backgroundColor = backgroundChannel.currentValue.color;
 		SdPropertyAnimationChannel& borderChannel = context.styleAnimationChannels.Ensure(
-			record.rootStyleNodeId,
+			node.styleNodeId,
 			Detail::SdStylePropertyId(&SdBoxStyle::border));
-		record.state.animationActive = record.state.animationActive || borderChannel.active;
 		if (borderChannel.currentValue.kind == SdStyleValueKind::Color)
 			presentationStyle.border = SdBorder::All(
-				record.styleCache.resolvedStyle.border.left.width,
+				node.resolvedStyle.border.left.width,
 				borderChannel.currentValue.color);
-		record.styleCache.presentationStyle = presentationStyle;
+
+		node.presentationStyle = presentationStyle;
+	}
+
+	inline void SdInstance::SetWidgetStyleAnimationTarget(
+		SdWidgetRecord& record,
+		const SdWidgetRootStyle& style,
+		SdStyleInteractionState interactionState,
+		SdLayerPriority layerPriority,
+		bool immediate)
+	{
+		if (SdStyleNode* rootNode = context.stateStorage.FindStyleNodeById(record.rootStyleNodeId))
+			SetBoxStyleAnimationTarget(record, *rootNode, style, interactionState, layerPriority, immediate);
+	}
+
+	inline void SdInstance::ApplyWidgetStyleAnimation(SdWidgetRecord& record)
+	{
 		if (SdStyleNode* rootNode = context.stateStorage.FindStyleNodeById(record.rootStyleNodeId))
 		{
-			rootNode->presentationStyle = presentationStyle;
+			ApplyBoxStyleAnimation(*rootNode);
+			static_cast<SdBoxStyle&>(record.styleCache.presentationStyle) = rootNode->presentationStyle;
 			record.rootStyleNode = *rootNode;
+		}
+		for (SdStyleNodeId partNodeId : record.partStyleNodeIds)
+		{
+			if (SdStyleNode* partNode = context.stateStorage.FindStyleNodeById(partNodeId))
+				ApplyBoxStyleAnimation(*partNode);
+		}
+		for (const SdPropertyAnimationChannel& channel : context.styleAnimationChannels.GetChannels())
+		{
+			if (channel.active && channel.styleNodeId == record.rootStyleNodeId)
+				record.state.animationActive = true;
+			for (SdStyleNodeId partNodeId : record.partStyleNodeIds)
+			{
+				if (channel.active && channel.styleNodeId == partNodeId)
+					record.state.animationActive = true;
+			}
 		}
 	}
 
