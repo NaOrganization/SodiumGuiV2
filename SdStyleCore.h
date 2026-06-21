@@ -2,6 +2,7 @@
 
 #include "SdUiCore.h"
 
+#include <type_traits>
 #include <vector>
 
 namespace Sodium
@@ -347,4 +348,21 @@ namespace Sodium
 		SdBoxStyle presentationStyle = {};
 		SdUsedBox usedBox = {};
 	};
+
+	template<class TEnum>
+		requires std::is_enum_v<TEnum>
+	SdStyleValue SdStyleValueFromEnum(TEnum value) noexcept
+	{
+		return SdStyleValue::FromFloat(static_cast<float>(static_cast<std::underlying_type_t<TEnum>>(value)));
+	}
+
+	template<class TEnum>
+		requires std::is_enum_v<TEnum>
+	bool SdStyleValueToEnum(const SdStyleValue& value, TEnum& outValue) noexcept
+	{
+		if (value.kind != SdStyleValueKind::Float)
+			return false;
+		outValue = static_cast<TEnum>(static_cast<std::underlying_type_t<TEnum>>(value.number));
+		return true;
+	}
 }

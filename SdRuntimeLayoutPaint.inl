@@ -77,6 +77,11 @@ namespace Sodium
 				|| context.animationSystem.IsActive(record.animation.rectHeight);
 		};
 
+		auto overflowClipsChildren = [](SdOverflow overflow) noexcept
+		{
+			return overflow != SdOverflow::Visible;
+		};
+
 		context.layoutSystem.BeginFrame(liveIds.size());
 		for (SdWidgetId id : liveIds)
 		{
@@ -114,6 +119,8 @@ namespace Sodium
 			record.state.measuredSize = result.desiredSize;
 			const SdResolvedBoxStyle rootUsedStyle = SdResolveBoxStyle(record.styleCache.resolvedStyle, constraints.maxSize, result.desiredSize);
 			const SdResolvedBoxEdges rootBorder = SdResolveBorderEdges(record.styleCache.resolvedStyle.border, record.state.measuredSize);
+			const bool styleClipsChildren = overflowClipsChildren(rootUsedStyle.overflowX)
+				|| overflowClipsChildren(rootUsedStyle.overflowY);
 
 			context.layoutSystem.AddNode({
 				id,
@@ -132,7 +139,7 @@ namespace Sodium
 				std::max(0.0f, rootUsedStyle.gap),
 				record.state.manualLayout,
 				record.state.arrangeChildren,
-				record.state.clipChildren
+				record.state.clipChildren || styleClipsChildren
 			});
 		}
 

@@ -47,7 +47,7 @@ namespace Sodium
 		}
 
 		template<class T>
-		inline constexpr bool SdPropertyValueField = false;
+		inline constexpr bool SdPropertyValueField = std::is_enum_v<T>;
 
 		template<>
 		inline constexpr bool SdPropertyValueField<SdColor> = true;
@@ -97,6 +97,8 @@ namespace Sodium
 					value.bottom.value });
 			else if constexpr (std::is_same_v<T, SdBorder>)
 				return SdStyleValue::FromColor(value.left.color);
+			else if constexpr (std::is_enum_v<T>)
+				return SdStyleValueFromEnum(value);
 			else
 				return {};
 		}
@@ -152,6 +154,10 @@ namespace Sodium
 					return false;
 				destination = SdBorder::All(SdLength::Pixels(1.0f), value.color);
 				return true;
+			}
+			else if constexpr (std::is_enum_v<T>)
+			{
+				return SdStyleValueToEnum(value, destination);
 			}
 			else
 			{

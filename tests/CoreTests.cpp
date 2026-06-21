@@ -119,6 +119,26 @@ namespace
 		}
 	};
 
+	struct TestOverflowContainer final : SdWidgetTag
+	{
+		static constexpr SdStyleId TargetTypeId = SdStyleIdLiteral("Tests.OverflowContainer");
+		using Style = SdWidgetRootStyle;
+
+		template<class TContent>
+			requires std::is_invocable_v<TContent&, SdUi&>
+		void OnUpdate(SdUpdateContext& context, TContent&& content)
+		{
+			context.widgetState.targetTypeId = TargetTypeId;
+			std::forward<TContent>(content)(context.ui);
+		}
+
+		void OnLayout(SdLayoutContext& context)
+		{
+			context.SetDesiredSize({ 120.0f, 80.0f });
+			context.widgetState.arrangeChildren = true;
+		}
+	};
+
 	struct CustomComponentStyle final
 	{
 		static constexpr SdStyleId TargetTypeId = SdStyleIdLiteral("Tests.CustomComponent");
@@ -1138,6 +1158,42 @@ namespace
 			}
 		}
 		Check(hasContentRectFromUsedBox, "runtime child content rect matches root used content box");
+
+		SdInstance overflowInstance;
+		overflowInstance.GetStyleSystem().RootRule(TestOverflowContainer::TargetTypeId)
+			.Set(&SdBoxStyle::padding, SdStyleValue::FromSpacing({ 5.0f, 6.0f, 7.0f, 8.0f }))
+			.Set(&SdBoxStyle::overflowX, SdOverflow::Hidden)
+			.Set(&SdBoxStyle::overflowY, SdOverflow::Clip);
+		overflowInstance.BeginFrame({ 320.0f, 200.0f });
+		overflowInstance.ui.Declare<TestOverflowContainer>([](SdUi& ui)
+		{
+			ui.Declare<TestDrawWidget>("child");
+		});
+		PumpFrame(overflowInstance);
+		const SdWidgetRootStyle overflowStyle = overflowInstance.GetStyleSystem().ResolveRootStyle(TestOverflowContainer::TargetTypeId, SdStyleInteractionState::Normal);
+		Check(
+			overflowStyle.overflowX == SdOverflow::Hidden && overflowStyle.overflowY == SdOverflow::Clip,
+			"stylesheet resolves root overflow enum properties");
+		bool childClipMatchesOverflowContent = false;
+		SdRect overflowContentRect = {};
+		for (const auto& [id, record] : overflowInstance.GetStateStorage().GetWidgetRecords())
+		{
+			(void)id;
+			if (record.widgetType == std::type_index(typeid(TestOverflowContainer)))
+				overflowContentRect = record.state.childContentRect;
+		}
+		for (const auto& [id, record] : overflowInstance.GetStateStorage().GetWidgetRecords())
+		{
+			(void)id;
+			if (record.widgetType == std::type_index(typeid(TestDrawWidget)))
+			{
+				childClipMatchesOverflowContent = record.state.computedClipRect.min.x == overflowContentRect.min.x
+					&& record.state.computedClipRect.min.y == overflowContentRect.min.y
+					&& record.state.computedClipRect.max.x == overflowContentRect.max.x
+					&& record.state.computedClipRect.max.y == overflowContentRect.max.y;
+			}
+		}
+		Check(childClipMatchesOverflowContent, "runtime derives child clipping from root overflow style");
 	}
 
 	void TestIdAndKeySemantics()
