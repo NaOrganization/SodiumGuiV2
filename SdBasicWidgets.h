@@ -1250,24 +1250,7 @@ namespace Sodium
 	struct SdPopup final : SdWidgetTag
 	{
 		static constexpr SdStyleId TargetTypeId = SdWidgetTargetIds::Popup;
-
-		struct Style final
-		{
-			float childSpacing = 6.0f;
-
-			static Style Default(const SdStyleContext& context)
-			{
-				Style style = {};
-				const float smallSpacing = context.theme.GetMetricVariable(SdThemeVariableLiteral("spacing.small"));
-				style.childSpacing = smallSpacing;
-				return style;
-			}
-
-			static void Describe(SdStyleContract<Style>& contract)
-			{
-				contract.Layout(&Style::childSpacing);
-			}
-		};
+		using Style = SdWidgetRootStyle;
 
 		struct State final
 		{
@@ -1297,7 +1280,6 @@ namespace Sodium
 		void OnLayout(SdLayoutContext& context)
 		{
 			const State& state = context.State<State>();
-			const Style& style = context.RootResolvedStyle<SdPopup>();
 			const SdBoxStyle& rootStyle = context.RootStyleNode().resolvedStyle;
 			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(rootStyle, context.constraints.maxSize, { 220.0f, 140.0f });
 			context.widgetState.manualLayout = true;
@@ -1312,7 +1294,7 @@ namespace Sodium
 				usedStyle.padding.right,
 				usedStyle.padding.bottom
 			};
-			context.widgetState.childSpacing = style.childSpacing;
+			context.widgetState.childSpacing = std::max(0.0f, usedStyle.gap);
 			context.SetDesiredSize(state.open ? SdVec2{ usedStyle.width, usedStyle.height } : SdVec2{});
 		}
 
@@ -1344,24 +1326,7 @@ namespace Sodium
 	struct SdContextMenu final : SdWidgetTag
 	{
 		static constexpr SdStyleId TargetTypeId = SdWidgetTargetIds::ContextMenu;
-
-		struct Style final
-		{
-			float childSpacing = 6.0f;
-
-			static Style Default(const SdStyleContext& context)
-			{
-				Style style = {};
-				const float smallSpacing = context.theme.GetMetricVariable(SdThemeVariableLiteral("spacing.small"));
-				style.childSpacing = smallSpacing;
-				return style;
-			}
-
-			static void Describe(SdStyleContract<Style>& contract)
-			{
-				contract.Layout(&Style::childSpacing);
-			}
-		};
+		using Style = SdWidgetRootStyle;
 
 		struct State final
 		{
@@ -1387,7 +1352,6 @@ namespace Sodium
 		void OnLayout(SdLayoutContext& context)
 		{
 			const State& state = context.State<State>();
-			const Style& style = context.RootResolvedStyle<SdContextMenu>();
 			const SdBoxStyle& rootStyle = context.RootStyleNode().resolvedStyle;
 			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(rootStyle, context.constraints.maxSize, { 220.0f, 140.0f });
 			context.widgetState.manualLayout = true;
@@ -1402,7 +1366,7 @@ namespace Sodium
 				usedStyle.padding.right,
 				usedStyle.padding.bottom
 			};
-			context.widgetState.childSpacing = style.childSpacing;
+			context.widgetState.childSpacing = std::max(0.0f, usedStyle.gap);
 			context.SetDesiredSize(state.open ? SdVec2{ usedStyle.width, usedStyle.height } : SdVec2{});
 		}
 

@@ -964,12 +964,14 @@ namespace Sodium
 				.Cascade(SdCascadeLayer::UserAgent)
 				.Set(&SdBoxStyle::width, SdLength::Pixels(220.0f))
 				.Set(&SdBoxStyle::height, SdLength::Pixels(140.0f))
-				.Set(&SdBoxStyle::padding, SdStyleValue::FromSpacing({ smallSpacing, smallSpacing, smallSpacing, smallSpacing }));
+				.Set(&SdBoxStyle::padding, SdStyleValue::FromSpacing({ smallSpacing, smallSpacing, smallSpacing, smallSpacing }))
+				.Set(&SdBoxStyle::gap, SdLength::Pixels(smallSpacing));
 			typedStyleSheet.RuleForTarget<SdWidgetRootStyle>(SdWidgetTargetIds::ContextMenu)
 				.Cascade(SdCascadeLayer::UserAgent)
 				.Set(&SdBoxStyle::width, SdLength::Pixels(220.0f))
 				.Set(&SdBoxStyle::height, SdLength::Pixels(140.0f))
-				.Set(&SdBoxStyle::padding, SdStyleValue::FromSpacing({ smallSpacing, smallSpacing, smallSpacing, smallSpacing }));
+				.Set(&SdBoxStyle::padding, SdStyleValue::FromSpacing({ smallSpacing, smallSpacing, smallSpacing, smallSpacing }))
+				.Set(&SdBoxStyle::gap, SdLength::Pixels(smallSpacing));
 			typedStyleSheet.RuleForTarget<SdWidgetRootStyle>(SdWidgetTargetIds::Tooltip)
 				.Cascade(SdCascadeLayer::UserAgent)
 				.Set(&SdBoxStyle::padding, SdStyleValue::FromSpacing({ smallSpacing, smallSpacing, smallSpacing, smallSpacing }))

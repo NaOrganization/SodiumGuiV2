@@ -550,6 +550,8 @@ namespace
 		const SdWidgetRootStyle contextMenuDefault = styleSystem.ResolveRootStyle(SdContextMenu::TargetTypeId, SdStyleInteractionState::Normal, SdLayerPriority::Popup);
 		Check(popupDefault.width.unit == SdLengthUnit::Pixels && popupDefault.width.value == 220.0f, "popup default width resolves through root style");
 		Check(contextMenuDefault.height.unit == SdLengthUnit::Pixels && contextMenuDefault.height.value == 140.0f, "context menu default height resolves through root style");
+		Check(SdResolveLength(popupDefault.gap, 0.0f) == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableLiteral("spacing.small")), "popup default child spacing resolves through root gap");
+		Check(SdResolveLength(contextMenuDefault.gap, 0.0f) == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableLiteral("spacing.small")), "context menu default child spacing resolves through root gap");
 
 		const SdWidgetRootStyle tooltipDefault = styleSystem.ResolveRootStyle(SdTooltip::TargetTypeId, SdStyleInteractionState::Normal, SdLayerPriority::Overlay);
 		Check(tooltipDefault.padding.left.value == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableLiteral("spacing.small")), "tooltip default padding resolves through root style");
