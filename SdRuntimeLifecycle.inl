@@ -18,18 +18,6 @@ namespace Sodium
 			record.animation.rectY = context.animationSystem.EnsureChannel(id, SdAnimationChannelKind::RectPosition, 0.0f);
 			record.animation.rectWidth = context.animationSystem.EnsureChannel(id, SdAnimationChannelKind::RectSize, 0.0f);
 			record.animation.rectHeight = context.animationSystem.EnsureChannel(id, SdAnimationChannelKind::RectSize, 0.0f);
-			record.animation.styleColorR = context.animationSystem.EnsureChannel(id, SdAnimationChannelKind::StyleColor, 0.0f);
-			record.animation.styleColorG = context.animationSystem.EnsureChannel(id, SdAnimationChannelKind::StyleColor, 0.0f);
-			record.animation.styleColorB = context.animationSystem.EnsureChannel(id, SdAnimationChannelKind::StyleColor, 0.0f);
-			record.animation.styleColorA = context.animationSystem.EnsureChannel(id, SdAnimationChannelKind::StyleColor, 1.0f);
-			record.animation.styleBackgroundR = context.animationSystem.EnsureChannel(id, SdAnimationChannelKind::StyleColor, 0.0f);
-			record.animation.styleBackgroundG = context.animationSystem.EnsureChannel(id, SdAnimationChannelKind::StyleColor, 0.0f);
-			record.animation.styleBackgroundB = context.animationSystem.EnsureChannel(id, SdAnimationChannelKind::StyleColor, 0.0f);
-			record.animation.styleBackgroundA = context.animationSystem.EnsureChannel(id, SdAnimationChannelKind::StyleColor, 1.0f);
-			record.animation.styleBorderR = context.animationSystem.EnsureChannel(id, SdAnimationChannelKind::StyleColor, 0.0f);
-			record.animation.styleBorderG = context.animationSystem.EnsureChannel(id, SdAnimationChannelKind::StyleColor, 0.0f);
-			record.animation.styleBorderB = context.animationSystem.EnsureChannel(id, SdAnimationChannelKind::StyleColor, 0.0f);
-			record.animation.styleBorderA = context.animationSystem.EnsureChannel(id, SdAnimationChannelKind::StyleColor, 1.0f);
 			record.animation.scrollOffset = context.animationSystem.EnsureChannel(id, SdAnimationChannelKind::ScrollOffset, 0.0f);
 		}
 		return record;

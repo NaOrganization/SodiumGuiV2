@@ -1155,7 +1155,7 @@ namespace
 			hasLayoutCache = hasLayoutCache || record.layoutCache.targetRect.Width() > 0.0f;
 			hasStyleCache = hasStyleCache || record.styleCache.valid;
 			hasExtendedAnimationChannels = hasExtendedAnimationChannels
-				|| (record.animation.styleColorR != 0 && record.animation.scrollOffset != 0);
+				|| (record.animation.rectWidth != 0 && record.animation.scrollOffset != 0);
 			if (record.state.targetTypeId == TestDrawWidget::TargetTypeId)
 			{
 				for (const SdPropertyAnimationChannel& channel : instance.GetContext().styleAnimationChannels.GetChannels())
