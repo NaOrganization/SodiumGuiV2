@@ -519,18 +519,25 @@ namespace
 		partStyleInstance.GetStyleSystem().Part<SdButton>(SdButton::Parts::Content)
 			.Set(&SdBoxStyle::backgroundColor, buttonContentPartUpdatedColor)
 			.Transition(&SdBoxStyle::backgroundColor, std::chrono::milliseconds(280), SdAnimationEasing::Linear);
+		partStyleInstance.GetStyleSystem().Part<SdButton>(SdButton::Parts::Label)
+			.Set(&SdBoxStyle::opacity, 0.18f)
+			.Transition(&SdBoxStyle::opacity, std::chrono::milliseconds(180), SdAnimationEasing::Linear);
 		partStyleInstance.BeginFrame({ 320.0f, 200.0f });
 		partStyleInstance.ui.Declare<SdButton>("Part style");
 		PumpFrame(partStyleInstance);
 		bool partBackgroundTransitionUsesStylesheet = false;
 		bool partBackgroundPresentationUsesChannel = false;
+		bool partOpacityTransitionUsesStyleNodeChannel = false;
+		bool partOpacityPresentationUsesChannel = false;
 		const SdPropertyId partBackgroundPropertyId = Detail::SdStylePropertyId(&SdBoxStyle::backgroundColor);
+		const SdPropertyId partOpacityPropertyId = Detail::SdStylePropertyId(&SdBoxStyle::opacity);
 		for (const auto& [id, record] : partStyleInstance.GetStateStorage().GetWidgetRecords())
 		{
 			(void)id;
 			if (record.widgetType != std::type_index(typeid(SdButton)))
 				continue;
 			const SdStyleNode& contentNode = partStyleInstance.GetStylePart(record.state.id, SdButton::Parts::Content);
+			const SdStyleNode& labelNode = partStyleInstance.GetStylePart(record.state.id, SdButton::Parts::Label);
 			for (const SdPropertyAnimationChannel& channel : partStyleInstance.GetContext().styleAnimationChannels.GetChannels())
 			{
 				if (channel.styleNodeId == contentNode.styleNodeId
@@ -541,10 +548,22 @@ namespace
 					if (channel.currentValue.kind == SdStyleValueKind::Color)
 						partBackgroundPresentationUsesChannel = contentNode.presentationStyle.backgroundColor == channel.currentValue.color;
 				}
+				if (channel.styleNodeId == labelNode.styleNodeId
+					&& channel.propertyId == partOpacityPropertyId
+					&& channel.impact == SdStyleFieldImpact::Composite
+					&& channel.interpolation == SdStyleInterpolation::Float
+					&& channel.transition.duration == std::chrono::milliseconds(180))
+				{
+					partOpacityTransitionUsesStyleNodeChannel = true;
+					if (channel.currentValue.kind == SdStyleValueKind::Float)
+						partOpacityPresentationUsesChannel = labelNode.presentationStyle.opacity == channel.currentValue.number;
+				}
 			}
 		}
 		Check(partBackgroundTransitionUsesStylesheet, "part background transition uses stylesheet duration");
 		Check(partBackgroundPresentationUsesChannel, "part background presentation reads style node property channel");
+		Check(partOpacityTransitionUsesStyleNodeChannel, "part opacity transition uses style node property channel");
+		Check(partOpacityPresentationUsesChannel, "part opacity presentation reads style node property channel");
 
 		SdInstance checkBoxPartStyleInstance;
 		RecordingFontBackend checkBoxPartFontBackend = {};
@@ -1285,12 +1304,15 @@ namespace
 		const SdColor updatedRootColor = { 17, 29, 41, 255 };
 		const SdColor updatedTextColor = { 203, 191, 179, 255 };
 		const SdColor updatedBorderColor = { 71, 83, 97, 255 };
+		const float updatedOpacity = 0.38f;
 		instance.GetStyleSystem().SetColorVariable("button.bg", updatedButtonColor);
 		instance.GetStyleSystem().RootRule(TestDrawWidget::TargetTypeId)
 			.Set(&SdBoxStyle::backgroundColor, updatedRootColor)
 			.Transition(&SdBoxStyle::backgroundColor, std::chrono::milliseconds(320), SdAnimationEasing::Linear)
 			.Set(&SdBoxStyle::color, updatedTextColor)
-			.Set(&SdBoxStyle::border, SdStyleValue::FromColor(updatedBorderColor));
+			.Set(&SdBoxStyle::border, SdStyleValue::FromColor(updatedBorderColor))
+			.Set(&SdBoxStyle::opacity, updatedOpacity)
+			.Transition(&SdBoxStyle::opacity, std::chrono::milliseconds(220), SdAnimationEasing::Linear);
 		instance.BeginFrame({ 640.0f, 480.0f });
 		instance.ui.DeclareKeyed<TestContainer>("container", [](SdUi& ui)
 		{
@@ -1308,8 +1330,11 @@ namespace
 		bool hasRootColorFromStyleNodeAnimation = false;
 		bool hasRootBorderStyleNodeAnimation = false;
 		bool hasRootBorderFromStyleNodeAnimation = false;
+		bool hasRootOpacityStyleNodeAnimation = false;
+		bool hasRootOpacityFromStyleNodeAnimation = false;
 		const SdPropertyId colorPropertyId = Detail::SdStylePropertyId(&SdBoxStyle::color);
 		const SdPropertyId borderPropertyId = Detail::SdStylePropertyId(&SdBoxStyle::border);
+		const SdPropertyId opacityPropertyId = Detail::SdStylePropertyId(&SdBoxStyle::opacity);
 		for (const auto& [id, record] : instance.GetStateStorage().GetWidgetRecords())
 		{
 			(void)id;
@@ -1362,6 +1387,18 @@ namespace
 							hasRootBorderFromStyleNodeAnimation = rootNode.presentationStyle.border.left.color == channel.currentValue.color;
 						}
 					}
+					if (channel.styleNodeId == record.rootStyleNodeId
+						&& channel.propertyId == opacityPropertyId
+						&& channel.impact == SdStyleFieldImpact::Composite
+						&& channel.interpolation == SdStyleInterpolation::Float)
+					{
+						hasRootOpacityStyleNodeAnimation = true;
+						if (channel.currentValue.kind == SdStyleValueKind::Float)
+						{
+							const SdStyleNode& rootNode = instance.GetRootStyleNode(record.state.id);
+							hasRootOpacityFromStyleNodeAnimation = rootNode.presentationStyle.opacity == channel.currentValue.number;
+						}
+					}
 				}
 			}
 		}
@@ -1374,6 +1411,8 @@ namespace
 		Check(hasRootColorFromStyleNodeAnimation, "root color presentation reads style node property channel");
 		Check(hasRootBorderStyleNodeAnimation, "root border transition is tracked by style node property channel");
 		Check(hasRootBorderFromStyleNodeAnimation, "root border presentation reads style node property channel");
+		Check(hasRootOpacityStyleNodeAnimation, "root opacity transition is tracked by style node property channel");
+		Check(hasRootOpacityFromStyleNodeAnimation, "root opacity presentation reads style node property channel");
 		Check(instance.GetDiagnostics().activeStyleNodeAnimationChannelCount > 0, "diagnostics expose active style node animation channels");
 	}
 

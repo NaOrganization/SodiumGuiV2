@@ -63,6 +63,28 @@ namespace Sodium
 				immediate);
 		}
 
+		inline void SetStyleFloatPropertyChannelTarget(
+			SdStyleAnimationChannels& channels,
+			SdStyleNodeId styleNodeId,
+			SdPropertyId propertyId,
+			float currentValue,
+			float targetValue,
+			SdTransition transition,
+			bool immediate,
+			SdStyleFieldImpact impact = SdStyleFieldImpact::Composite)
+		{
+			SetStylePropertyChannelTarget(
+				channels,
+				styleNodeId,
+				propertyId,
+				impact,
+				SdStyleInterpolation::Float,
+				SdStyleValue::FromFloat(currentValue),
+				SdStyleValue::FromFloat(targetValue),
+				transition,
+				immediate);
+		}
+
 		inline SdColor GetStyleColorPropertyChannelValue(
 			SdStyleAnimationChannels& channels,
 			SdStyleNodeId styleNodeId,
@@ -71,6 +93,16 @@ namespace Sodium
 		{
 			SdPropertyAnimationChannel& channel = channels.Ensure(styleNodeId, propertyId);
 			return channel.currentValue.kind == SdStyleValueKind::Color ? channel.currentValue.color : fallback;
+		}
+
+		inline float GetStyleFloatPropertyChannelValue(
+			SdStyleAnimationChannels& channels,
+			SdStyleNodeId styleNodeId,
+			SdPropertyId propertyId,
+			float fallback)
+		{
+			SdPropertyAnimationChannel& channel = channels.Ensure(styleNodeId, propertyId);
+			return channel.currentValue.kind == SdStyleValueKind::Float ? channel.currentValue.number : fallback;
 		}
 	}
 
@@ -182,6 +214,7 @@ namespace Sodium
 		const SdPropertyId colorPropertyId = Detail::SdStylePropertyId(&SdBoxStyle::color);
 		const SdPropertyId backgroundPropertyId = Detail::SdStylePropertyId(&SdBoxStyle::backgroundColor);
 		const SdPropertyId borderPropertyId = Detail::SdStylePropertyId(&SdBoxStyle::border);
+		const SdPropertyId opacityPropertyId = Detail::SdStylePropertyId(&SdBoxStyle::opacity);
 
 		const SdTransition defaultTransition = GetDefaultTransition();
 		const auto resolveTransition = [this, &record, &node, interactionState, layerPriority, defaultTransition](SdPropertyId propertyId)
@@ -249,6 +282,18 @@ namespace Sodium
 			style.border.left.color,
 			resolveTransition(borderPropertyId),
 			immediate);
+		Detail::SetStyleFloatPropertyChannelTarget(
+			context.styleAnimationChannels,
+			node.styleNodeId,
+			opacityPropertyId,
+			Detail::GetStyleFloatPropertyChannelValue(
+				context.styleAnimationChannels,
+				node.styleNodeId,
+				opacityPropertyId,
+				style.opacity),
+			style.opacity,
+			resolveTransition(opacityPropertyId),
+			immediate);
 	}
 
 	inline void SdInstance::ApplyBoxStyleAnimation(SdStyleNode& node)
@@ -271,6 +316,11 @@ namespace Sodium
 			presentationStyle.border = SdBorder::All(
 				node.resolvedStyle.border.left.width,
 				borderChannel.currentValue.color);
+		SdPropertyAnimationChannel& opacityChannel = context.styleAnimationChannels.Ensure(
+			node.styleNodeId,
+			Detail::SdStylePropertyId(&SdBoxStyle::opacity));
+		if (opacityChannel.currentValue.kind == SdStyleValueKind::Float)
+			presentationStyle.opacity = opacityChannel.currentValue.number;
 
 		node.presentationStyle = presentationStyle;
 	}
