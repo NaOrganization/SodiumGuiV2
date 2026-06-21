@@ -1786,6 +1786,28 @@ namespace
 		Check(animation.GetValue(styleColor) > 0.0f && animation.GetValue(scrollOffset) == 0.0f, "animation direct can update style color independently");
 		animation.Update(std::chrono::milliseconds(50), false, false, false, false, false, true);
 		Check(animation.GetValue(scrollOffset) > 0.0f, "animation direct can update scroll offset independently");
+
+		SdStyleAnimationChannels styleChannels;
+		SdPropertyAnimationChannel& colorChannel = styleChannels.Ensure(7, Detail::SdStylePropertyId(&SdBoxStyle::color));
+		colorChannel.impact = SdStyleFieldImpact::Paint;
+		colorChannel.interpolation = SdStyleInterpolation::Color;
+		colorChannel.transition = SdTransition{ std::chrono::milliseconds(100), SdAnimationEasing::Linear };
+		colorChannel.startValue = SdStyleValue::FromColor({ 0, 0, 0, 255 });
+		colorChannel.targetValue = SdStyleValue::FromColor({ 100, 50, 25, 255 });
+		colorChannel.currentValue = colorChannel.startValue;
+		colorChannel.active = true;
+		styleChannels.Update(std::chrono::milliseconds(50));
+		Check(
+			colorChannel.currentValue.kind == SdStyleValueKind::Color
+			&& colorChannel.currentValue.color.r > 0
+			&& colorChannel.currentValue.color.r < 100
+			&& styleChannels.CountActive() == 1,
+			"style node animation channel advances property color");
+		styleChannels.Update(std::chrono::milliseconds(100));
+		Check(
+			colorChannel.currentValue.color == colorChannel.targetValue.color
+			&& styleChannels.CountActive() == 0,
+			"style node animation channel completes property color");
 	}
 
 	void TestLayerSystemDirect()
