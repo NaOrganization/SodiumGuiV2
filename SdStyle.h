@@ -929,6 +929,13 @@ namespace Sodium
 				.Set(&SdBoxStyle::padding, SdStyleValue::FromSpacing({ smallSpacing, smallSpacing, smallSpacing, smallSpacing }))
 				.Set(&SdBoxStyle::fontSize, ThemeMetric("font.button"))
 				.Set(&SdBoxStyle::lineHeight, 0.0f);
+			typedStyleSheet.RuleForTarget<SdWidgetRootStyle>(SdWidgetTargetIds::TextInput)
+				.Cascade(SdCascadeLayer::UserAgent)
+				.Set(&SdBoxStyle::width, SdLength::Pixels(220.0f))
+				.Set(&SdBoxStyle::minHeight, SdLength::Pixels(32.0f))
+				.Set(&SdBoxStyle::padding, SdStyleValue::FromSpacing({ mediumSpacing, smallSpacing, mediumSpacing, smallSpacing }))
+				.Set(&SdBoxStyle::fontSize, ThemeMetric("font.button"))
+				.Set(&SdBoxStyle::lineHeight, 0.0f);
 
 			AddDefaultRootBackgroundRule(SdWidgetTargetIds::Default, SdStyleInteractionState::Normal, SdLayerPriority::Content, "background");
 			AddDefaultRootBackgroundRule(SdWidgetTargetIds::Panel, SdStyleInteractionState::Normal, SdLayerPriority::Content, "panel.bg");

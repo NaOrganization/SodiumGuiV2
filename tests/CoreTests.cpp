@@ -510,6 +510,11 @@ namespace
 		Check(sliderDefault.height.unit == SdLengthUnit::Pixels && sliderDefault.height.value == 30.0f, "slider default height resolves through root style");
 		Check(sliderDefault.padding.left.value == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableLiteral("spacing.small")), "slider default padding resolves through root style");
 
+		const SdWidgetRootStyle textInputDefault = styleSystem.ResolveRootStyle(SdTextInput::TargetTypeId, SdStyleInteractionState::Normal);
+		Check(textInputDefault.width.unit == SdLengthUnit::Pixels && textInputDefault.width.value == 220.0f, "text input default width resolves through root style");
+		Check(textInputDefault.minHeight.unit == SdLengthUnit::Pixels && textInputDefault.minHeight.value == 32.0f, "text input default min height resolves through root style");
+		Check(textInputDefault.padding.left.value > textInputDefault.padding.top.value, "text input default padding resolves through root style");
+
 		constexpr SdStyleClassId panelClass = SdStyleClassLiteral("Tests.Panel.RootStyle");
 		constexpr SdStyleScopeId panelScope = SdStyleScopeLiteral("Tests.Panel.Scope");
 		const SdStyleClassId panelClasses[] = { panelClass };

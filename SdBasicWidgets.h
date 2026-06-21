@@ -729,38 +729,16 @@ namespace Sodium
 
 		struct Style final
 		{
-			SdSpacing padding = { 9.0f, 6.0f, 9.0f, 6.0f };
-			float width = 220.0f;
-			float minHeight = 32.0f;
-			float fontSize = 16.0f;
-			float lineHeight = 0.0f;
-			float radius = 5.0f;
-			float opacity = 1.0f;
-
 			static Style Default(const SdStyleContext& context)
 			{
+				(void)context;
 				Style style = {};
-				const float smallSpacing = context.theme.GetMetricVariable(SdThemeVariableLiteral("spacing.small"));
-				const float mediumSpacing = context.theme.GetMetricVariable(SdThemeVariableLiteral("spacing.medium"));
-				style.padding = { mediumSpacing, smallSpacing, mediumSpacing, smallSpacing };
-				style.width = 220.0f;
-				style.minHeight = 32.0f;
-				style.fontSize = BasicWidgetDetail::kDefaultFontSize;
-				style.lineHeight = 0.0f;
-				style.radius = context.theme.GetMetricVariable(SdThemeVariableLiteral("radius.small"));
-				style.opacity = 1.0f;
 				return style;
 			}
 
 			static void Describe(SdStyleContract<Style>& contract)
 			{
-				contract.Layout(&Style::padding);
-				contract.Layout(&Style::width);
-				contract.Layout(&Style::minHeight);
-				contract.Layout(&Style::fontSize);
-				contract.Layout(&Style::lineHeight);
-				contract.Paint(&Style::radius).InterpolatesAsFloat();
-				contract.Composite(&Style::opacity).InterpolatesAsFloat();
+				(void)contract;
 			}
 		};
 
@@ -807,15 +785,16 @@ namespace Sodium
 					state.changed = true;
 				}
 
-				const Style& style = context.instance.GetResolvedStyle<SdTextInput>(context.id);
-				const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, style.fontSize, style.lineHeight);
+				const SdBoxStyle& rootStyle = context.instance.GetRootStyleNode(context.id).resolvedStyle;
+				const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(rootStyle, context.widgetState.targetRect.Size(), {});
+				const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, rootStyle.fontSize, rootStyle.lineHeight);
 				const float lineHeight = BasicWidgetDetail::ResolveLineHeight(textStyle);
 				const SdVec2 textSize = BasicWidgetDetail::MeasureText(context, value, textStyle);
 				const SdRect caretRect = {
-					context.widgetState.targetRect.min.x + style.padding.left + textSize.x,
-					context.widgetState.targetRect.min.y + style.padding.top,
-					context.widgetState.targetRect.min.x + style.padding.left + textSize.x + 1.0f,
-					context.widgetState.targetRect.min.y + style.padding.top + lineHeight
+					context.widgetState.targetRect.min.x + usedStyle.padding.left + textSize.x,
+					context.widgetState.targetRect.min.y + usedStyle.padding.top,
+					context.widgetState.targetRect.min.x + usedStyle.padding.left + textSize.x + 1.0f,
+					context.widgetState.targetRect.min.y + usedStyle.padding.top + lineHeight
 				};
 				const SdTextInputTargetId targetId = BasicWidgetDetail::MakeTextInputTargetId(context.id);
 				context.instance.GetInputSystem().SetTextInputTarget(targetId, caretRect, lineHeight);
@@ -842,30 +821,32 @@ namespace Sodium
 
 		void OnLayout(SdLayoutContext& context)
 		{
-			const Style& style = context.RootResolvedStyle<SdTextInput>();
-			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, style.fontSize, style.lineHeight);
+			const SdBoxStyle& rootStyle = context.RootStyleNode().resolvedStyle;
+			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(rootStyle, context.constraints.maxSize, {});
+			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, rootStyle.fontSize, rootStyle.lineHeight);
 			const float lineHeight = BasicWidgetDetail::ResolveLineHeight(textStyle);
 			context.SetDesiredSize({
-				std::max(style.width, style.padding.left + style.padding.right + 24.0f),
-				std::max(style.minHeight, lineHeight + style.padding.top + style.padding.bottom)
+				std::max(usedStyle.width, usedStyle.padding.left + usedStyle.padding.right + 24.0f),
+				std::max(usedStyle.minHeight, lineHeight + usedStyle.padding.top + usedStyle.padding.bottom)
 			});
 		}
 
 		void OnPaint(SdPaintContext& context)
 		{
 			const State& state = context.State<State>();
-			const Style& style = context.RootPresentationStyle<SdTextInput>();
 			const SdBoxStyle& presentation = context.RootStyleNode().presentationStyle;
-			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, style.fontSize, style.lineHeight);
+			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(presentation, context.animatedRect.Size(), {});
+			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, presentation.fontSize, presentation.lineHeight);
 			const float lineHeight = BasicWidgetDetail::ResolveLineHeight(textStyle);
-			const SdColor background = BasicWidgetDetail::ApplyOpacity(presentation.backgroundColor, context.opacity * style.opacity);
-			const SdColor border = BasicWidgetDetail::ApplyOpacity(presentation.border.left.color, context.opacity * style.opacity);
-			const SdColor textColor = BasicWidgetDetail::ApplyOpacity(presentation.color, context.opacity * style.opacity);
+			const SdColor background = BasicWidgetDetail::ApplyOpacity(presentation.backgroundColor, context.opacity * presentation.opacity);
+			const SdColor border = BasicWidgetDetail::ApplyOpacity(presentation.border.left.color, context.opacity * presentation.opacity);
+			const SdColor textColor = BasicWidgetDetail::ApplyOpacity(presentation.color, context.opacity * presentation.opacity);
+			const float radius = SdResolveLength(presentation.radius, context.animatedRect.Width());
 			SdColor placeholderColor = textColor;
 			placeholderColor.a = static_cast<SdUInt8>(static_cast<float>(placeholderColor.a) * 0.52f);
 
-			context.renderList.AddRectFilled(context.animatedRect, background, context.clipRect, style.radius);
-			context.renderList.AddRect(context.animatedRect, border, context.clipRect, 1.0f, style.radius);
+			context.renderList.AddRectFilled(context.animatedRect, background, context.clipRect, radius);
+			context.renderList.AddRect(context.animatedRect, border, context.clipRect, 1.0f, radius);
 
 			const bool showPlaceholder = state.text.empty() && state.composition.empty() && !state.placeholder.empty();
 			SdUtf8String paintText = showPlaceholder ? state.placeholder : state.text;
@@ -873,8 +854,8 @@ namespace Sodium
 				paintText += state.composition;
 
 			const SdVec2 textPosition = {
-				context.animatedRect.min.x + style.padding.left,
-				context.animatedRect.min.y + std::max(style.padding.top, (context.animatedRect.Height() - lineHeight) * 0.5f)
+				context.animatedRect.min.x + usedStyle.padding.left,
+				context.animatedRect.min.y + std::max(usedStyle.padding.top, (context.animatedRect.Height() - lineHeight) * 0.5f)
 			};
 			context.renderList.AddText(
 				paintText,
