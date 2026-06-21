@@ -1169,12 +1169,13 @@ namespace Sodium
 		{
 			const State& state = context.State<State>();
 			const SdBoxStyle& presentation = context.RootStyleNode().presentationStyle;
-			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(presentation, context.animatedRect.Size(), { 160.0f, 120.0f });
+			const SdRect paintRect = BasicWidgetDetail::PaintRect(context);
+			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(presentation, paintRect.Size(), { 160.0f, 120.0f });
 			const SdColor background = BasicWidgetDetail::ApplyOpacity(presentation.backgroundColor, context.opacity * presentation.opacity);
 			const SdColor tint = BasicWidgetDetail::ApplyOpacity(state.tint, context.opacity * presentation.opacity);
-			const float radius = SdResolveLength(presentation.radius, context.animatedRect.Width());
-			context.renderList.AddRectFilled(context.animatedRect, background, context.clipRect, radius);
-			const SdRect imageRect = BasicWidgetDetail::InsetRect(context.animatedRect, {
+			const float radius = SdResolveLength(presentation.radius, paintRect.Width());
+			context.renderList.AddRectFilled(paintRect, background, context.clipRect, radius);
+			const SdRect imageRect = BasicWidgetDetail::InsetRect(paintRect, {
 				usedStyle.padding.left,
 				usedStyle.padding.top,
 				usedStyle.padding.right,
@@ -1182,7 +1183,7 @@ namespace Sodium
 			});
 			if (state.texture.IsValid())
 				context.renderList.AddImage(state.texture, imageRect, state.uvRect, tint, context.clipRect);
-			context.renderList.AddRect(context.animatedRect, presentation.border.left.color, context.clipRect, 1.0f, radius);
+			context.renderList.AddRect(paintRect, presentation.border.left.color, context.clipRect, 1.0f, radius);
 		}
 	};
 

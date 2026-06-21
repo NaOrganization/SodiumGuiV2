@@ -1473,6 +1473,35 @@ namespace
 		const bool textInputPaintUsesLayoutBox = textInputPaintMinX == textInputLayoutMinX;
 		Check(textInputPaintUsesLayoutBox, "text input paint uses root layout box geometry");
 
+		SdInstance imageViewerPaintInstance;
+		imageViewerPaintInstance.GetRenderSharedData().flags = 0;
+		const SdColor imageViewerPaintColor{ 37, 91, 121, 255 };
+		imageViewerPaintInstance.GetStyleSystem().RootRule(SdImageViewer::TargetTypeId)
+			.Set(&SdBoxStyle::margin, SdStyleValue::FromSpacing({ 19.0f, 0.0f, 0.0f, 0.0f }))
+			.Set(&SdBoxStyle::padding, SdStyleValue::FromSpacing({ 0.0f, 0.0f, 0.0f, 0.0f }))
+			.Set(&SdBoxStyle::radius, SdLength::Pixels(0.0f));
+		imageViewerPaintInstance.GetStyleSystem().RootRule(SdImageViewer::TargetTypeId)
+			.Set(&SdBoxStyle::backgroundColor, imageViewerPaintColor);
+		imageViewerPaintInstance.BeginFrame({ 320.0f, 200.0f });
+		imageViewerPaintInstance.ui.Declare<SdImageViewer>(SdTextureHandle(3, 1), SdVec2{ 32.0f, 32.0f });
+		PumpFrame(imageViewerPaintInstance);
+		float imageViewerLayoutMinX = -1.0f;
+		for (const auto& [id, record] : imageViewerPaintInstance.GetStateStorage().GetWidgetRecords())
+		{
+			(void)id;
+			if (record.widgetType == std::type_index(typeid(SdImageViewer)))
+				imageViewerLayoutMinX = imageViewerPaintInstance.GetRootStyleNode(record.state.id).layoutBox.borderBox.min.x;
+		}
+		const SdUInt32 imageViewerPaintPackedRgb = imageViewerPaintColor.Pack() & 0x00ffffffu;
+		float imageViewerPaintMinX = 1000000.0f;
+		for (const SdVertex& vertex : imageViewerPaintInstance.GetRenderData().vertices)
+		{
+			if ((vertex.color & 0x00ffffffu) == imageViewerPaintPackedRgb && (vertex.color >> 24) > 0u)
+				imageViewerPaintMinX = std::min(imageViewerPaintMinX, vertex.position.x);
+		}
+		const bool imageViewerPaintUsesLayoutBox = imageViewerPaintMinX == imageViewerLayoutMinX;
+		Check(imageViewerPaintUsesLayoutBox, "image viewer paint uses root layout box geometry");
+
 		SdInstance overflowInstance;
 		overflowInstance.GetStyleSystem().RootRule(TestOverflowContainer::TargetTypeId)
 			.Set(&SdBoxStyle::display, SdDisplay::Flex)
