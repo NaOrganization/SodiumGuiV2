@@ -1254,22 +1254,23 @@ namespace Sodium
 			const SdBoxStyle& presentation = context.RootStyleNode().presentationStyle;
 			const SdBoxStyle& scrollbarPresentation = context.Part(Parts::Scrollbar).presentationStyle;
 			const SdBoxStyle& thumbPresentation = context.Part(Parts::Thumb).presentationStyle;
+			const SdRect paintRect = BasicWidgetDetail::PaintRect(context);
 			const SdColor background = BasicWidgetDetail::ApplyOpacity(scrollbarPresentation.backgroundColor, context.opacity * scrollbarPresentation.opacity);
 			const SdColor border = BasicWidgetDetail::ApplyOpacity(scrollbarPresentation.border.left.color, context.opacity * scrollbarPresentation.opacity);
 			const SdColor thumbColor = BasicWidgetDetail::ApplyOpacity(thumbPresentation.backgroundColor, context.opacity * thumbPresentation.opacity);
-			const float radius = SdResolveLength(scrollbarPresentation.radius, context.animatedRect.Width(), SdResolveLength(presentation.radius, context.animatedRect.Width()));
-			context.renderList.AddRectFilled(context.animatedRect, background, context.clipRect, radius);
-			context.renderList.AddRect(context.animatedRect, border, context.clipRect, 1.0f, radius);
+			const float radius = SdResolveLength(scrollbarPresentation.radius, paintRect.Width(), SdResolveLength(presentation.radius, paintRect.Width()));
+			context.renderList.AddRectFilled(paintRect, background, context.clipRect, radius);
+			context.renderList.AddRect(paintRect, border, context.clipRect, 1.0f, radius);
 
 			if (style.scrollbarWidth > 0.0f && state.scrollOffset > 0.0f)
 			{
-				const float thumbHeight = std::max(18.0f, context.animatedRect.Height() * 0.35f);
-				const float travel = std::max(0.0f, context.animatedRect.Height() - thumbHeight - 8.0f);
-				const float thumbY = context.animatedRect.min.y + 4.0f + std::fmod(state.scrollOffset, std::max(1.0f, travel));
+				const float thumbHeight = std::max(18.0f, paintRect.Height() * 0.35f);
+				const float travel = std::max(0.0f, paintRect.Height() - thumbHeight - 8.0f);
+				const float thumbY = paintRect.min.y + 4.0f + std::fmod(state.scrollOffset, std::max(1.0f, travel));
 				const SdRect thumbRect = {
-					context.animatedRect.max.x - style.scrollbarWidth - 4.0f,
+					paintRect.max.x - style.scrollbarWidth - 4.0f,
 					thumbY,
-					context.animatedRect.max.x - 4.0f,
+					paintRect.max.x - 4.0f,
 					thumbY + thumbHeight
 				};
 				context.renderList.AddRectFilled(thumbRect, thumbColor, context.clipRect, style.scrollbarWidth * 0.5f);

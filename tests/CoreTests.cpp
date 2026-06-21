@@ -1591,6 +1591,42 @@ namespace
 		const bool tooltipPaintUsesLayoutBox = tooltipPaintMinX == tooltipLayoutMinX;
 		Check(tooltipPaintUsesLayoutBox, "tooltip paint uses root layout box geometry");
 
+		SdInstance scrollViewPaintInstance;
+		scrollViewPaintInstance.GetRenderSharedData().flags = 0;
+		const SdColor scrollViewPaintColor{ 53, 107, 141, 255 };
+		const SdColor scrollViewThumbColor = scrollViewPaintColor;
+		scrollViewPaintInstance.GetStyleSystem().RootRule(SdScrollView::TargetTypeId)
+			.Set(&SdBoxStyle::margin, SdStyleValue::FromSpacing({ 21.0f, 0.0f, 0.0f, 0.0f }))
+			.Set(&SdBoxStyle::padding, SdStyleValue::FromSpacing({ 0.0f, 0.0f, 0.0f, 0.0f }))
+			.Set(&SdBoxStyle::radius, SdLength::Pixels(0.0f));
+		scrollViewPaintInstance.GetStyleSystem().Part<SdScrollView>(SdScrollView::Parts::Scrollbar)
+			.Set(&SdBoxStyle::backgroundColor, scrollViewPaintColor)
+			.Set(&SdBoxStyle::border, SdStyleValue::FromColor(SdColor(0, 0, 0, 0)))
+			.Set(&SdBoxStyle::radius, SdLength::Pixels(0.0f));
+		scrollViewPaintInstance.GetStyleSystem().Part<SdScrollView>(SdScrollView::Parts::Thumb)
+			.Set(&SdBoxStyle::backgroundColor, scrollViewThumbColor);
+		scrollViewPaintInstance.BeginFrame({ 320.0f, 200.0f });
+		scrollViewPaintInstance.ui.Declare<SdScrollView>([](SdUi&)
+		{
+		});
+		PumpFrame(scrollViewPaintInstance);
+		float scrollViewLayoutMinX = -1.0f;
+		for (const auto& [id, record] : scrollViewPaintInstance.GetStateStorage().GetWidgetRecords())
+		{
+			(void)id;
+			if (record.widgetType == std::type_index(typeid(SdScrollView)))
+				scrollViewLayoutMinX = scrollViewPaintInstance.GetRootStyleNode(record.state.id).layoutBox.borderBox.min.x;
+		}
+		const SdUInt32 scrollViewPaintPackedRgb = scrollViewPaintColor.Pack() & 0x00ffffffu;
+		float scrollViewPaintMinX = 1000000.0f;
+		for (const SdVertex& vertex : scrollViewPaintInstance.GetRenderData().vertices)
+		{
+			if ((vertex.color & 0x00ffffffu) == scrollViewPaintPackedRgb && (vertex.color >> 24) > 0u)
+				scrollViewPaintMinX = std::min(scrollViewPaintMinX, vertex.position.x);
+		}
+		const bool scrollViewPaintUsesLayoutBox = scrollViewPaintMinX == scrollViewLayoutMinX;
+		Check(scrollViewPaintUsesLayoutBox, "scroll view paint uses root layout box geometry");
+
 		SdInstance overflowInstance;
 		overflowInstance.GetStyleSystem().RootRule(TestOverflowContainer::TargetTypeId)
 			.Set(&SdBoxStyle::display, SdDisplay::Flex)
