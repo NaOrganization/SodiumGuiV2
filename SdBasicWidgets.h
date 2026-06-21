@@ -261,14 +261,17 @@ namespace Sodium
 		void OnPaint(SdPaintContext& context)
 		{
 			const SdBoxStyle& presentation = context.RootStyleNode().presentationStyle;
-			const float radius = SdResolveLength(presentation.radius, context.animatedRect.Width());
+			const SdRect paintRect = context.rootLayoutBox.borderBox.Width() > 0.0f || context.rootLayoutBox.borderBox.Height() > 0.0f
+				? context.rootLayoutBox.borderBox
+				: context.animatedRect;
+			const float radius = SdResolveLength(presentation.radius, paintRect.Width());
 			context.renderList.AddRectFilled(
-				context.animatedRect,
+				paintRect,
 				BasicWidgetDetail::ApplyOpacity(presentation.backgroundColor, context.opacity * presentation.opacity),
 				context.clipRect,
 				radius);
 			context.renderList.AddRect(
-				context.animatedRect,
+				paintRect,
 				BasicWidgetDetail::ApplyOpacity(presentation.border.left.color, context.opacity * presentation.opacity),
 				context.clipRect,
 				1.0f,

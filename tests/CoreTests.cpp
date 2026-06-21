@@ -1315,6 +1315,35 @@ namespace
 		}
 		Check(hasContentRectFromUsedBox, "runtime child content rect matches root used content box");
 
+		SdInstance panelPaintInstance;
+		panelPaintInstance.GetRenderSharedData().flags = 0;
+		const SdColor panelPaintColor{ 17, 31, 47, 255 };
+		const SdColor panelPaintBorderColor{ 47, 31, 17, 255 };
+		panelPaintInstance.GetStyleSystem().RootRule(SdPanel::TargetTypeId)
+			.Set(&SdBoxStyle::margin, SdStyleValue::FromSpacing({ 9.0f, 0.0f, 0.0f, 0.0f }))
+			.Set(&SdBoxStyle::backgroundColor, panelPaintColor)
+			.Set(&SdBoxStyle::border, SdStyleValue::FromColor(panelPaintBorderColor))
+			.Set(&SdBoxStyle::radius, SdLength::Pixels(0.0f));
+		panelPaintInstance.BeginFrame({ 320.0f, 200.0f });
+		panelPaintInstance.ui.Declare<SdPanel>();
+		PumpFrame(panelPaintInstance);
+		float panelLayoutMinX = -1.0f;
+		for (const auto& [id, record] : panelPaintInstance.GetStateStorage().GetWidgetRecords())
+		{
+			(void)id;
+			if (record.widgetType == std::type_index(typeid(SdPanel)))
+				panelLayoutMinX = panelPaintInstance.GetRootStyleNode(record.state.id).layoutBox.borderBox.min.x;
+		}
+		const SdUInt32 panelPaintPackedRgb = panelPaintColor.Pack() & 0x00ffffffu;
+		float panelPaintMinX = 1000000.0f;
+		for (const SdVertex& vertex : panelPaintInstance.GetRenderData().vertices)
+		{
+			if ((vertex.color & 0x00ffffffu) == panelPaintPackedRgb && (vertex.color >> 24) > 0u)
+				panelPaintMinX = std::min(panelPaintMinX, vertex.position.x);
+		}
+		const bool panelPaintUsesLayoutBox = panelPaintMinX == panelLayoutMinX;
+		Check(panelPaintUsesLayoutBox, "panel paint uses root layout box geometry");
+
 		SdInstance overflowInstance;
 		overflowInstance.GetStyleSystem().RootRule(TestOverflowContainer::TargetTypeId)
 			.Set(&SdBoxStyle::display, SdDisplay::Flex)
