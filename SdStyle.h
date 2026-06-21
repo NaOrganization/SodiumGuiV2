@@ -1150,6 +1150,10 @@ namespace Sodium
 				SdStyleFieldImpact::Layout,
 				SdStyleInterpolation::Float,
 				true);
+			propertyRegistry.Register<&SdBoxStyle::flexShrink>(
+				SdStyleFieldImpact::Layout,
+				SdStyleInterpolation::Float,
+				true);
 		}
 
 		void InstallDefaultUserAgentStyleSheet(bool touchRevision = true)

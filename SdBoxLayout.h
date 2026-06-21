@@ -221,6 +221,7 @@ namespace Sodium
 			const float parentMainSize = row ? parent.contentBox.Width() : parent.contentBox.Height();
 			float occupiedMainSize = 0.0f;
 			float totalFlexGrow = 0.0f;
+			float totalWeightedFlexShrink = 0.0f;
 			SdSize visibleChildCount = 0;
 			const auto childBorderWidth = [row](const SdBoxNode& child) noexcept
 			{
@@ -256,6 +257,7 @@ namespace Sodium
 					? child.usedStyleValues.margin.left + childWidth + child.usedStyleValues.margin.right
 					: child.usedStyleValues.margin.top + childHeight + child.usedStyleValues.margin.bottom;
 				totalFlexGrow += std::max(0.0f, child.usedStyleValues.flexGrow);
+				totalWeightedFlexShrink += std::max(0.0f, child.usedStyleValues.flexShrink) * (row ? childWidth : childHeight);
 				++visibleChildCount;
 			}
 
@@ -263,7 +265,9 @@ namespace Sodium
 				occupiedMainSize += parent.usedStyleValues.gap * static_cast<float>(visibleChildCount - 1);
 
 			const float remainingMainSize = std::max(0.0f, parentMainSize - occupiedMainSize);
+			const float overflowingMainSize = std::max(0.0f, occupiedMainSize - parentMainSize);
 			const bool distributeFlexGrow = remainingMainSize > 0.0f && totalFlexGrow > 0.0f;
+			const bool distributeFlexShrink = overflowingMainSize > 0.0f && totalWeightedFlexShrink > 0.0f;
 			float main = row ? parent.contentBox.min.x : parent.contentBox.min.y;
 			float gap = parent.usedStyleValues.gap;
 			if (!distributeFlexGrow)
@@ -303,6 +307,15 @@ namespace Sodium
 						childWidth += growDelta;
 					else
 						childHeight += growDelta;
+				}
+				else if (distributeFlexShrink)
+				{
+					const float weightedShrink = std::max(0.0f, child.usedStyleValues.flexShrink) * (row ? childWidth : childHeight);
+					const float shrinkDelta = overflowingMainSize * (weightedShrink / totalWeightedFlexShrink);
+					if (row)
+						childWidth = std::max(0.0f, childWidth - shrinkDelta);
+					else
+						childHeight = std::max(0.0f, childHeight - shrinkDelta);
 				}
 				const auto resolveCrossAxis = [&parent](float childCrossSize, float marginStart, float marginEnd, float parentCrossMin, float parentCrossSize)
 				{
