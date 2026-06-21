@@ -28,7 +28,7 @@ namespace Sodium
 			channel.impact = impact;
 			channel.interpolation = interpolation;
 			channel.transition = immediate ? SdTransition{} : transition;
-			channel.delay = {};
+			channel.delay = channel.transition.delay;
 			channel.elapsed = {};
 			channel.startValue = currentValue;
 			channel.targetValue = targetValue;

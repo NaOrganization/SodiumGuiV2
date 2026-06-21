@@ -181,8 +181,15 @@ namespace Sodium
 					continue;
 
 				channel.elapsed += std::chrono::duration_cast<SdDuration>(std::chrono::duration<float>(seconds));
+				if (channel.elapsed < channel.delay)
+				{
+					channel.currentValue = channel.startValue;
+					continue;
+				}
+
 				const float durationSeconds = std::max(0.001f, static_cast<float>(channel.transition.duration.count()) / 1000000000.0f);
-				const float elapsedSeconds = std::max(0.0f, static_cast<float>(channel.elapsed.count()) / 1000000000.0f);
+				const SdDuration delayedElapsed = channel.elapsed - channel.delay;
+				const float elapsedSeconds = std::max(0.0f, static_cast<float>(delayedElapsed.count()) / 1000000000.0f);
 				const float t = std::clamp(elapsedSeconds / durationSeconds, 0.0f, 1.0f);
 				const float eased = SdApplyEasing(t, channel.transition.easing);
 				channel.currentValue = InterpolateValue(channel.startValue, channel.targetValue, channel.interpolation, eased);

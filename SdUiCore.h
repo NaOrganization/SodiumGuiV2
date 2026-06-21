@@ -254,6 +254,7 @@ namespace Sodium
 	{
 		SdDuration duration = 160ms;
 		SdAnimationEasing easing = SdAnimationEasing::OutCubic;
+		SdDuration delay = {};
 	};
 
 	struct SdWidgetTransition final
