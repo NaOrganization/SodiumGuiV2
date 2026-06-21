@@ -643,6 +643,11 @@ namespace Sodium
 			return SdStyleSystemSheetRuleBuilder<SdWidgetPartStyle>(*this, typedStyleSheet.Part<TWidget>(part));
 		}
 
+		SdStyleSystemSheetRuleBuilder<SdWidgetPartStyle> PartRule(SdStyleId targetTypeId, SdStylePart part)
+		{
+			return SdStyleSystemSheetRuleBuilder<SdWidgetPartStyle>(*this, typedStyleSheet.PartForTarget(targetTypeId, part));
+		}
+
 		SdWidgetRootStyle ResolveRootStyle(
 			SdStyleId targetTypeId,
 			SdStyleInteractionState interactionState,
@@ -953,6 +958,9 @@ namespace Sodium
 				.Set(&SdBoxStyle::padding, SdStyleValue::FromSpacing({ mediumSpacing, smallSpacing, mediumSpacing, smallSpacing }))
 				.Set(&SdBoxStyle::fontSize, ThemeMetric("font.button"))
 				.Set(&SdBoxStyle::lineHeight, 0.0f);
+			typedStyleSheet.PartForTarget(SdWidgetTargetIds::TextInput, SdStylePart::Make("Sodium.TextInput.Part.Placeholder"))
+				.Cascade(SdCascadeLayer::UserAgent)
+				.Set(&SdBoxStyle::opacity, 0.52f);
 			typedStyleSheet.RuleForTarget<SdWidgetRootStyle>(SdWidgetTargetIds::ImageViewer)
 				.Cascade(SdCascadeLayer::UserAgent)
 				.Set(&SdBoxStyle::width, SdLength::Pixels(160.0f))

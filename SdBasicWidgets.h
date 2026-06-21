@@ -769,20 +769,23 @@ namespace Sodium
 		{
 			const State& state = context.State<State>();
 			const SdBoxStyle& presentation = context.RootStyleNode().presentationStyle;
+			const SdBoxStyle& valuePresentation = context.Part(Parts::Value).presentationStyle;
+			const SdBoxStyle& placeholderPresentation = context.Part(Parts::Placeholder).presentationStyle;
+			const SdBoxStyle& caretPresentation = context.Part(Parts::Caret).presentationStyle;
 			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(presentation, context.animatedRect.Size(), {});
-			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, presentation.fontSize, presentation.lineHeight);
+			const bool showPlaceholder = state.text.empty() && state.composition.empty() && !state.placeholder.empty();
+			const SdBoxStyle& textPresentation = showPlaceholder ? placeholderPresentation : valuePresentation;
+			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, textPresentation.fontSize, textPresentation.lineHeight);
 			const float lineHeight = BasicWidgetDetail::ResolveLineHeight(textStyle);
 			const SdColor background = BasicWidgetDetail::ApplyOpacity(presentation.backgroundColor, context.opacity * presentation.opacity);
 			const SdColor border = BasicWidgetDetail::ApplyOpacity(presentation.border.left.color, context.opacity * presentation.opacity);
-			const SdColor textColor = BasicWidgetDetail::ApplyOpacity(presentation.color, context.opacity * presentation.opacity);
+			const SdColor textColor = BasicWidgetDetail::ApplyOpacity(textPresentation.color, context.opacity * textPresentation.opacity);
+			const SdColor caretColor = BasicWidgetDetail::ApplyOpacity(caretPresentation.color, context.opacity * caretPresentation.opacity);
 			const float radius = SdResolveLength(presentation.radius, context.animatedRect.Width());
-			SdColor placeholderColor = textColor;
-			placeholderColor.a = static_cast<SdUInt8>(static_cast<float>(placeholderColor.a) * 0.52f);
 
 			context.renderList.AddRectFilled(context.animatedRect, background, context.clipRect, radius);
 			context.renderList.AddRect(context.animatedRect, border, context.clipRect, 1.0f, radius);
 
-			const bool showPlaceholder = state.text.empty() && state.composition.empty() && !state.placeholder.empty();
 			SdUtf8String paintText = showPlaceholder ? state.placeholder : state.text;
 			if (!state.composition.empty())
 				paintText += state.composition;
@@ -795,7 +798,7 @@ namespace Sodium
 				paintText,
 				textStyle,
 				textPosition,
-				showPlaceholder ? placeholderColor : textColor,
+				textColor,
 				context.clipRect);
 
 			if (state.focused)
@@ -807,7 +810,7 @@ namespace Sodium
 					textPosition.x + textSize.x + 2.0f,
 					textPosition.y + lineHeight
 				};
-				context.renderList.AddRectFilled(caretRect, textColor, context.clipRect);
+				context.renderList.AddRectFilled(caretRect, caretColor, context.clipRect);
 			}
 		}
 

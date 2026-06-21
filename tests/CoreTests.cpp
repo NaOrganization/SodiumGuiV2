@@ -459,6 +459,24 @@ namespace
 			&& partFontBackend.lastPaintColor.b == labelPartColor.b
 			&& partFontBackend.lastPaintColor.a <= BasicWidgetDetail::ApplyOpacity(labelPartColor, 0.42f).a,
 			"button label part color drives text paint");
+
+		SdInstance inputPartStyleInstance;
+		RecordingFontBackend inputPartFontBackend = {};
+		inputPartStyleInstance.SetFontBackend(&inputPartFontBackend);
+		const SdColor placeholderPartColor = SdColor(91, 35, 17, 255);
+		inputPartStyleInstance.GetStyleSystem().PartRule(SdTextInput::TargetTypeId, SdTextInput::Parts::Placeholder)
+			.Set(&SdBoxStyle::color, placeholderPartColor)
+			.Set(&SdBoxStyle::opacity, 1.0f);
+		SdUtf8String inputValue = {};
+		inputPartStyleInstance.BeginFrame({ 320.0f, 200.0f });
+		inputPartStyleInstance.ui.Declare<SdTextInput>(inputValue, "Part placeholder");
+		PumpFrame(inputPartStyleInstance);
+		Check(inputPartFontBackend.lastPaintText == "Part placeholder", "text input placeholder part drives text paint");
+		Check(
+			inputPartFontBackend.lastPaintColor.r == placeholderPartColor.r
+			&& inputPartFontBackend.lastPaintColor.g == placeholderPartColor.g
+			&& inputPartFontBackend.lastPaintColor.b == placeholderPartColor.b,
+			"text input placeholder part color drives text paint");
 	}
 
 	void TestStyleSheetCascadeAndRegistry()

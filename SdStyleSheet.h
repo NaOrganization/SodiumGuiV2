@@ -251,6 +251,18 @@ namespace Sodium
 			return SdStyleSheetRuleBuilder<SdWidgetPartStyle>(AddRule<TWidget, SdWidgetPartStyle>(part));
 		}
 
+		SdStyleSheetRuleBuilder<SdWidgetPartStyle> PartForTarget(SdStyleId targetTag, SdStylePart part)
+		{
+			struct TargetPartStyleWidget final
+			{
+				using Style = SdWidgetPartStyle;
+			};
+
+			SdCompiledStyleRule& rule = AddRule<TargetPartStyleWidget, SdWidgetPartStyle>(part);
+			rule.selector.targetTag = targetTag;
+			return SdStyleSheetRuleBuilder<SdWidgetPartStyle>(rule);
+		}
+
 		SdCompiledStyleSheet Compile() const
 		{
 			SdCompiledStyleSheet compiled = {};
