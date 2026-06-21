@@ -121,9 +121,9 @@ namespace Sodium
 				result,
 				record.state.manualRect,
 				{ rootBorder.left, rootBorder.top, rootBorder.right, rootBorder.bottom },
-				record.state.childPadding,
+				record.state.contentPadding,
 				record.state.layoutWeight,
-				record.state.childSpacing,
+				record.state.gap,
 				record.state.manualLayout,
 				record.state.arrangeChildren,
 				record.state.clipChildren

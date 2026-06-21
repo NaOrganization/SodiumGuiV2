@@ -108,8 +108,8 @@ namespace
 			context.SetDesiredSize({ 220.0f, 110.0f });
 			context.widgetState.arrangeChildren = true;
 			context.widgetState.clipChildren = true;
-			context.widgetState.childPadding = { 6.0f, 6.0f, 6.0f, 6.0f };
-			context.widgetState.childSpacing = 4.0f;
+			context.widgetState.contentPadding = { 6.0f, 6.0f, 6.0f, 6.0f };
+			context.widgetState.gap = 4.0f;
 		}
 
 		void OnPaint(SdPaintContext& context)
@@ -880,7 +880,7 @@ namespace
 		const SdWidgetRootStyle panelDefault = styleSystem.ResolveRootStyle(SdPanel::TargetTypeId, SdStyleInteractionState::Normal);
 		Check(panelDefault.width.unit == SdLengthUnit::Pixels && panelDefault.width.value == 240.0f, "panel default width resolves through root style");
 		Check(SdResolveLength(panelDefault.padding.left, 0.0f) > 0.0f, "panel default padding resolves through root style");
-		Check(SdResolveLength(panelDefault.gap, 0.0f) == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableLiteral("spacing.small")), "panel default child spacing resolves through root gap");
+		Check(SdResolveLength(panelDefault.gap, 0.0f) == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableLiteral("spacing.small")), "panel default gap resolves through root gap");
 
 		constexpr SdStyleClassId textClass = SdStyleClassLiteral("Tests.Text.RootStyle");
 		constexpr SdStyleScopeId textScope = SdStyleScopeLiteral("Tests.Text.Scope");
@@ -901,7 +901,7 @@ namespace
 		Check(windowDefault.width.unit == SdLengthUnit::Pixels && windowDefault.width.value == 420.0f, "window default width resolves through root style");
 		Check(windowDefault.height.unit == SdLengthUnit::Pixels && windowDefault.height.value == 260.0f, "window default height resolves through root style");
 		Check(windowDefault.padding.top.value == 40.0f, "window default title padding resolves through root style");
-		Check(SdResolveLength(windowDefault.gap, 0.0f) == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableLiteral("spacing.small")), "window default child spacing resolves through root gap");
+		Check(SdResolveLength(windowDefault.gap, 0.0f) == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableLiteral("spacing.small")), "window default gap resolves through root gap");
 		const SdWidgetPartStyle windowContentDefault = styleSystem.ResolvePartStyle(SdWindow::TargetTypeId, SdWindow::Parts::Content, windowDefault, SdStyleInteractionState::Normal, SdLayerPriority::Floating);
 		const SdWidgetPartStyle windowTitlebarDefault = styleSystem.ResolvePartStyle(SdWindow::TargetTypeId, SdWindow::Parts::Titlebar, windowDefault, SdStyleInteractionState::Normal, SdLayerPriority::Floating);
 		Check(windowContentDefault.backgroundColor == styleSystem.GetTheme().GetColorVariable(SdThemeVariableLiteral("window.bg")), "window content default background resolves through part style");
@@ -957,7 +957,7 @@ namespace
 		Check(scrollViewDefault.width.unit == SdLengthUnit::Pixels && scrollViewDefault.width.value == 240.0f, "scroll view default width resolves through root style");
 		Check(scrollViewDefault.height.unit == SdLengthUnit::Pixels && scrollViewDefault.height.value == 160.0f, "scroll view default height resolves through root style");
 		Check(scrollViewDefault.padding.left.value == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableLiteral("spacing.small")), "scroll view default padding resolves through root style");
-		Check(SdResolveLength(scrollViewDefault.gap, 0.0f) == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableLiteral("spacing.small")), "scroll view default child spacing resolves through root gap");
+		Check(SdResolveLength(scrollViewDefault.gap, 0.0f) == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableLiteral("spacing.small")), "scroll view default gap resolves through root gap");
 		const SdWidgetPartStyle scrollViewScrollbarDefault = styleSystem.ResolvePartStyle(SdScrollView::TargetTypeId, SdScrollView::Parts::Scrollbar, scrollViewDefault, SdStyleInteractionState::Normal);
 		const SdWidgetPartStyle scrollViewThumbDefault = styleSystem.ResolvePartStyle(SdScrollView::TargetTypeId, SdScrollView::Parts::Thumb, scrollViewDefault, SdStyleInteractionState::Normal);
 		Check(scrollViewScrollbarDefault.backgroundColor == styleSystem.GetTheme().GetColorVariable(SdThemeVariableLiteral("panel.bg")), "scroll view scrollbar default background resolves through part style");
@@ -967,8 +967,8 @@ namespace
 		const SdWidgetRootStyle contextMenuDefault = styleSystem.ResolveRootStyle(SdContextMenu::TargetTypeId, SdStyleInteractionState::Normal, SdLayerPriority::Popup);
 		Check(popupDefault.width.unit == SdLengthUnit::Pixels && popupDefault.width.value == 220.0f, "popup default width resolves through root style");
 		Check(contextMenuDefault.height.unit == SdLengthUnit::Pixels && contextMenuDefault.height.value == 140.0f, "context menu default height resolves through root style");
-		Check(SdResolveLength(popupDefault.gap, 0.0f) == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableLiteral("spacing.small")), "popup default child spacing resolves through root gap");
-		Check(SdResolveLength(contextMenuDefault.gap, 0.0f) == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableLiteral("spacing.small")), "context menu default child spacing resolves through root gap");
+		Check(SdResolveLength(popupDefault.gap, 0.0f) == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableLiteral("spacing.small")), "popup default gap resolves through root gap");
+		Check(SdResolveLength(contextMenuDefault.gap, 0.0f) == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableLiteral("spacing.small")), "context menu default gap resolves through root gap");
 
 		const SdWidgetRootStyle tooltipDefault = styleSystem.ResolveRootStyle(SdTooltip::TargetTypeId, SdStyleInteractionState::Normal, SdLayerPriority::Overlay);
 		Check(tooltipDefault.padding.left.value == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableLiteral("spacing.small")), "tooltip default padding resolves through root style");
@@ -991,7 +991,7 @@ namespace
 			panelScope);
 		Check(panelScoped.width.unit == SdLengthUnit::Pixels && panelScoped.width.value == 333.0f, "panel scoped root width overrides default");
 		Check(panelScoped.padding.left.value == 3.0f && panelScoped.padding.bottom.value == 6.0f, "panel scoped root padding writes box edges");
-		Check(SdResolveLength(panelScoped.gap, 0.0f) == 7.0f, "panel scoped child spacing writes root gap");
+		Check(SdResolveLength(panelScoped.gap, 0.0f) == 7.0f, "panel scoped gap writes root gap");
 
 		RegistryDispatchStyle localStyle = {};
 		const SdPropertyDescriptor* colorProperty = registry.Find(Detail::SdStylePropertyId(&RegistryDispatchStyle::color), std::type_index(typeid(RegistryDispatchStyle)));
@@ -1855,7 +1855,7 @@ namespace
 		const std::vector<SdLayoutNode>& nodes = layout.GetNodes();
 		Check(nodes.size() == 3, "layout direct stores frame-local nodes");
 		Check(nodes[0].firstChildIndex == 1 && nodes[1].nextSiblingIndex == 2, "layout direct links parent children by index");
-		Check(nodes[1].targetRect.min.x == 14.0f && nodes[1].targetRect.min.y == 16.0f, "layout direct applies child padding");
+		Check(nodes[1].targetRect.min.x == 14.0f && nodes[1].targetRect.min.y == 16.0f, "layout direct applies content padding");
 		Check(nodes[2].targetRect.min.y == 41.0f, "layout direct applies spacing and previous layoutWeight");
 		Check(nodes[2].layoutWeight == 0.5f, "layout direct preserves leaving layout weight");
 	}

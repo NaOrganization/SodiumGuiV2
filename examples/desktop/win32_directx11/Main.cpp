@@ -321,8 +321,8 @@ namespace
 				context.widgetState.manualRect = { 48.0f, 42.0f, 568.0f, 662.0f };
 				context.widgetState.arrangeChildren = true;
 				context.widgetState.clipChildren = true;
-				context.widgetState.childPadding = { 14.0f, 108.0f, 14.0f, 12.0f };
-				context.widgetState.childSpacing = 5.0f;
+				context.widgetState.contentPadding = { 14.0f, 108.0f, 14.0f, 12.0f };
+				context.widgetState.gap = 5.0f;
 				context.widgetState.targetTypeId = Sodium::SdWidgetTargetIds::Panel;
 			}
 
