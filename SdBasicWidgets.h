@@ -1344,34 +1344,19 @@ namespace Sodium
 
 		struct Style final
 		{
-			SdSpacing padding = { 8.0f, 8.0f, 8.0f, 8.0f };
-			float width = 220.0f;
-			float height = 140.0f;
 			float childSpacing = 6.0f;
-			float radius = 5.0f;
-			float opacity = 1.0f;
 
 			static Style Default(const SdStyleContext& context)
 			{
 				Style style = {};
 				const float smallSpacing = context.theme.GetMetricVariable(SdThemeVariableLiteral("spacing.small"));
-				style.padding = { smallSpacing, smallSpacing, smallSpacing, smallSpacing };
-				style.width = 220.0f;
-				style.height = 140.0f;
 				style.childSpacing = smallSpacing;
-				style.radius = context.theme.GetMetricVariable(SdThemeVariableLiteral("radius.small"));
-				style.opacity = 1.0f;
 				return style;
 			}
 
 			static void Describe(SdStyleContract<Style>& contract)
 			{
-				contract.Layout(&Style::padding);
-				contract.Layout(&Style::width);
-				contract.Layout(&Style::height);
 				contract.Layout(&Style::childSpacing);
-				contract.Paint(&Style::radius).InterpolatesAsFloat();
-				contract.Composite(&Style::opacity).InterpolatesAsFloat();
 			}
 		};
 
@@ -1404,15 +1389,22 @@ namespace Sodium
 		{
 			const State& state = context.State<State>();
 			const Style& style = context.RootResolvedStyle<SdPopup>();
+			const SdBoxStyle& rootStyle = context.RootStyleNode().resolvedStyle;
+			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(rootStyle, context.constraints.maxSize, { 220.0f, 140.0f });
 			context.widgetState.manualLayout = true;
 			context.widgetState.manualRect = state.open
-				? BasicWidgetDetail::MakeRect(state.position, { style.width, style.height })
+				? BasicWidgetDetail::MakeRect(state.position, { usedStyle.width, usedStyle.height })
 				: SdRect{};
 			context.widgetState.arrangeChildren = state.open;
 			context.widgetState.clipChildren = true;
-			context.widgetState.childPadding = style.padding;
+			context.widgetState.childPadding = {
+				usedStyle.padding.left,
+				usedStyle.padding.top,
+				usedStyle.padding.right,
+				usedStyle.padding.bottom
+			};
 			context.widgetState.childSpacing = style.childSpacing;
-			context.SetDesiredSize(state.open ? SdVec2{ style.width, style.height } : SdVec2{});
+			context.SetDesiredSize(state.open ? SdVec2{ usedStyle.width, usedStyle.height } : SdVec2{});
 		}
 
 		void OnPaint(SdPaintContext& context)
@@ -1420,14 +1412,14 @@ namespace Sodium
 			const State& state = context.State<State>();
 			if (!state.open)
 				return;
-			const Style& style = context.RootPresentationStyle<SdPopup>();
 			const SdBoxStyle& presentation = context.RootStyleNode().presentationStyle;
+			const float radius = SdResolveLength(presentation.radius, context.animatedRect.Width());
 			context.renderList.AddRectFilled(
 				context.animatedRect,
-				BasicWidgetDetail::ApplyOpacity(presentation.backgroundColor, context.opacity * style.opacity),
+				BasicWidgetDetail::ApplyOpacity(presentation.backgroundColor, context.opacity * presentation.opacity),
 				context.clipRect,
-				style.radius);
-			context.renderList.AddRect(context.animatedRect, presentation.border.left.color, context.clipRect, 1.0f, style.radius);
+				radius);
+			context.renderList.AddRect(context.animatedRect, presentation.border.left.color, context.clipRect, 1.0f, radius);
 		}
 
 	protected:
@@ -1446,34 +1438,19 @@ namespace Sodium
 
 		struct Style final
 		{
-			SdSpacing padding = { 8.0f, 8.0f, 8.0f, 8.0f };
-			float width = 220.0f;
-			float height = 140.0f;
 			float childSpacing = 6.0f;
-			float radius = 5.0f;
-			float opacity = 1.0f;
 
 			static Style Default(const SdStyleContext& context)
 			{
 				Style style = {};
 				const float smallSpacing = context.theme.GetMetricVariable(SdThemeVariableLiteral("spacing.small"));
-				style.padding = { smallSpacing, smallSpacing, smallSpacing, smallSpacing };
-				style.width = 220.0f;
-				style.height = 140.0f;
 				style.childSpacing = smallSpacing;
-				style.radius = context.theme.GetMetricVariable(SdThemeVariableLiteral("radius.small"));
-				style.opacity = 1.0f;
 				return style;
 			}
 
 			static void Describe(SdStyleContract<Style>& contract)
 			{
-				contract.Layout(&Style::padding);
-				contract.Layout(&Style::width);
-				contract.Layout(&Style::height);
 				contract.Layout(&Style::childSpacing);
-				contract.Paint(&Style::radius).InterpolatesAsFloat();
-				contract.Composite(&Style::opacity).InterpolatesAsFloat();
 			}
 		};
 
@@ -1502,15 +1479,22 @@ namespace Sodium
 		{
 			const State& state = context.State<State>();
 			const Style& style = context.RootResolvedStyle<SdContextMenu>();
+			const SdBoxStyle& rootStyle = context.RootStyleNode().resolvedStyle;
+			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(rootStyle, context.constraints.maxSize, { 220.0f, 140.0f });
 			context.widgetState.manualLayout = true;
 			context.widgetState.manualRect = state.open
-				? BasicWidgetDetail::MakeRect(state.position, { style.width, style.height })
+				? BasicWidgetDetail::MakeRect(state.position, { usedStyle.width, usedStyle.height })
 				: SdRect{};
 			context.widgetState.arrangeChildren = state.open;
 			context.widgetState.clipChildren = true;
-			context.widgetState.childPadding = style.padding;
+			context.widgetState.childPadding = {
+				usedStyle.padding.left,
+				usedStyle.padding.top,
+				usedStyle.padding.right,
+				usedStyle.padding.bottom
+			};
 			context.widgetState.childSpacing = style.childSpacing;
-			context.SetDesiredSize(state.open ? SdVec2{ style.width, style.height } : SdVec2{});
+			context.SetDesiredSize(state.open ? SdVec2{ usedStyle.width, usedStyle.height } : SdVec2{});
 		}
 
 		void OnPaint(SdPaintContext& context)
@@ -1518,14 +1502,14 @@ namespace Sodium
 			const State& state = context.State<State>();
 			if (!state.open)
 				return;
-			const Style& style = context.RootPresentationStyle<SdContextMenu>();
 			const SdBoxStyle& presentation = context.RootStyleNode().presentationStyle;
+			const float radius = SdResolveLength(presentation.radius, context.animatedRect.Width());
 			context.renderList.AddRectFilled(
 				context.animatedRect,
-				BasicWidgetDetail::ApplyOpacity(presentation.backgroundColor, context.opacity * style.opacity),
+				BasicWidgetDetail::ApplyOpacity(presentation.backgroundColor, context.opacity * presentation.opacity),
 				context.clipRect,
-				style.radius);
-			context.renderList.AddRect(context.animatedRect, presentation.border.left.color, context.clipRect, 1.0f, style.radius);
+				radius);
+			context.renderList.AddRect(context.animatedRect, presentation.border.left.color, context.clipRect, 1.0f, radius);
 		}
 	};
 
