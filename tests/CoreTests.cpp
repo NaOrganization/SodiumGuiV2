@@ -1502,6 +1502,95 @@ namespace
 		const bool imageViewerPaintUsesLayoutBox = imageViewerPaintMinX == imageViewerLayoutMinX;
 		Check(imageViewerPaintUsesLayoutBox, "image viewer paint uses root layout box geometry");
 
+		SdInstance popupPaintInstance;
+		popupPaintInstance.GetRenderSharedData().flags = 0;
+		const SdColor popupPaintColor{ 41, 93, 131, 255 };
+		const SdColor popupPaintBorderColor{ 131, 93, 41, 255 };
+		popupPaintInstance.GetStyleSystem().RootRule(SdPopup::TargetTypeId)
+			.Set(&SdBoxStyle::radius, SdLength::Pixels(0.0f))
+			.Set(&SdBoxStyle::backgroundColor, popupPaintColor)
+			.Set(&SdBoxStyle::border, SdStyleValue::FromColor(popupPaintBorderColor));
+		popupPaintInstance.BeginFrame({ 320.0f, 200.0f });
+		popupPaintInstance.ui.Declare<SdPopup>(true, SdVec2{ 140.0f, 76.0f }, [](SdUi&)
+		{
+		});
+		PumpFrame(popupPaintInstance);
+		float popupLayoutMinX = -1.0f;
+		for (const auto& [id, record] : popupPaintInstance.GetStateStorage().GetWidgetRecords())
+		{
+			(void)id;
+			if (record.widgetType == std::type_index(typeid(SdPopup)))
+				popupLayoutMinX = popupPaintInstance.GetRootStyleNode(record.state.id).layoutBox.borderBox.min.x;
+		}
+		const SdUInt32 popupPaintPackedRgb = popupPaintColor.Pack() & 0x00ffffffu;
+		float popupPaintMinX = 1000000.0f;
+		for (const SdVertex& vertex : popupPaintInstance.GetRenderData().vertices)
+		{
+			if ((vertex.color & 0x00ffffffu) == popupPaintPackedRgb && (vertex.color >> 24) > 0u)
+				popupPaintMinX = std::min(popupPaintMinX, vertex.position.x);
+		}
+		const bool popupPaintUsesLayoutBox = popupPaintMinX == popupLayoutMinX;
+		Check(popupPaintUsesLayoutBox, "popup paint uses root layout box geometry");
+
+		SdInstance contextMenuPaintInstance;
+		contextMenuPaintInstance.GetRenderSharedData().flags = 0;
+		const SdColor contextMenuPaintColor{ 45, 97, 135, 255 };
+		const SdColor contextMenuPaintBorderColor{ 135, 97, 45, 255 };
+		contextMenuPaintInstance.GetStyleSystem().RootRule(SdContextMenu::TargetTypeId)
+			.Set(&SdBoxStyle::radius, SdLength::Pixels(0.0f))
+			.Set(&SdBoxStyle::backgroundColor, contextMenuPaintColor)
+			.Set(&SdBoxStyle::border, SdStyleValue::FromColor(contextMenuPaintBorderColor));
+		contextMenuPaintInstance.BeginFrame({ 320.0f, 200.0f });
+		contextMenuPaintInstance.ui.Declare<SdContextMenu>(true, SdVec2{ 156.0f, 86.0f }, [](SdUi&)
+		{
+		});
+		PumpFrame(contextMenuPaintInstance);
+		float contextMenuLayoutMinX = -1.0f;
+		for (const auto& [id, record] : contextMenuPaintInstance.GetStateStorage().GetWidgetRecords())
+		{
+			(void)id;
+			if (record.widgetType == std::type_index(typeid(SdContextMenu)))
+				contextMenuLayoutMinX = contextMenuPaintInstance.GetRootStyleNode(record.state.id).layoutBox.borderBox.min.x;
+		}
+		const SdUInt32 contextMenuPaintPackedRgb = contextMenuPaintColor.Pack() & 0x00ffffffu;
+		float contextMenuPaintMinX = 1000000.0f;
+		for (const SdVertex& vertex : contextMenuPaintInstance.GetRenderData().vertices)
+		{
+			if ((vertex.color & 0x00ffffffu) == contextMenuPaintPackedRgb && (vertex.color >> 24) > 0u)
+				contextMenuPaintMinX = std::min(contextMenuPaintMinX, vertex.position.x);
+		}
+		const bool contextMenuPaintUsesLayoutBox = contextMenuPaintMinX == contextMenuLayoutMinX;
+		Check(contextMenuPaintUsesLayoutBox, "context menu paint uses root layout box geometry");
+
+		SdInstance tooltipPaintInstance;
+		tooltipPaintInstance.GetRenderSharedData().flags = 0;
+		const SdColor tooltipPaintColor{ 49, 101, 139, 255 };
+		const SdColor tooltipPaintBorderColor{ 139, 101, 49, 255 };
+		tooltipPaintInstance.GetStyleSystem().RootRule(SdTooltip::TargetTypeId)
+			.Set(&SdBoxStyle::padding, SdStyleValue::FromSpacing({ 0.0f, 0.0f, 0.0f, 0.0f }))
+			.Set(&SdBoxStyle::radius, SdLength::Pixels(0.0f))
+			.Set(&SdBoxStyle::backgroundColor, tooltipPaintColor)
+			.Set(&SdBoxStyle::border, SdStyleValue::FromColor(tooltipPaintBorderColor));
+		tooltipPaintInstance.BeginFrame({ 320.0f, 200.0f });
+		tooltipPaintInstance.ui.Declare<SdTooltip>(true, SdVec2{ 172.0f, 96.0f }, "Hint");
+		PumpFrame(tooltipPaintInstance);
+		float tooltipLayoutMinX = -1.0f;
+		for (const auto& [id, record] : tooltipPaintInstance.GetStateStorage().GetWidgetRecords())
+		{
+			(void)id;
+			if (record.widgetType == std::type_index(typeid(SdTooltip)))
+				tooltipLayoutMinX = tooltipPaintInstance.GetRootStyleNode(record.state.id).layoutBox.borderBox.min.x;
+		}
+		const SdUInt32 tooltipPaintPackedRgb = tooltipPaintColor.Pack() & 0x00ffffffu;
+		float tooltipPaintMinX = 1000000.0f;
+		for (const SdVertex& vertex : tooltipPaintInstance.GetRenderData().vertices)
+		{
+			if ((vertex.color & 0x00ffffffu) == tooltipPaintPackedRgb && (vertex.color >> 24) > 0u)
+				tooltipPaintMinX = std::min(tooltipPaintMinX, vertex.position.x);
+		}
+		const bool tooltipPaintUsesLayoutBox = tooltipPaintMinX == tooltipLayoutMinX;
+		Check(tooltipPaintUsesLayoutBox, "tooltip paint uses root layout box geometry");
+
 		SdInstance overflowInstance;
 		overflowInstance.GetStyleSystem().RootRule(TestOverflowContainer::TargetTypeId)
 			.Set(&SdBoxStyle::display, SdDisplay::Flex)
