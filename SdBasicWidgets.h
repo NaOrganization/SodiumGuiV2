@@ -479,15 +479,16 @@ namespace Sodium
 			const SdBoxStyle& boxPresentation = context.Part(Parts::Box).presentationStyle;
 			const SdBoxStyle& indicatorPresentation = context.Part(Parts::Indicator).presentationStyle;
 			const SdBoxStyle& labelPresentation = context.Part(Parts::Label).presentationStyle;
-			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(presentation, context.animatedRect.Size(), {});
+			const SdRect paintRect = BasicWidgetDetail::PaintRect(context);
+			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(presentation, paintRect.Size(), {});
 			const float labelGap = std::max(0.0f, usedStyle.gap);
 			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, labelPresentation.fontSize, labelPresentation.lineHeight);
 			const float lineHeight = BasicWidgetDetail::ResolveLineHeight(textStyle);
-			const float boxY = context.animatedRect.min.y + (context.animatedRect.Height() - style.boxSize) * 0.5f;
+			const float boxY = paintRect.min.y + (paintRect.Height() - style.boxSize) * 0.5f;
 			const SdRect boxRect = {
-				context.animatedRect.min.x + usedStyle.padding.left,
+				paintRect.min.x + usedStyle.padding.left,
 				boxY,
-				context.animatedRect.min.x + usedStyle.padding.left + style.boxSize,
+				paintRect.min.x + usedStyle.padding.left + style.boxSize,
 				boxY + style.boxSize
 			};
 			const SdColor background = BasicWidgetDetail::ApplyOpacity(boxPresentation.backgroundColor, context.opacity * boxPresentation.opacity);
@@ -509,7 +510,7 @@ namespace Sodium
 
 			const SdVec2 textPosition = {
 				boxRect.max.x + labelGap,
-				context.animatedRect.min.y + std::max(usedStyle.padding.top, (context.animatedRect.Height() - lineHeight) * 0.5f)
+				paintRect.min.y + std::max(usedStyle.padding.top, (paintRect.Height() - lineHeight) * 0.5f)
 			};
 			context.renderList.AddText(state.label, textStyle, textPosition, textColor, context.clipRect);
 		}

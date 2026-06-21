@@ -1375,6 +1375,38 @@ namespace
 		const bool buttonPaintUsesLayoutBox = buttonPaintMinX == buttonLayoutMinX;
 		Check(buttonPaintUsesLayoutBox, "button paint uses root layout box geometry");
 
+		SdInstance checkBoxPaintInstance;
+		checkBoxPaintInstance.GetRenderSharedData().flags = 0;
+		const SdColor checkBoxPaintColor{ 23, 59, 83, 255 };
+		const SdColor checkBoxPaintBorderColor{ 83, 59, 23, 255 };
+		checkBoxPaintInstance.GetStyleSystem().RootRule(SdCheckBox::TargetTypeId)
+			.Set(&SdBoxStyle::margin, SdStyleValue::FromSpacing({ 13.0f, 0.0f, 0.0f, 0.0f }))
+			.Set(&SdBoxStyle::padding, SdStyleValue::FromSpacing({ 0.0f, 0.0f, 0.0f, 0.0f }))
+			.Set(&SdBoxStyle::radius, SdLength::Pixels(0.0f));
+		checkBoxPaintInstance.GetStyleSystem().Part<SdCheckBox>(SdCheckBox::Parts::Box)
+			.Set(&SdBoxStyle::backgroundColor, checkBoxPaintColor)
+			.Set(&SdBoxStyle::border, SdStyleValue::FromColor(checkBoxPaintBorderColor))
+			.Set(&SdBoxStyle::radius, SdLength::Pixels(0.0f));
+		checkBoxPaintInstance.BeginFrame({ 320.0f, 200.0f });
+		checkBoxPaintInstance.ui.Declare<SdCheckBox>("Layout");
+		PumpFrame(checkBoxPaintInstance);
+		float checkBoxLayoutMinX = -1.0f;
+		for (const auto& [id, record] : checkBoxPaintInstance.GetStateStorage().GetWidgetRecords())
+		{
+			(void)id;
+			if (record.widgetType == std::type_index(typeid(SdCheckBox)))
+				checkBoxLayoutMinX = checkBoxPaintInstance.GetRootStyleNode(record.state.id).layoutBox.borderBox.min.x;
+		}
+		const SdUInt32 checkBoxPaintPackedRgb = checkBoxPaintColor.Pack() & 0x00ffffffu;
+		float checkBoxPaintMinX = 1000000.0f;
+		for (const SdVertex& vertex : checkBoxPaintInstance.GetRenderData().vertices)
+		{
+			if ((vertex.color & 0x00ffffffu) == checkBoxPaintPackedRgb && (vertex.color >> 24) > 0u)
+				checkBoxPaintMinX = std::min(checkBoxPaintMinX, vertex.position.x);
+		}
+		const bool checkBoxPaintUsesLayoutBox = checkBoxPaintMinX == checkBoxLayoutMinX;
+		Check(checkBoxPaintUsesLayoutBox, "checkbox paint uses root layout box geometry");
+
 		SdInstance overflowInstance;
 		overflowInstance.GetStyleSystem().RootRule(TestOverflowContainer::TargetTypeId)
 			.Set(&SdBoxStyle::display, SdDisplay::Flex)
