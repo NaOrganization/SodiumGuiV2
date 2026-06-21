@@ -356,13 +356,6 @@ namespace Sodium
 						SdTypedStyleAnimationChannel& channel = Detail::GetOrCreateTypedStyleAnimationChannel(styleRecord, field.fieldId);
 						channel.styleNodeId = record.rootStyleNodeId;
 						channel.propertyId = field.fieldId;
-						channel.impact = field.impact;
-						channel.interpolation = field.interpolation;
-						channel.transition = transition;
-						channel.elapsed = propertyChannel.elapsed;
-						channel.startValue = propertyChannel.startValue;
-						channel.targetValue = propertyChannel.targetValue;
-						channel.currentValue = propertyChannel.currentValue;
 						channel.active = propertyChannel.active;
 						if (!channel.active)
 							field.writeValue(&presentationStyle, propertyChannel.currentValue, context.styleSystem.GetTheme());
@@ -424,19 +417,17 @@ namespace Sodium
 				}
 
 				SdPropertyAnimationChannel& propertyChannel = context.styleAnimationChannels.Ensure(channel.styleNodeId, channel.propertyId);
-				channel.elapsed = propertyChannel.elapsed;
-				channel.currentValue = propertyChannel.currentValue;
-				field->writeValue(presentationStyle, channel.currentValue, context.styleSystem.GetTheme());
-				channel.active = propertyChannel.active && !Detail::StyleValuesEqual(channel.currentValue, channel.targetValue);
+				field->writeValue(presentationStyle, propertyChannel.currentValue, context.styleSystem.GetTheme());
+				channel.active = propertyChannel.active
+					&& !Detail::StyleValuesEqual(propertyChannel.currentValue, propertyChannel.targetValue);
 				if (!channel.active)
 				{
-					channel.currentValue = channel.targetValue;
-					field->writeValue(presentationStyle, channel.targetValue, context.styleSystem.GetTheme());
+					field->writeValue(presentationStyle, propertyChannel.targetValue, context.styleSystem.GetTheme());
 					propertyChannel.active = false;
-					propertyChannel.currentValue = channel.targetValue;
+					propertyChannel.currentValue = propertyChannel.targetValue;
 				}
 
-				Detail::MarkTypedStyleFieldImpact(record, channel.impact, channel.active);
+				Detail::MarkTypedStyleFieldImpact(record, field->impact, channel.active);
 			}
 		}
 	}
