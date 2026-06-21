@@ -961,6 +961,7 @@ namespace Sodium
 
 			const Style& style = context.RootPresentationStyle<SdWindow>();
 			const SdBoxStyle& presentation = context.RootStyleNode().presentationStyle;
+			const SdBoxStyle& titlebarPresentation = context.Part(Parts::Titlebar).presentationStyle;
 			const SdBoxStyle& titlePresentation = context.Part(Parts::Title).presentationStyle;
 			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(presentation, context.animatedRect.Size(), { 420.0f, 260.0f });
 			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, titlePresentation.fontSize, titlePresentation.lineHeight);
@@ -969,10 +970,9 @@ namespace Sodium
 			const SdColor border = BasicWidgetDetail::ApplyOpacity(presentation.border.left.color, context.opacity * presentation.opacity);
 			const SdColor textColor = BasicWidgetDetail::ApplyOpacity(titlePresentation.color, context.opacity * titlePresentation.opacity);
 			const SdColor closeColor = BasicWidgetDetail::ApplyOpacity(presentation.color, context.opacity * presentation.opacity);
-			const SdColor titleColor = BasicWidgetDetail::ApplyOpacity(
-				context.instance.GetStyleSystem().GetTheme().GetColorVariable(SdThemeVariableLiteral("button.bg")),
-				context.opacity * presentation.opacity);
+			const SdColor titleColor = BasicWidgetDetail::ApplyOpacity(titlebarPresentation.backgroundColor, context.opacity * titlebarPresentation.opacity);
 			const float radius = SdResolveLength(presentation.radius, context.animatedRect.Width());
+			const float titlebarRadius = SdResolveLength(titlebarPresentation.radius, context.animatedRect.Width(), radius);
 
 			context.renderList.AddRectFilled(context.animatedRect, background, context.clipRect, radius);
 			const SdRect titleRect = {
@@ -981,7 +981,7 @@ namespace Sodium
 				context.animatedRect.max.x,
 				std::min(context.animatedRect.max.y, context.animatedRect.min.y + style.titleHeight)
 			};
-			context.renderList.AddRectFilled(titleRect, titleColor, context.clipRect, radius);
+			context.renderList.AddRectFilled(titleRect, titleColor, context.clipRect, titlebarRadius);
 			context.renderList.AddRect(context.animatedRect, border, context.clipRect, 1.0f, radius);
 
 			const SdVec2 titlePosition = {

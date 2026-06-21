@@ -482,6 +482,9 @@ namespace
 		RecordingFontBackend windowPartFontBackend = {};
 		windowPartStyleInstance.SetFontBackend(&windowPartFontBackend);
 		const SdColor titlePartColor = SdColor(22, 88, 143, 255);
+		const SdColor titlebarPartColor = SdColor(13, 47, 69, 255);
+		windowPartStyleInstance.GetStyleSystem().Part<SdWindow>(SdWindow::Parts::Titlebar)
+			.Set(&SdBoxStyle::backgroundColor, titlebarPartColor);
 		windowPartStyleInstance.GetStyleSystem().Part<SdWindow>(SdWindow::Parts::Title)
 			.Set(&SdBoxStyle::color, titlePartColor)
 			.Set(&SdBoxStyle::opacity, 1.0f);
@@ -495,6 +498,14 @@ namespace
 			&& windowPartFontBackend.lastPaintColor.g == titlePartColor.g
 			&& windowPartFontBackend.lastPaintColor.b == titlePartColor.b,
 			"window title part color drives text paint");
+		bool titlebarPartRuleApplied = false;
+		for (const auto& [id, record] : windowPartStyleInstance.GetStateStorage().GetWidgetRecords())
+		{
+			(void)id;
+			if (record.widgetType == std::type_index(typeid(SdWindow)))
+				titlebarPartRuleApplied = windowPartStyleInstance.GetStylePart(record.state.id, SdWindow::Parts::Titlebar).presentationStyle.backgroundColor == titlebarPartColor;
+		}
+		Check(titlebarPartRuleApplied, "window titlebar part background resolves into part style node");
 	}
 
 	void TestStyleSheetCascadeAndRegistry()
@@ -567,6 +578,8 @@ namespace
 		Check(windowDefault.height.unit == SdLengthUnit::Pixels && windowDefault.height.value == 260.0f, "window default height resolves through root style");
 		Check(windowDefault.padding.top.value == 40.0f, "window default title padding resolves through root style");
 		Check(SdResolveLength(windowDefault.gap, 0.0f) == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableLiteral("spacing.small")), "window default child spacing resolves through root gap");
+		const SdWidgetPartStyle windowTitlebarDefault = styleSystem.ResolvePartStyle(SdWindow::TargetTypeId, SdWindow::Parts::Titlebar, windowDefault, SdStyleInteractionState::Normal, SdLayerPriority::Floating);
+		Check(windowTitlebarDefault.backgroundColor == styleSystem.GetTheme().GetColorVariable(SdThemeVariableLiteral("button.bg")), "window titlebar default background resolves through part style");
 
 		const SdWidgetRootStyle buttonDefault = styleSystem.ResolveRootStyle(SdButton::TargetTypeId, SdStyleInteractionState::Normal);
 		Check(buttonDefault.minWidth.unit == SdLengthUnit::Pixels && buttonDefault.minWidth.value == 82.0f, "button default min width resolves through root style");

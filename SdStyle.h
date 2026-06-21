@@ -927,6 +927,10 @@ namespace Sodium
 				.Set(&SdBoxStyle::radius, ThemeMetric("radius.small"))
 				.Set(&SdBoxStyle::gap, SdLength::Pixels(theme.GetMetricVariable(SdThemeVariableLiteral("spacing.small"))))
 				.Set(&SdBoxStyle::opacity, 1.0f);
+			typedStyleSheet.PartForTarget(SdWidgetTargetIds::Window, SdStylePart::Make("Sodium.Window.Part.Titlebar"))
+				.Cascade(SdCascadeLayer::UserAgent)
+				.Set(&SdBoxStyle::backgroundColor, ThemeColor("button.bg"))
+				.Set(&SdBoxStyle::radius, ThemeMetric("radius.small"));
 			const float smallSpacing = theme.GetMetricVariable(SdThemeVariableLiteral("spacing.small"));
 			typedStyleSheet.RuleForTarget<SdWidgetRootStyle>(SdWidgetTargetIds::Button)
 				.Cascade(SdCascadeLayer::UserAgent)
