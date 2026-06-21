@@ -122,14 +122,20 @@ namespace Sodium
 		static void StyleThunk(SdInstance& instance, SdWidgetRecord& record, SdStyleInteractionState interactionState, SdLayerPriority layerPriority)
 		{
 			if constexpr (requires { typename T::Style; })
-				instance.ResolveTypedWidgetStyle<T>(record, interactionState, layerPriority);
+			{
+				if constexpr (!std::same_as<typename T::Style, SdWidgetRootStyle>)
+					instance.ResolveTypedWidgetStyle<T>(record, interactionState, layerPriority);
+			}
 		}
 
 		template<class T>
 		static void TypedStyleAnimationThunk(SdInstance& instance, SdWidgetRecord& record, SdDuration deltaTime)
 		{
 			if constexpr (requires { typename T::Style; })
-				instance.AdvanceTypedWidgetStyleAnimations<T>(record, deltaTime);
+			{
+				if constexpr (!std::same_as<typename T::Style, SdWidgetRootStyle>)
+					instance.AdvanceTypedWidgetStyleAnimations<T>(record, deltaTime);
+			}
 		}
 
 		template<class T>

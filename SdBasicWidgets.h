@@ -136,21 +136,7 @@ namespace Sodium
 	struct SdText final : SdWidgetTag
 	{
 		static constexpr SdStyleId TargetTypeId = SdWidgetTargetIds::Text;
-
-		struct Style final
-		{
-			static Style Default(const SdStyleContext& context)
-			{
-				(void)context;
-				Style style = {};
-				return style;
-			}
-
-			static void Describe(SdStyleContract<Style>& contract)
-			{
-				(void)contract;
-			}
-		};
+		using Style = SdWidgetRootStyle;
 
 		struct Model final
 		{
