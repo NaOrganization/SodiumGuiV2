@@ -1144,6 +1144,20 @@ namespace Sodium
 		SdStyleSystem& system;
 		SdTypedStyleRule& rule;
 
+		SdStyleSheetRuleBuilder<Style> BuildCompiledRule()
+		{
+			SdStyleSheetRuleBuilder<Style> compiledRule = system.typedStyleSheet.Rule<TWidget>();
+			if (rule.interactionState != SdStyleInteractionState::Normal)
+				compiledRule.Pseudo(rule.interactionState);
+			if (rule.matchLayer)
+				compiledRule.Layer(rule.layerPriority);
+			if (rule.matchClass)
+				compiledRule.Class(rule.classId);
+			if (rule.matchScope)
+				compiledRule.Scope(rule.scopeId);
+			return compiledRule;
+		}
+
 	public:
 		SdStyleRuleBuilder(SdStyleSystem& owner, SdTypedStyleRule& styleRule)
 			: system(owner), rule(styleRule) {}
@@ -1200,11 +1214,14 @@ namespace Sodium
 		template<class TField>
 		SdStyleRuleBuilder& Transition(TField Style::* member, SdDuration duration, SdAnimationEasing easing)
 		{
+			const SdTransition transitionValue{ duration, easing };
 			SdTypedStyleTransition transition = {};
 			transition.styleType = std::type_index(typeid(Style));
 			transition.fieldId = Detail::SdStyleFieldId(member);
-			transition.transition = { duration, easing };
+			transition.transition = transitionValue;
 			rule.transitions.push_back(transition);
+			BuildCompiledRule().Transition(member, duration, easing);
+			system.compiledStyleSheet = system.typedStyleSheet.Compile();
 			system.Touch();
 			return *this;
 		}
@@ -1225,7 +1242,7 @@ namespace Sodium
 					static_cast<Style*>(style)->*member = resolvedValue;
 				};
 				rule.declarations.push_back(std::move(declaration));
-				system.typedStyleSheet.Rule<TWidget>().Set(member, value);
+				BuildCompiledRule().Set(member, value);
 				system.compiledStyleSheet = system.typedStyleSheet.Compile();
 				system.Touch();
 				return *this;
@@ -1283,8 +1300,53 @@ namespace Sodium
 		SdTransition& transition) const
 	{
 		using Style = typename TWidget::Style;
-		bool found = false;
 		const std::type_index styleType = std::type_index(typeid(Style));
+		SdStyleResolveRequest request = {};
+		request.targetTag = GetTargetTag<TWidget>();
+		request.part = SdStylePart::Root();
+		request.pseudoState = SdPseudoState::FromInteraction(interactionState);
+		request.layerPriority = layerPriority;
+		request.classes = styleClasses;
+		request.scope = styleScope;
+		bool found = false;
+		bool currentImportant = false;
+		SdCascadeLayer currentLayer = SdCascadeLayer::UserAgent;
+		SdStyleSpecificity currentSpecificity = {};
+		SdUInt32 currentSourceOrder = 0;
+		for (const SdCompiledStyleRule& rule : compiledStyleSheet.GetRules())
+		{
+			if (rule.selector.styleType != styleType)
+				continue;
+			if (!SdStyleResolver::SelectorMatches(rule.selector, request))
+				continue;
+
+			for (const SdCompiledTransition& candidate : rule.transitions)
+			{
+				if (candidate.styleType != styleType || candidate.propertyId != fieldId)
+					continue;
+				if (!found
+					|| SdStyleResolver::HasHigherCascadePriority(
+						candidate.important,
+						rule.cascadeLayer,
+						rule.specificity,
+						rule.sourceOrder,
+						currentImportant,
+						currentLayer,
+						currentSpecificity,
+						currentSourceOrder))
+				{
+					transition = candidate.transition;
+					currentImportant = candidate.important;
+					currentLayer = rule.cascadeLayer;
+					currentSpecificity = rule.specificity;
+					currentSourceOrder = rule.sourceOrder;
+					found = true;
+				}
+			}
+		}
+		if (found)
+			return true;
+
 		for (const SdTypedStyleRule& rule : typedRules)
 		{
 			if (!MatchesTypedRule(rule, styleType, GetTargetTag<TWidget>(), interactionState, layerPriority, styleClasses, styleScope))

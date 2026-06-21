@@ -54,6 +54,14 @@ namespace Sodium
 		bool important = false;
 	};
 
+	struct SdCompiledTransition final
+	{
+		std::type_index styleType = std::type_index(typeid(void));
+		SdPropertyId propertyId = 0;
+		SdTransition transition = {};
+		bool important = false;
+	};
+
 	struct SdCompiledStyleRule final
 	{
 		SdCompiledSelector selector = {};
@@ -61,6 +69,7 @@ namespace Sodium
 		SdStyleSpecificity specificity = {};
 		SdUInt32 sourceOrder = 0;
 		std::vector<SdCompiledDeclaration> declarations = {};
+		std::vector<SdCompiledTransition> transitions = {};
 	};
 
 	class SdCompiledStyleSheet final
@@ -159,6 +168,8 @@ namespace Sodium
 		{
 			for (SdCompiledDeclaration& declaration : rule.declarations)
 				declaration.important = true;
+			for (SdCompiledTransition& transition : rule.transitions)
+				transition.important = true;
 			return *this;
 		}
 
@@ -186,6 +197,18 @@ namespace Sodium
 			return SetValue(member, value, true);
 		}
 
+		template<class TOwner, class TField>
+		SdStyleSheetRuleBuilder& Transition(TField TOwner::* member, SdDuration duration, SdAnimationEasing easing)
+		{
+			return TransitionValue(member, { duration, easing }, false);
+		}
+
+		template<class TOwner, class TField>
+		SdStyleSheetRuleBuilder& TransitionImportant(TField TOwner::* member, SdDuration duration, SdAnimationEasing easing)
+		{
+			return TransitionValue(member, { duration, easing }, true);
+		}
+
 	private:
 		template<class TOwner, class TField>
 		SdStyleSheetRuleBuilder& SetValue(TField TOwner::* member, SdStyleValue value, bool important)
@@ -196,6 +219,18 @@ namespace Sodium
 			declaration.value = value;
 			declaration.important = important;
 			rule.declarations.push_back(declaration);
+			return *this;
+		}
+
+		template<class TOwner, class TField>
+		SdStyleSheetRuleBuilder& TransitionValue(TField TOwner::* member, SdTransition transition, bool important)
+		{
+			SdCompiledTransition compiledTransition = {};
+			compiledTransition.styleType = std::type_index(typeid(TStyle));
+			compiledTransition.propertyId = Detail::SdStylePropertyId(member);
+			compiledTransition.transition = transition;
+			compiledTransition.important = important;
+			rule.transitions.push_back(compiledTransition);
 			return *this;
 		}
 	};

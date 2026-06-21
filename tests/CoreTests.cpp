@@ -1425,6 +1425,15 @@ namespace
 			.Set(&TypedStyleWidget::Style::color, startColor);
 		transitionInstance.GetStyleSystem().Rule<TypedStyleWidget>()
 			.Transition(&TypedStyleWidget::Style::color, std::chrono::milliseconds(400), SdAnimationEasing::Linear);
+		SdTransition compiledTransition = {};
+		const bool compiledTransitionResolved = transitionInstance.GetStyleSystem().TryResolveTransition<TypedStyleWidget>(
+			Detail::SdStyleFieldId(&TypedStyleWidget::Style::color),
+			SdStyleInteractionState::Normal,
+			SdLayerPriority::Content,
+			{},
+			0,
+			compiledTransition);
+		Check(compiledTransitionResolved && compiledTransition.duration == std::chrono::milliseconds(400), "typed transition resolves through compiled stylesheet");
 		gTypedStylePaintColor = {};
 		transitionInstance.BeginFrame({ 640.0f, 480.0f });
 		transitionInstance.ui.Declare<TypedStyleWidget>();
@@ -1461,6 +1470,29 @@ namespace
 		transitionInstance.ui.Declare<TypedStyleWidget>();
 		PumpFrame(transitionInstance);
 		Check(gTypedStylePaintColor == targetColor, "typed presentation style reaches transition target");
+
+		SdInstance classTransitionInstance;
+		classTransitionInstance.GetStyleSystem().Rule<TypedStyleWidget>()
+			.Set(&TypedStyleWidget::Style::color, startColor);
+		classTransitionInstance.GetStyleSystem().Rule<TypedStyleWidget>()
+			.Class(dangerClass)
+			.Transition(&TypedStyleWidget::Style::color, std::chrono::milliseconds(350), SdAnimationEasing::Linear);
+		SdTransition classTransition = {};
+		const bool plainTransitionResolved = classTransitionInstance.GetStyleSystem().TryResolveTransition<TypedStyleWidget>(
+			Detail::SdStyleFieldId(&TypedStyleWidget::Style::color),
+			SdStyleInteractionState::Normal,
+			SdLayerPriority::Content,
+			{},
+			0,
+			classTransition);
+		const bool classScopedTransitionResolved = classTransitionInstance.GetStyleSystem().TryResolveTransition<TypedStyleWidget>(
+			Detail::SdStyleFieldId(&TypedStyleWidget::Style::color),
+			SdStyleInteractionState::Normal,
+			SdLayerPriority::Content,
+			SdSpan<const SdStyleClassId>(classList, 1),
+			0,
+			classTransition);
+		Check(!plainTransitionResolved && classScopedTransitionResolved && classTransition.duration == std::chrono::milliseconds(350), "compiled typed transition preserves class selector");
 	}
 
 	void TestContextOwnershipAndRenderSubmission()
