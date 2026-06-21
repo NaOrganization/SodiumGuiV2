@@ -990,17 +990,23 @@ namespace
 		instance.ui.Declare<SdButton>("Used");
 		PumpFrame(instance);
 		bool hasUsedBox = false;
+		bool hasPartUsedBox = false;
 		for (const auto& [id, record] : instance.GetStateStorage().GetWidgetRecords())
 		{
 			(void)id;
 			if (record.widgetType == std::type_index(typeid(SdButton)))
 			{
 				const SdStyleNode& root = instance.GetRootStyleNode(record.state.id);
+				const SdStyleNode& content = instance.GetStylePart(record.state.id, SdButton::Parts::Content);
+				const SdStyleNode& label = instance.GetStylePart(record.state.id, SdButton::Parts::Label);
 				hasUsedBox = root.usedBox.borderBox.Width() > 0.0f
 					&& root.usedBox.contentBox.Width() <= root.usedBox.borderBox.Width();
+				hasPartUsedBox = content.usedBox.borderBox.Width() == root.usedBox.borderBox.Width()
+					&& label.usedBox.contentBox.Height() == root.usedBox.contentBox.Height();
 			}
 		}
 		Check(hasUsedBox, "runtime writes used geometry to root style node");
+		Check(hasPartUsedBox, "runtime writes used geometry to part style nodes");
 	}
 
 	void TestIdAndKeySemantics()

@@ -145,6 +145,11 @@ namespace Sodium
 			{
 				rootNode->usedBox = SdBuildUsedBox(node.targetRect, rootNode->resolvedStyle);
 				record.rootStyleNode = *rootNode;
+				for (SdStyleNodeId partNodeId : record.partStyleNodeIds)
+				{
+					if (SdStyleNode* partNode = context.stateStorage.FindStyleNodeById(partNodeId))
+						partNode->usedBox = rootNode->usedBox;
+				}
 			}
 			if (node.parentIndex != SdInvalidIndex<SdUInt32> && node.parentIndex < layoutNodes.size())
 			{
