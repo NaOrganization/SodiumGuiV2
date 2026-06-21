@@ -416,6 +416,7 @@ namespace
 		bool sliderHasLabel = false;
 		bool inputHasCaret = false;
 		bool windowHasTitlebar = false;
+		bool windowHasCloseButton = false;
 		bool scrollViewHasThumb = false;
 		for (const auto& [id, record] : instance.GetStateStorage().GetWidgetRecords())
 		{
@@ -429,7 +430,10 @@ namespace
 			if (record.widgetType == std::type_index(typeid(SdTextInput)))
 				inputHasCaret = instance.GetStylePart(record.state.id, SdTextInput::Parts::Caret).part == SdTextInput::Parts::Caret;
 			if (record.widgetType == std::type_index(typeid(SdWindow)))
+			{
 				windowHasTitlebar = instance.GetStylePart(record.state.id, SdWindow::Parts::Titlebar).part == SdWindow::Parts::Titlebar;
+				windowHasCloseButton = instance.GetStylePart(record.state.id, SdWindow::Parts::CloseButton).part == SdWindow::Parts::CloseButton;
+			}
 			if (record.widgetType == std::type_index(typeid(SdScrollView)))
 				scrollViewHasThumb = instance.GetStylePart(record.state.id, SdScrollView::Parts::Thumb).part == SdScrollView::Parts::Thumb;
 		}
@@ -440,6 +444,7 @@ namespace
 		Check(sliderHasLabel, "slider label part style node exists");
 		Check(inputHasCaret, "text input caret part style node exists");
 		Check(windowHasTitlebar, "window titlebar part style node exists");
+		Check(windowHasCloseButton, "window close button part style node exists");
 		Check(scrollViewHasThumb, "scroll view thumb part style node exists");
 
 		gContextStyleNodeApiObservedRoot = false;
@@ -601,10 +606,14 @@ namespace
 		windowPartStyleInstance.SetFontBackend(&windowPartFontBackend);
 		const SdColor titlePartColor = SdColor(22, 88, 143, 255);
 		const SdColor titlebarPartColor = SdColor(13, 47, 69, 255);
+		const SdColor closeButtonPartColor = SdColor(201, 43, 98, 255);
 		windowPartStyleInstance.GetStyleSystem().Part<SdWindow>(SdWindow::Parts::Titlebar)
 			.Set(&SdBoxStyle::backgroundColor, titlebarPartColor);
 		windowPartStyleInstance.GetStyleSystem().Part<SdWindow>(SdWindow::Parts::Title)
 			.Set(&SdBoxStyle::color, titlePartColor)
+			.Set(&SdBoxStyle::opacity, 1.0f);
+		windowPartStyleInstance.GetStyleSystem().Part<SdWindow>(SdWindow::Parts::CloseButton)
+			.Set(&SdBoxStyle::color, closeButtonPartColor)
 			.Set(&SdBoxStyle::opacity, 1.0f);
 		bool titleWindowOpen = true;
 		windowPartStyleInstance.BeginFrame({ 320.0f, 200.0f });
@@ -617,13 +626,31 @@ namespace
 			&& windowPartFontBackend.lastPaintColor.b == titlePartColor.b,
 			"window title part color drives text paint");
 		bool titlebarPartRuleApplied = false;
+		bool closeButtonPartRuleApplied = false;
 		for (const auto& [id, record] : windowPartStyleInstance.GetStateStorage().GetWidgetRecords())
 		{
 			(void)id;
 			if (record.widgetType == std::type_index(typeid(SdWindow)))
-				titlebarPartRuleApplied = windowPartStyleInstance.GetStylePart(record.state.id, SdWindow::Parts::Titlebar).presentationStyle.backgroundColor == titlebarPartColor;
+			{
+				const SdBoxStyle& titlebarStyle = windowPartStyleInstance.GetStylePart(record.state.id, SdWindow::Parts::Titlebar).presentationStyle;
+				const SdBoxStyle& closeButtonStyle = windowPartStyleInstance.GetStylePart(record.state.id, SdWindow::Parts::CloseButton).presentationStyle;
+				titlebarPartRuleApplied = titlebarStyle.backgroundColor == titlebarPartColor;
+				closeButtonPartRuleApplied = closeButtonStyle.color == closeButtonPartColor && closeButtonStyle.opacity == 1.0f;
+			}
 		}
 		Check(titlebarPartRuleApplied, "window titlebar part background resolves into part style node");
+		Check(closeButtonPartRuleApplied, "window close button part color resolves into part style node");
+		const SdUInt32 closeButtonPartPackedRgb = closeButtonPartColor.Pack() & 0x00ffffffu;
+		const SdDrawPacket windowPartDrawPacket = windowPartStyleInstance.GetDrawPacket();
+		const bool closeButtonPartPainted = std::any_of(
+			windowPartDrawPacket.vertices.begin(),
+			windowPartDrawPacket.vertices.end(),
+			[closeButtonPartPackedRgb](const SdVertex& vertex)
+			{
+				return (vertex.color & 0x00ffffffu) == closeButtonPartPackedRgb
+					&& (vertex.color >> 24) > 0u;
+			});
+		Check(closeButtonPartPainted, "window close button part color drives icon paint");
 	}
 
 	void TestStyleSheetCascadeAndRegistry()
