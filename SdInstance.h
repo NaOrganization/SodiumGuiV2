@@ -33,6 +33,7 @@ namespace Sodium
 		SdUInt32 createdWidgetCount = 0;
 		SdUInt32 reusedWidgetCount = 0;
 		SdUInt32 modelCount = 0;
+		SdUInt32 liveObjectCount = 0;
 
 		void ResetFrameTransient() noexcept
 		{
@@ -53,6 +54,7 @@ namespace Sodium
 			resourceUploadCount = 0;
 			createdWidgetCount = 0;
 			reusedWidgetCount = 0;
+			liveObjectCount = 0;
 		}
 	};
 
@@ -102,12 +104,27 @@ namespace Sodium
 		void RunSweepStage();
 		SdTransition GetDefaultTransition() const noexcept;
 		void UpdateWidgetAnimation(SdWidgetRecord& record);
+		void SetWidgetStyleIdentity(SdWidgetRecord& record, SdSpan<const SdStyleClassId> styleClasses, SdStyleScopeId styleScope);
 		void ResolveWidgetStyle(SdWidgetRecord& record, SdStyleInteractionState interactionState, SdLayerPriority layerPriority);
 		void SetWidgetStyleAnimationTarget(SdWidgetRecord& record, const SdComputedStyle& style, bool immediate);
 		void ApplyWidgetStyleAnimation(SdWidgetRecord& record);
 		void SolveLayoutAndPaint();
 		SdUInt32 RemoveDeadWidgets();
 		void RefreshDiagnostics();
+
+		template<class T>
+		static void StyleThunk(SdInstance& instance, SdWidgetRecord& record, SdStyleInteractionState interactionState, SdLayerPriority layerPriority)
+		{
+			if constexpr (requires { typename T::Style; })
+				instance.ResolveTypedWidgetStyle<T>(record, interactionState, layerPriority);
+		}
+
+		template<class T>
+		static void TypedStyleAnimationThunk(SdInstance& instance, SdWidgetRecord& record, SdDuration deltaTime)
+		{
+			if constexpr (requires { typename T::Style; })
+				instance.AdvanceTypedWidgetStyleAnimations<T>(record, deltaTime);
+		}
 
 		template<class T>
 		static void LayoutThunk(void* object, SdLayoutContext& context)
@@ -159,6 +176,7 @@ namespace Sodium
 		const SdLayerSystem& GetLayerSystem() const noexcept { return context.layerSystem; }
 		const SdAnimationSystem& GetAnimationSystem() const noexcept { return context.animationSystem; }
 		const SdStateStorage& GetStateStorage() const noexcept { return context.stateStorage; }
+		SdStyleSystem& GetStyleSystem() noexcept { return context.styleSystem; }
 		const SdStyleSystem& GetStyleSystem() const noexcept { return context.styleSystem; }
 		const SdRenderSystem& GetRenderSystem() const noexcept { return context.renderSystem; }
 		const SdDrawData& GetRenderData() const noexcept { return renderList.GetDrawData(); }
@@ -180,6 +198,18 @@ namespace Sodium
 
 		template<class T>
 		T& GetOrCreateModel(SdResolvedKey resolvedKey);
+
+		template<class TWidget>
+		void ResolveTypedWidgetStyle(SdWidgetRecord& record, SdStyleInteractionState interactionState, SdLayerPriority layerPriority);
+
+		template<class TWidget>
+		void AdvanceTypedWidgetStyleAnimations(SdWidgetRecord& record, SdDuration deltaTime);
+
+		template<class TWidget>
+		const typename TWidget::Style& GetTargetStyle(SdWidgetId widgetId);
+
+		template<class TWidget>
+		const typename TWidget::Style& GetComputedStyle(SdWidgetId widgetId);
 
 	private:
 		void BeginInputFrame();

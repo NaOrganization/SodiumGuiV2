@@ -510,7 +510,7 @@ Widgets are split conceptually into:
 2. Persistent internal record
 3. Behavior update
 4. Layout contribution
-5. Style resolution
+5. Style cascade and transition resolution
 6. Paint/render intent
 ```
 
@@ -555,7 +555,7 @@ struct SdWidgetContextBase
     SdWidgetId parentId = 0;
 
     SdWidgetState& widgetState;
-    SdComputedStyle& style;
+    SdStyleNode& rootStyleNode;
     SdThemeView theme;
 
     template<class T>
@@ -599,44 +599,291 @@ Widget behavior produces interaction results from input state. Rendering should 
 
 ## 15. Style
 
-SdGUI does not use the previous Theme / Property model. Style is based on tokens, rules, and computed styles.
+SdGUI's style system is a C++ strongly typed implementation of the CSS semantic model. The goal is not merely to expose a CSS-like API, but to make compiled or translated CSS produce layout, paint, and transition results that are as close as practical to CSS. The framework owns selector matching, cascade, theme/variable resolution, box layout, dirty marking, and transition scheduling. Widgets declare their root style, styleable parts, and semantic paint behavior.
+
+Core names:
 
 ```text
-StyleToken:
-- ColorText
-- ColorBackground
-- ColorAccent
-- SpacingSmall
-- SpacingMedium
-- RadiusSmall
-- FontBody
-- DurationFast
-
-StyleRule:
-- widget type
-- state selector
-- layer/context selector
-- token override
-
-ComputedStyle:
-- final color
-- background
-- padding
-- border
-- radius
-- font
-- transition
+SdBoxStyle          CSS-like base box/text/paint property set.
+SdWidgetRootStyle   Default style type for a widget root style node.
+SdWidgetPartStyle   Default style type for a widget part style node.
+SdStylePart         Strongly typed identifier for a styleable widget part.
+SdStyleNode         Runtime style node for either root or part.
+presentation style  Style after transition / animation, used by paint.
 ```
 
-Style provides target values. Visual interpolation is handled by Animation.
+`SdWidgetRootStyle` and `SdWidgetPartStyle` share the same `SdBoxStyle` properties by default, but their names keep root and part semantics explicit.
 
-Performance rule:
+```cpp
+struct SdBoxStyle
+{
+    SdDisplay display = SdDisplay::Block;
+    SdPosition position = SdPosition::Static;
+
+    SdLength width = SdAuto;
+    SdLength height = SdAuto;
+    SdLength minWidth = {};
+    SdLength minHeight = {};
+    SdLength maxWidth = SdNone;
+    SdLength maxHeight = SdNone;
+
+    SdSpacing margin = {};
+    SdSpacing padding = {};
+    SdBorder border = {};
+    SdBoxSizing boxSizing = SdBoxSizing::ContentBox;
+    SdOverflow overflow = SdOverflow::Visible;
+
+    SdColor color = SdColorWhite;
+    SdFontFamily fontFamily = {};
+    float fontSize = 16.0f;
+    float lineHeight = 0.0f;
+    SdTextAlign textAlign = SdTextAlign::Left;
+
+    SdColor backgroundColor = SdColorTransparent;
+    float opacity = 1.0f;
+    SdTransform transform = {};
+
+    SdTransitionList transitions = {};
+};
+
+struct SdWidgetRootStyle : SdBoxStyle
+{
+};
+
+struct SdWidgetPartStyle : SdBoxStyle
+{
+};
+```
+
+Basic widgets use `SdWidgetRootStyle` as their root style by default. Complex widgets expose styleable internal nodes through `SdStylePart` instead of nesting child styles inside the root style.
+
+### 15.1 Style Node And Part
+
+Every widget has at least one root style node. Any internal structure that can be selected, laid out, painted, or transitioned independently must be declared as a part style node.
+
+```cpp
+struct SdButton final : SdWidgetTag
+{
+    using Style = SdWidgetRootStyle;
+
+    struct Parts final
+    {
+        static constexpr SdStylePart Content = SdStylePart::Make("content");
+        static constexpr SdStylePart Icon = SdStylePart::Make("icon");
+        static constexpr SdStylePart Label = SdStylePart::Make("label");
+    };
+
+    static void Describe(SdComponentContract<SdButton>& contract)
+    {
+        contract.Root()
+            .Style<SdWidgetRootStyle>()
+            .Box();
+
+        contract.Part(Parts::Content)
+            .Style<SdWidgetPartStyle>()
+            .Box();
+
+        contract.Part(Parts::Icon)
+            .Style<SdWidgetPartStyle>()
+            .Box()
+            .Optional();
+
+        contract.Part(Parts::Label)
+            .Style<SdWidgetPartStyle>()
+            .Inline()
+            .InheritText();
+    }
+};
+```
+
+Composite controls such as input declare internal parts with the same rule:
+
+```cpp
+struct SdInput final : SdWidgetTag
+{
+    using Style = SdWidgetRootStyle;
+
+    struct Parts final
+    {
+        static constexpr SdStylePart Field = SdStylePart::Make("field");
+        static constexpr SdStylePart Value = SdStylePart::Make("value");
+        static constexpr SdStylePart Placeholder = SdStylePart::Make("placeholder");
+        static constexpr SdStylePart Selection = SdStylePart::Make("selection");
+        static constexpr SdStylePart Caret = SdStylePart::Make("caret");
+    };
+
+    static void Describe(SdComponentContract<SdInput>& contract)
+    {
+        contract.Root().Style<SdWidgetRootStyle>().Box();
+        contract.Part(Parts::Field).Style<SdWidgetPartStyle>().Box();
+        contract.Part(Parts::Value).Style<SdWidgetPartStyle>().Inline().InheritText();
+        contract.Part(Parts::Placeholder).Style<SdWidgetPartStyle>().Inline().InheritText();
+        contract.Part(Parts::Selection).Style<SdWidgetPartStyle>().Box();
+        contract.Part(Parts::Caret).Style<SdWidgetPartStyle>().Box();
+    }
+};
+```
+
+### 15.2 Style Value Pipeline
+
+To stay close to CSS, style state uses CSS phase semantics:
 
 ```text
-Style rules should be resolved through token IDs and preprocessed selectors.
-Avoid per-frame string matching on the hot path.
+specified     declared value after cascade.
+resolved      value after inherit, theme tokens, custom variables, em/rem, and similar resolution.
+used          actual px value and box geometry after layout.
+presentation  value after transition / animation, used by paint.
 ```
 
+`presentation` replaces the previous computed/current wording because it names the style that is actually painted. Layout uses `used` geometry. Paint uses `presentation` style.
+
+```cpp
+void SdButton::OnPaint(SdPaintContext& context)
+{
+    const SdStyleNode& root = context.RootStyleNode();
+    const SdStyleNode& label = context.Part(SdButton::Parts::Label);
+
+    DrawBackground(root.used.borderBox, root.presentation);
+    DrawBorder(root.used.borderBox, root.presentation);
+    DrawText(label.textRun, label.used.contentBox.min, label.presentation);
+}
+```
+
+Paint must not decide style again or perform ad-hoc parent lookups. Inheritance, variables, and transitions must already be resolved by the style pipeline.
+
+### 15.3 CSS-like Selector And Cascade
+
+Each style node keeps a style identity:
+
+```text
+target type    similar to an HTML tag, such as SdButton / SdLabel / UserWidget.
+part           root or SdStylePart.
+classes        strongly typed classes, no hot-path strings.
+pseudo state   hovered / pressed / focused / disabled.
+scope          window, panel, popup, or a user-defined style scope.
+inline style   user-passed root style target.
+```
+
+Cascade priority follows CSS semantics:
+
+```text
+1. user-agent stylesheet, meaning SdGUI default styles.
+2. theme stylesheet.
+3. user stylesheet.
+4. scoped stylesheet.
+5. inline style target.
+6. !important.
+
+Rules in the same layer are ordered by specificity -> source order.
+```
+
+User code does not pass string classes. Class, part, property, and selector names are converted to stable IDs during registration or offline compilation.
+
+```cpp
+namespace AppClass
+{
+    inline constexpr SdClass Primary = SdClass::Make("primary");
+    inline constexpr SdClass Danger = SdClass::Make("danger");
+}
+
+SdStyleSheet sheet;
+
+sheet.Rule<SdButton>()
+    .Set(&SdWidgetRootStyle::display, SdDisplay::InlineFlex)
+    .Set(&SdWidgetRootStyle::padding, SdSpacing{ 6.0f, 10.0f, 6.0f, 10.0f })
+    .Set(&SdWidgetRootStyle::backgroundColor, ThemeColor("button.bg"));
+
+sheet.Rule<SdButton>().Class(AppClass::Danger).Pseudo(SdPseudoState::Hovered)
+    .Set(&SdWidgetRootStyle::backgroundColor, ThemeColor("danger.hover"));
+
+sheet.Part<SdButton>(SdButton::Parts::Label)
+    .Set(&SdWidgetPartStyle::color, ThemeColor("button.text"))
+    .Set(&SdWidgetPartStyle::fontSize, ThemeMetric("font.button"));
+```
+
+### 15.4 Transition And Animation
+
+Property capability is declared by a style contract or global property registry. The declaration includes affect category, interpolation type, and whether the property is an expensive layout transition.
+
+```cpp
+contract.Property(&SdBoxStyle::backgroundColor)
+    .AffectsPaint()
+    .InterpolatesAsColor();
+
+contract.Property(&SdBoxStyle::opacity)
+    .AffectsComposite()
+    .InterpolatesAsFloat();
+
+contract.Property(&SdBoxStyle::width)
+    .AffectsLayout()
+    .InterpolatesAsLength()
+    .ExpensiveTransition();
+
+contract.Property(&SdBoxStyle::display)
+    .AffectsLayout()
+    .Discrete();
+```
+
+Stylesheets decide whether a transition is enabled for a rule:
+
+```cpp
+sheet.Rule<SdButton>()
+    .Transition(&SdWidgetRootStyle::backgroundColor, 160ms, SdAnimationEasing::OutCubic)
+    .Transition(&SdWidgetRootStyle::opacity, 120ms, SdAnimationEasing::Linear);
+```
+
+Runtime diff flow:
+
+```text
+1. Resolve the new specified/resolved style.
+2. Compare it with the previous target/resolved style.
+3. If a field did not change, do nothing.
+4. If a field changed and is not interpolatable or has no transition, jump presentation directly to target.
+5. If a field changed, is interpolatable, and has transition enabled, start or update a property animation channel.
+6. Mark layoutDirty, paintDirty, or compositeDirty based on the field's affect category.
+```
+
+### 15.5 User-side Usage
+
+Users pass strongly typed classes and optional inline root styles. Inline style is only a target; it is not presentation.
+
+```cpp
+void DrawUi(SdUi& ui)
+{
+    ui.Declare<SdDiv>([](SdUi& ui)
+    {
+        ui.Declare<SdButton>("Save", SdClassList{ AppClass::Primary });
+        ui.Declare<SdButton>("Delete", SdClassList{ AppClass::Danger });
+        ui.Declare<SdInput>("username");
+    });
+}
+```
+
+```cpp
+SdWidgetRootStyle customButton = {};
+customButton.padding = { 8.0f, 14.0f, 8.0f, 14.0f };
+customButton.backgroundColor = { 40, 120, 220, 255 };
+
+ui.Declare<SdButton>("Custom", SdInlineStyle{ &customButton });
+```
+
+### 15.6 Performance Principles
+
+Style and layout implementation must avoid CPU hot-path overhead:
+
+```text
+1. Compile selectors into SdCompiledSelector at load time or offline.
+2. Frame execution compares only integer IDs, bitsets, and preprocessed selector keys.
+3. Bucket stylesheets by target type, part, pseudo, and scope to avoid full-table scans.
+4. SdClassList uses a fixed bitset or small-vector so common paths do not allocate.
+5. Properties use pointer-to-member metadata to produce property id, offset, and type traits, avoiding string lookup.
+6. Style diff emits dirty masks: layout / paint / composite.
+7. Inherited properties use revision propagation so children skip recompute when parent inherited values are unchanged.
+8. Style nodes, box nodes, and layout fragments use contiguous arrays and index references.
+9. Layout algorithms avoid virtual-function trees and prefer C++20 concepts, constexpr metadata, and dispatch tables.
+10. Transition channels are created sparsely by property id, and only active channels update.
+11. CSS files can be compiled offline into SdCompiledStyleSheet; runtime does not parse selector strings.
+```
 ## 16. Layer
 
 Layer design is preserved and is independent from the old Element architecture.
@@ -882,10 +1129,10 @@ Declaration stage
 
 EndFrame
 1. Widgets not submitted this frame enter Leaving if still alive.
-2. Style resolution produces ComputedStyle.
-3. Layout calls OnLayout where available, computes measuredSize and targetRect.
+2. Style cascade resolves specified/resolved style and updates runtime presentation style.
+3. Layout calls OnLayout where available and computes measuredSize and targetRect from target/used style.
 4. Animation updates layoutWeight, opacity, and rect values.
-5. Paint calls OnPaint where available and writes frame-local RenderList data.
+5. Paint calls OnPaint where available and writes frame-local RenderList data from used geometry and presentation style.
 6. RenderContext builds final RenderData.
 7. Dead widgets and typed user state are removed from StateStorage.
 
@@ -904,7 +1151,7 @@ Renderer submission
 3. Clear vectors every frame, but preserve capacity.
 4. Do not allocate LayoutNode with per-node heap allocation.
 5. Update only active animation channels.
-6. Resolve style through token IDs and cached selectors.
+6. Resolve style through preprocessed target/class/property IDs and cached selectors.
 7. Rebuild RenderList every frame, but reuse GPU buffers.
 8. Upload TextureAtlas and FontAtlas only when dirty.
 9. Remove Leaving widgets as soon as their animation completes.
@@ -926,7 +1173,7 @@ Renderer submission
 7. SdCreateContext / SdUpdateContext / SdLayoutContext / SdPaintContext
 8. SdLayoutContext with declared widget boundary support
 9. AnimationContext with active channel update
-10. Basic StyleToken and ComputedStyle
+10. SdBoxStyle, SdWidgetRootStyle, SdWidgetPartStyle, SdStylePart, stylesheet cascade, and presentation style
 11. RenderData and DrawList
 12. FontAtlas and UTF-8 decoding
 13. LayerManager

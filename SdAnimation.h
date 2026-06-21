@@ -45,6 +45,14 @@ namespace Sodium
 		SdAnimationChannelId styleColorG = 0;
 		SdAnimationChannelId styleColorB = 0;
 		SdAnimationChannelId styleColorA = 0;
+		SdAnimationChannelId styleBackgroundR = 0;
+		SdAnimationChannelId styleBackgroundG = 0;
+		SdAnimationChannelId styleBackgroundB = 0;
+		SdAnimationChannelId styleBackgroundA = 0;
+		SdAnimationChannelId styleBorderR = 0;
+		SdAnimationChannelId styleBorderG = 0;
+		SdAnimationChannelId styleBorderB = 0;
+		SdAnimationChannelId styleBorderA = 0;
 		SdAnimationChannelId scrollOffset = 0;
 	};
 

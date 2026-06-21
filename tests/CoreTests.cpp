@@ -36,6 +36,15 @@ namespace
 
 	struct TestDrawWidget final : SdWidgetTag
 	{
+		struct Style final
+		{
+			static constexpr SdStyleTokenTag TokenTag = SdStyleTargetTags::Button;
+			static constexpr SdStyleTokenTag Background = SdStylePropertyTags::Background;
+			static constexpr SdStyleTokenTag Border = SdStylePropertyTags::Border;
+			static constexpr SdStyleTokenTag Color = SdStylePropertyTags::Color;
+			static constexpr SdStyleTokenTag Radius = SdStylePropertyTags::Radius;
+		};
+
 		struct State
 		{
 			SdUtf8String label = {};
@@ -47,7 +56,7 @@ namespace
 			State& state = context.State<State>();
 			state.label.assign(label.data(), label.size());
 			state.clicked = context.WasClicked();
-			context.widgetState.styleClass = SdStyleWidgetClass::Button;
+			context.widgetState.styleTokenTag = Style::TokenTag;
 		}
 
 		void OnUpdate(SdUpdateContext& context, SdUtf8StringView label, bool& clicked)
@@ -64,19 +73,30 @@ namespace
 		void OnPaint(SdPaintContext& context)
 		{
 			const State& state = context.State<State>();
-			context.renderList.AddRectFilled(context.animatedRect, ApplyOpacity(context.style.background, context.opacity), context.clipRect, context.style.radius);
-			context.renderList.AddRect(context.animatedRect, ApplyOpacity(context.style.border, context.opacity), context.clipRect, 1.0f, context.style.radius);
-			context.renderList.AddText(state.label, { context.animatedRect.min.x + 8.0f, context.animatedRect.min.y + 8.0f }, ApplyOpacity(context.style.color, context.opacity), context.clipRect);
+			const SdColor background = context.style.GetColor(Style::Background, context.style.background);
+			const SdColor border = context.style.GetColor(Style::Border, context.style.border);
+			const SdColor color = context.style.GetColor(Style::Color, context.style.color);
+			const float radius = context.style.GetFloat(Style::Radius, context.style.radius);
+			context.renderList.AddRectFilled(context.animatedRect, ApplyOpacity(background, context.opacity), context.clipRect, radius);
+			context.renderList.AddRect(context.animatedRect, ApplyOpacity(border, context.opacity), context.clipRect, 1.0f, radius);
+			context.renderList.AddText(state.label, { context.animatedRect.min.x + 8.0f, context.animatedRect.min.y + 8.0f }, ApplyOpacity(color, context.opacity), context.clipRect);
 		}
 	};
 
 	struct TestContainer final : SdWidgetTag
 	{
+		struct Style final
+		{
+			static constexpr SdStyleTokenTag TokenTag = SdStyleTargetTags::Panel;
+			static constexpr SdStyleTokenTag Background = SdStylePropertyTags::Background;
+			static constexpr SdStyleTokenTag Radius = SdStylePropertyTags::Radius;
+		};
+
 		template<class TContent>
 			requires std::is_invocable_v<TContent&, SdUi&>
 		void OnUpdate(SdUpdateContext& context, TContent&& content)
 		{
-			context.widgetState.styleClass = SdStyleWidgetClass::Panel;
+			context.widgetState.styleTokenTag = Style::TokenTag;
 			std::forward<TContent>(content)(context.ui);
 		}
 
@@ -91,8 +111,17 @@ namespace
 
 		void OnPaint(SdPaintContext& context)
 		{
-			context.renderList.AddRectFilled(context.animatedRect, ApplyOpacity(context.style.background, context.opacity), context.clipRect, context.style.radius);
+			const SdColor background = context.style.GetColor(Style::Background, context.style.background);
+			const float radius = context.style.GetFloat(Style::Radius, context.style.radius);
+			context.renderList.AddRectFilled(context.animatedRect, ApplyOpacity(background, context.opacity), context.clipRect, radius);
 		}
+	};
+
+	struct CustomComponentStyle final
+	{
+		static constexpr SdStyleTokenTag TokenTag = SdStyleTokenTagLiteral("Tests.CustomComponent");
+		static constexpr SdStyleTokenTag Highlight = SdStyleTokenTagLiteral("Tests.CustomComponent.Highlight");
+		static constexpr SdStyleTokenTag ContentPadding = SdStyleTokenTagLiteral("Tests.CustomComponent.ContentPadding");
 	};
 
 	struct StatefulWidget final : SdWidgetTag
@@ -126,6 +155,51 @@ namespace
 		}
 	};
 
+	float gTypedStyleLayoutWidth = 0.0f;
+	SdColor gTypedStylePaintColor = {};
+
+	struct TypedStyleWidget final : SdWidgetTag
+	{
+		struct Style final
+		{
+			static constexpr SdStyleTokenTag TokenTag = SdStyleTokenTagLiteral("Tests.TypedStyleWidget");
+			float width = 24.0f;
+			SdColor color = SdColorWhite;
+
+			static Style Default(const SdStyleContext& context)
+			{
+				Style style = {};
+				style.width = 24.0f;
+				style.color = context.theme.GetColor(SdStyleToken::ColorText);
+				return style;
+			}
+
+			static void Describe(SdStyleContract<Style>& contract)
+			{
+				contract.Layout(&Style::width);
+				contract.Paint(&Style::color).InterpolatesAsColor();
+			}
+		};
+
+		void OnUpdate(SdUpdateContext& context)
+		{
+			context.widgetState.styleTokenTag = Style::TokenTag;
+		}
+
+		void OnLayout(SdLayoutContext& context)
+		{
+			const Style& style = context.TargetStyle<TypedStyleWidget>();
+			gTypedStyleLayoutWidth = style.width;
+			context.SetDesiredSize({ style.width, 16.0f });
+		}
+
+		void OnPaint(SdPaintContext& context)
+		{
+			const Style& style = context.ComputedStyle<TypedStyleWidget>();
+			gTypedStylePaintColor = style.color;
+		}
+	};
+
 	struct CountingRenderer final : ISdRendererBackend
 	{
 		SdUInt32 renderCount = 0;
@@ -148,6 +222,49 @@ namespace
 		void DestroyTexture(SdTextureHandle texture) override
 		{
 			(void)texture;
+		}
+	};
+
+	struct RecordingFontBackend final : ISdFontBackend
+	{
+		SdUtf8String lastMeasuredText = {};
+		SdUtf8String lastPaintText = {};
+
+		SdFontHandle GetFallbackFont() const noexcept override
+		{
+			return {};
+		}
+
+		SdVec2 MeasureText(SdUtf8StringView text, const SdTextStyle& style) override
+		{
+			lastMeasuredText.assign(text.data(), text.size());
+			return { static_cast<float>(text.size()) * style.pixelSize * 0.5f, style.pixelSize };
+		}
+
+		SdParagraphLayout BuildParagraphLayout(
+			SdUtf8StringView text,
+			const SdTextStyle& style,
+			float maxWidth,
+			const SdColor& color,
+			std::pmr::memory_resource* resource) override
+		{
+			(void)style;
+			(void)maxWidth;
+			(void)color;
+			lastPaintText.assign(text.data(), text.size());
+			SdParagraphLayout layout(resource);
+			layout.size = { static_cast<float>(text.size()), 1.0f };
+			return layout;
+		}
+
+		void ConfigureRenderSharedData(SdRenderSharedData& sharedData) const override
+		{
+			(void)sharedData;
+		}
+
+		void DrainPendingUploads(std::vector<SdUploadRequest>& uploads) override
+		{
+			(void)uploads;
 		}
 	};
 
@@ -226,12 +343,45 @@ namespace
 		instance.BeginFrame({ 640.0f, 480.0f });
 		PumpFrame(instance);
 		Check(instance.ui.Model<ModelWidget>("stable_model").value == 42.0f, "keyed model persists without widget record");
+		const SdUInt32 liveObjectCountBeforeSweep = instance.GetStateStorage().GetStats().liveObjectCount;
 
 		std::this_thread::sleep_for(std::chrono::milliseconds(220));
 		instance.BeginFrame({ 640.0f, 480.0f });
 		PumpFrame(instance);
 		Check(instance.GetDiagnostics().removedWidgetCount >= 1, "dead widget is swept");
+		Check(instance.GetStateStorage().FindWidgetRecord(widgetId) == nullptr, "dead widget record is removed");
+		Check(instance.GetDiagnostics().liveObjectCount < liveObjectCountBeforeSweep, "dead widget object storage is released");
 		Check(instance.GetDiagnostics().modelCount >= 1, "keyed model remains after widget sweep");
+	}
+
+	void TestBasicTextModelI18n()
+	{
+		SdInstance instance;
+		RecordingFontBackend fontBackend = {};
+		instance.SetFontBackend(&fontBackend);
+
+		instance.ui.Model<SdText>("title").SetText("Hello");
+		instance.BeginFrame({ 640.0f, 480.0f });
+		instance.ui.DeclareKeyed<SdText>("title", "Fallback");
+		PumpFrame(instance);
+		Check(fontBackend.lastMeasuredText == "Hello", "SdText model text drives layout");
+		Check(fontBackend.lastPaintText == "Hello", "SdText model text drives paint");
+
+		instance.ui.ConfigureModel<SdText>("title", [](SdText::Model& model)
+		{
+			model.SetText("Bonjour");
+		});
+		instance.BeginFrame({ 640.0f, 480.0f });
+		instance.ui.DeclareKeyed<SdText>("title", "Fallback");
+		PumpFrame(instance);
+		Check(fontBackend.lastMeasuredText == "Bonjour", "SdText model can be changed externally");
+		Check(fontBackend.lastPaintText == "Bonjour", "SdText paints externally changed model text");
+
+		instance.ui.Model<SdText>("title").ClearText();
+		instance.BeginFrame({ 640.0f, 480.0f });
+		instance.ui.DeclareKeyed<SdText>("title", "Fallback");
+		PumpFrame(instance);
+		Check(fontBackend.lastMeasuredText == "Fallback", "SdText falls back to declared text when model text is clear");
 	}
 
 	void TestLayoutAnimationAndStyle()
@@ -253,7 +403,7 @@ namespace
 		bool hasStyleCache = false;
 		bool hasExtendedAnimationChannels = false;
 		bool hasStyleAnimationTarget = false;
-		const SdComputedStyle buttonStyle = instance.GetStyleSystem().Resolve(SdStyleWidgetClass::Button, SdStyleInteractionState::Normal);
+		const SdComputedStyle buttonStyle = instance.GetStyleSystem().Resolve(TestDrawWidget::Style::TokenTag, SdStyleInteractionState::Normal);
 		for (const auto& [id, record] : instance.GetStateStorage().GetWidgetRecords())
 		{
 			(void)id;
@@ -261,11 +411,11 @@ namespace
 			hasStyleCache = hasStyleCache || record.styleCache.valid;
 			hasExtendedAnimationChannels = hasExtendedAnimationChannels
 				|| (record.animation.styleColorR != 0 && record.animation.scrollOffset != 0);
-			if (record.state.styleClass == SdStyleWidgetClass::Button)
+			if (record.state.styleTokenTag == TestDrawWidget::Style::TokenTag)
 			{
-				const SdAnimationChannel& red = instance.GetContext().animationSystem.GetChannel(record.animation.styleColorR);
-				const SdAnimationChannel& green = instance.GetContext().animationSystem.GetChannel(record.animation.styleColorG);
-				const SdAnimationChannel& blue = instance.GetContext().animationSystem.GetChannel(record.animation.styleColorB);
+				const SdAnimationChannel& red = instance.GetContext().animationSystem.GetChannel(record.animation.styleBackgroundR);
+				const SdAnimationChannel& green = instance.GetContext().animationSystem.GetChannel(record.animation.styleBackgroundG);
+				const SdAnimationChannel& blue = instance.GetContext().animationSystem.GetChannel(record.animation.styleBackgroundB);
 				hasStyleAnimationTarget = red.target == static_cast<float>(buttonStyle.background.r)
 					&& green.target == static_cast<float>(buttonStyle.background.g)
 					&& blue.target == static_cast<float>(buttonStyle.background.b);
@@ -276,10 +426,43 @@ namespace
 		Check(hasExtendedAnimationChannels, "widget records own extended animation channel references");
 		Check(hasStyleAnimationTarget, "style color animation targets computed background");
 
-		const SdComputedStyle normal = instance.GetStyleSystem().Resolve(SdStyleWidgetClass::Button, SdStyleInteractionState::Normal);
-		const SdComputedStyle hovered = instance.GetStyleSystem().Resolve(SdStyleWidgetClass::Button, SdStyleInteractionState::Hovered);
+		const SdComputedStyle normal = instance.GetStyleSystem().Resolve(TestDrawWidget::Style::TokenTag, SdStyleInteractionState::Normal);
+		const SdComputedStyle hovered = instance.GetStyleSystem().Resolve(TestDrawWidget::Style::TokenTag, SdStyleInteractionState::Hovered);
 		Check(normal.background != hovered.background, "style interaction selector changes button background");
 		Check(normal.border == instance.GetStyleSystem().GetTheme().GetColor(SdStyleToken::ColorBorder), "computed style carries theme border color");
+
+		const SdUInt64 previousStyleRevision = instance.GetStyleSystem().GetRevision();
+		const SdColor updatedButtonColor = { 11, 22, 33, 255 };
+		instance.GetStyleSystem().SetColor(SdStyleToken::ColorButton, updatedButtonColor);
+		instance.BeginFrame({ 640.0f, 480.0f });
+		instance.ui.DeclareKeyed<TestContainer>("container", [](SdUi& ui)
+		{
+			ui.Declare<TestDrawWidget>("one");
+			ui.Declare<TestDrawWidget>("two");
+		});
+		PumpFrame(instance);
+
+		bool hasUpdatedStyleRevision = false;
+		bool hasUpdatedStyleAnimationTargets = false;
+		for (const auto& [id, record] : instance.GetStateStorage().GetWidgetRecords())
+		{
+			(void)id;
+			if (record.state.styleTokenTag == TestDrawWidget::Style::TokenTag)
+			{
+				hasUpdatedStyleRevision = record.styleCache.valid
+					&& record.styleCache.styleRevision != previousStyleRevision
+					&& record.styleCache.computed.background == updatedButtonColor;
+				const SdAnimationChannel& red = instance.GetContext().animationSystem.GetChannel(record.animation.styleBackgroundR);
+				const SdAnimationChannel& green = instance.GetContext().animationSystem.GetChannel(record.animation.styleBackgroundG);
+				const SdAnimationChannel& blue = instance.GetContext().animationSystem.GetChannel(record.animation.styleBackgroundB);
+				hasUpdatedStyleAnimationTargets = red.target == static_cast<float>(updatedButtonColor.r)
+					&& green.target == static_cast<float>(updatedButtonColor.g)
+					&& blue.target == static_cast<float>(updatedButtonColor.b)
+					&& red.value != red.target;
+			}
+		}
+		Check(hasUpdatedStyleRevision, "style cache refreshes when style system revision changes");
+		Check(hasUpdatedStyleAnimationTargets, "style background animation retargets when style system revision changes");
 	}
 
 	void TestIdStackAndStyleLayerSelectors()
@@ -307,18 +490,158 @@ namespace
 
 		SdStyleSystem styleSystem;
 		SdStyleRule overlayRule = {};
-		overlayRule.widgetClass = SdStyleWidgetClass::Default;
+		overlayRule.targetTag = SdStyleTargetTags::Default;
 		overlayRule.interactionState = SdStyleInteractionState::Normal;
 		overlayRule.layerPriority = SdLayerPriority::Overlay;
-		overlayRule.backgroundToken = SdStyleToken::ColorAccent;
-		overlayRule.hasBackground = true;
 		overlayRule.matchLayer = true;
+		overlayRule.SetColorToken(SdStylePropertyTags::Background, SdStyleToken::ColorAccent);
 		styleSystem.AddRule(overlayRule);
 
-		const SdComputedStyle content = styleSystem.Resolve(SdStyleWidgetClass::Default, SdStyleInteractionState::Normal, SdLayerPriority::Content);
-		const SdComputedStyle overlay = styleSystem.Resolve(SdStyleWidgetClass::Default, SdStyleInteractionState::Normal, SdLayerPriority::Overlay);
+		const SdComputedStyle content = styleSystem.Resolve(SdStyleTargetTags::Default, SdStyleInteractionState::Normal, SdLayerPriority::Content);
+		const SdComputedStyle overlay = styleSystem.Resolve(SdStyleTargetTags::Default, SdStyleInteractionState::Normal, SdLayerPriority::Overlay);
 		Check(content.background != overlay.background, "style layer selector changes overlay background");
 		Check(overlay.background == styleSystem.GetTheme().GetColor(SdStyleToken::ColorAccent), "style layer selector applies matching rule");
+	}
+
+	void TestComponentStyleTokenTags()
+	{
+		SdStyleSystem styleSystem;
+		SdStyleRule globalRule = {};
+		globalRule.targetTag = SdStyleTargetTags::Global;
+		globalRule.SetColor(CustomComponentStyle::Highlight, { 1, 2, 3, 4 });
+		styleSystem.AddRule(globalRule);
+
+		SdStyleRule componentRule = {};
+		componentRule.targetTag = CustomComponentStyle::TokenTag;
+		componentRule.SetColor(CustomComponentStyle::Highlight, { 9, 8, 7, 6 });
+		componentRule.SetSpacing(CustomComponentStyle::ContentPadding, { 3.0f, 4.0f, 5.0f, 6.0f });
+		styleSystem.AddRule(componentRule);
+
+		const SdComputedStyle custom = styleSystem.Resolve(CustomComponentStyle::TokenTag, SdStyleInteractionState::Normal);
+		const SdComputedStyle text = styleSystem.Resolve(SdStyleTargetTags::Text, SdStyleInteractionState::Normal);
+		Check(custom.GetColor(CustomComponentStyle::Highlight) == SdColor(9, 8, 7, 6), "component style token tag overrides global custom property");
+		Check(text.GetColor(CustomComponentStyle::Highlight) == SdColor(1, 2, 3, 4), "global style token tag applies to all style targets");
+		Check(custom.GetSpacing(CustomComponentStyle::ContentPadding).left == 3.0f, "component decides custom spacing property");
+		Check(text.FindValue(CustomComponentStyle::ContentPadding) == nullptr, "component custom property does not leak to unrelated targets");
+	}
+
+	void TestTypedStyleContractAndRuntimeCache()
+	{
+		SdStyleSystem styleSystem;
+		const auto& contract = styleSystem.GetContract<TypedStyleWidget>();
+		Check(contract.GetFields().size() == 2, "typed style contract records component fields");
+		Check(contract.Find(Sodium::Detail::SdStyleFieldId(&TypedStyleWidget::Style::color)) != nullptr, "typed style contract can find color field");
+
+		const SdColor danger = { 180, 50, 40, 255 };
+		styleSystem.Rule<TypedStyleWidget>()
+			.Set(&TypedStyleWidget::Style::width, 77.0f)
+			.Set(&TypedStyleWidget::Style::color, danger);
+		const TypedStyleWidget::Style resolved = styleSystem.ResolveTargetStyle<TypedStyleWidget>(SdStyleInteractionState::Normal);
+		Check(resolved.width == 77.0f, "typed style rule sets layout field");
+		Check(resolved.color == danger, "typed style rule sets paint field");
+
+		constexpr SdStyleClassId dangerClass = SdStyleClassLiteral("tests.typed.danger");
+		constexpr SdStyleScopeId dialogScope = SdStyleScopeLiteral("tests.typed.dialog");
+		const SdStyleClassId classList[] = { dangerClass };
+		const SdColor scopedColor = { 40, 180, 90, 255 };
+		styleSystem.Rule<TypedStyleWidget>()
+			.Class(dangerClass)
+			.Set(&TypedStyleWidget::Style::width, 91.0f);
+		styleSystem.Rule<TypedStyleWidget>()
+			.Scope(dialogScope)
+			.Set(&TypedStyleWidget::Style::color, scopedColor);
+		const TypedStyleWidget::Style classResolved = styleSystem.ResolveTargetStyle<TypedStyleWidget>(
+			SdStyleInteractionState::Normal,
+			SdLayerPriority::Content,
+			SdSpan<const SdStyleClassId>(classList, 1),
+			0);
+		Check(classResolved.width == 91.0f, "typed style class selector matches class id");
+		const TypedStyleWidget::Style scopeResolved = styleSystem.ResolveTargetStyle<TypedStyleWidget>(
+			SdStyleInteractionState::Normal,
+			SdLayerPriority::Content,
+			{},
+			dialogScope);
+		Check(scopeResolved.color == scopedColor, "typed style scope selector matches scope id");
+
+		TypedStyleWidget::Style inlineStyle = {};
+		inlineStyle.width = 123.0f;
+		inlineStyle.color = { 3, 4, 5, 255 };
+		const TypedStyleWidget::Style inlineResolved = styleSystem.ResolveTargetStyle<TypedStyleWidget>(
+			SdStyleInteractionState::Normal,
+			SdLayerPriority::Content,
+			SdSpan<const SdStyleClassId>(classList, 1),
+			dialogScope,
+			&inlineStyle);
+		Check(inlineResolved.width == inlineStyle.width && inlineResolved.color == inlineStyle.color, "inline target style overrides typed rules");
+
+		SdInstance instance;
+		instance.GetStyleSystem().Rule<TypedStyleWidget>()
+			.Set(&TypedStyleWidget::Style::width, 88.0f)
+			.Set(&TypedStyleWidget::Style::color, danger);
+		gTypedStyleLayoutWidth = 0.0f;
+		gTypedStylePaintColor = {};
+		instance.BeginFrame({ 640.0f, 480.0f });
+		instance.ui.Declare<TypedStyleWidget>();
+		PumpFrame(instance);
+		Check(gTypedStyleLayoutWidth == 88.0f, "layout reads typed target style from context");
+		Check(gTypedStylePaintColor == danger, "paint reads typed computed style from context");
+
+		SdInstance identityInstance;
+		identityInstance.GetStyleSystem().Rule<TypedStyleWidget>()
+			.Class(dangerClass)
+			.Set(&TypedStyleWidget::Style::width, 144.0f);
+		identityInstance.GetStyleSystem().Rule<TypedStyleWidget>()
+			.Scope(dialogScope)
+			.Set(&TypedStyleWidget::Style::color, scopedColor);
+		gTypedStyleLayoutWidth = 0.0f;
+		gTypedStylePaintColor = {};
+		identityInstance.BeginFrame({ 640.0f, 480.0f });
+		identityInstance.ui.DeclareStyled<TypedStyleWidget>(
+			SdStyleIdentity{ SdSpan<const SdStyleClassId>(classList, 1), dialogScope },
+			nullptr);
+		PumpFrame(identityInstance);
+		Check(gTypedStyleLayoutWidth == 144.0f, "runtime typed style class identity affects target style");
+		Check(gTypedStylePaintColor == scopedColor, "runtime typed style scope identity affects computed style");
+
+		SdInstance inlineInstance;
+		inlineInstance.GetStyleSystem().Rule<TypedStyleWidget>()
+			.Set(&TypedStyleWidget::Style::width, 88.0f)
+			.Set(&TypedStyleWidget::Style::color, danger);
+		gTypedStyleLayoutWidth = 0.0f;
+		gTypedStylePaintColor = {};
+		inlineInstance.BeginFrame({ 640.0f, 480.0f });
+		inlineInstance.ui.DeclareStyled<TypedStyleWidget>(&inlineStyle);
+		PumpFrame(inlineInstance);
+		Check(gTypedStyleLayoutWidth == inlineStyle.width, "runtime inline target style overrides rule width");
+		Check(gTypedStylePaintColor == inlineStyle.color, "runtime inline target style overrides computed color");
+
+		SdInstance transitionInstance;
+		const SdColor startColor = { 10, 20, 30, 255 };
+		const SdColor targetColor = { 210, 220, 230, 255 };
+		transitionInstance.GetStyleSystem().Rule<TypedStyleWidget>()
+			.Set(&TypedStyleWidget::Style::color, startColor);
+		transitionInstance.GetStyleSystem().Rule<TypedStyleWidget>()
+			.Transition(&TypedStyleWidget::Style::color, std::chrono::milliseconds(400), SdAnimationEasing::Linear);
+		gTypedStylePaintColor = {};
+		transitionInstance.BeginFrame({ 640.0f, 480.0f });
+		transitionInstance.ui.Declare<TypedStyleWidget>();
+		PumpFrame(transitionInstance);
+		Check(gTypedStylePaintColor == startColor, "typed computed style starts at initial target");
+
+		std::this_thread::sleep_for(std::chrono::milliseconds(80));
+		transitionInstance.GetStyleSystem().Rule<TypedStyleWidget>()
+			.Set(&TypedStyleWidget::Style::color, targetColor);
+		transitionInstance.BeginFrame({ 640.0f, 480.0f });
+		transitionInstance.ui.Declare<TypedStyleWidget>();
+		PumpFrame(transitionInstance);
+		Check(gTypedStylePaintColor != startColor && gTypedStylePaintColor != targetColor, "typed computed style interpolates between targets");
+		Check(transitionInstance.GetDiagnostics().activeAnimationChannelCount > 0, "typed style transition contributes active animation diagnostics");
+
+		std::this_thread::sleep_for(std::chrono::milliseconds(450));
+		transitionInstance.BeginFrame({ 640.0f, 480.0f });
+		transitionInstance.ui.Declare<TypedStyleWidget>();
+		PumpFrame(transitionInstance);
+		Check(gTypedStylePaintColor == targetColor, "typed computed style reaches transition target");
 	}
 
 	void TestContextOwnershipAndRenderSubmission()
@@ -400,6 +723,183 @@ namespace
 		Check(target && target->id == 7 && target->lineHeight == 16.0f, "input system tracks active text target");
 		input.DeactivateTextInput(7);
 		Check(input.GetActiveTextInputTarget() == nullptr, "input system clears active text target");
+	}
+
+	void TestBuiltInWidgetDeclarations()
+	{
+		SdInstance instance;
+		RecordingFontBackend fontBackend = {};
+		instance.SetFontBackend(&fontBackend);
+		bool clicked = false;
+		bool checked = false;
+		float sliderValue = 0.25f;
+		SdUtf8String inputValue = "edit";
+		bool windowOpen = true;
+		SdWindowOptions windowOptions = {};
+		windowOptions.position = { 84.0f, 72.0f };
+		windowOptions.size = { 360.0f, 220.0f };
+
+		instance.BeginFrame({ 800.0f, 600.0f });
+		instance.ui.Declare<SdPanel>([](SdUi& ui)
+		{
+			ui.Declare<SdText>("Panel text");
+			ui.Declare<SdButton>("Nested");
+		});
+		instance.ui.Declare<SdButton>("Run", clicked);
+		instance.ui.Declare<SdCheckBox>("Enabled", checked);
+		instance.ui.Declare<SdCheckBox>(checked);
+		instance.ui.Declare<SdSliderFloat>("Amount", sliderValue, 0.0f, 1.0f);
+		instance.ui.Declare<SdTextInput>(inputValue, "Placeholder");
+		instance.ui.Declare<SdWindow>("Window", windowOpen, windowOptions, [](SdUi& ui)
+		{
+			ui.Declare<SdText>("Window body");
+		});
+		instance.ui.Declare<SdImageViewer>(SdTextureHandle(3, 1), SdVec2{ 32.0f, 32.0f });
+		instance.ui.Declare<SdScrollView>([](SdUi& ui)
+		{
+			ui.Declare<SdText>("Scroll child");
+		});
+		instance.ui.Declare<SdPopup>(true, SdVec2{ 360.0f, 90.0f }, [](SdUi& ui)
+		{
+			ui.Declare<SdText>("Popup body");
+		});
+		instance.ui.Declare<SdContextMenu>(true, SdVec2{ 420.0f, 120.0f }, [](SdUi& ui)
+		{
+			ui.Declare<SdButton>("Menu item");
+		});
+		instance.ui.Declare<SdTooltip>(true, SdVec2{ 500.0f, 150.0f }, "Tooltip");
+		PumpFrame(instance);
+
+		Check(instance.GetDiagnostics().submittedWidgetCount >= 17, "built-in widgets submit roots and children");
+		Check(instance.GetDiagnostics().drawCommandCount > 0, "built-in widgets emit draw commands");
+		Check(instance.GetLayerSystem().GetHitTestRecords().size() > 0, "built-in input widgets register hit tests");
+		Check(fontBackend.lastMeasuredText.size() > 0, "built-in text-bearing widgets measure text");
+	}
+
+	void TestBuiltInWidgetInteraction()
+	{
+		{
+			SdInstance instance;
+			bool clicked = false;
+			instance.BeginFrame({ 320.0f, 240.0f });
+			instance.ui.Declare<SdButton>("Click", clicked);
+			PumpFrame(instance);
+
+			instance.GetInputSystem().PushEvent(SdInputEvent{
+				SdInputEventType::MouseMove,
+				SdInputDevice::Mouse,
+				SdMouseMoveEvent{ { 20.0f, 20.0f } }
+			});
+			instance.GetInputSystem().PushEvent(SdInputEvent{
+				SdInputEventType::MouseButton,
+				SdInputDevice::Mouse,
+				SdMouseButtonEvent{ SdMouseButton::Left, true }
+			});
+			instance.GetInputSystem().PushEvent(SdInputEvent{
+				SdInputEventType::MouseButton,
+				SdInputDevice::Mouse,
+				SdMouseButtonEvent{ SdMouseButton::Left, false }
+			});
+			instance.BeginFrame({ 320.0f, 240.0f });
+			instance.ui.Declare<SdButton>("Click", clicked);
+			PumpFrame(instance);
+			Check(clicked, "SdButton reports clicked through unified interaction");
+		}
+
+		{
+			SdInstance instance;
+			bool checked = false;
+			instance.BeginFrame({ 320.0f, 240.0f });
+			instance.ui.Declare<SdCheckBox>("Enable", checked);
+			PumpFrame(instance);
+
+			instance.GetInputSystem().PushEvent(SdInputEvent{
+				SdInputEventType::MouseMove,
+				SdInputDevice::Mouse,
+				SdMouseMoveEvent{ { 20.0f, 20.0f } }
+			});
+			instance.GetInputSystem().PushEvent(SdInputEvent{
+				SdInputEventType::MouseButton,
+				SdInputDevice::Mouse,
+				SdMouseButtonEvent{ SdMouseButton::Left, true }
+			});
+			instance.GetInputSystem().PushEvent(SdInputEvent{
+				SdInputEventType::MouseButton,
+				SdInputDevice::Mouse,
+				SdMouseButtonEvent{ SdMouseButton::Left, false }
+			});
+			instance.BeginFrame({ 320.0f, 240.0f });
+			instance.ui.Declare<SdCheckBox>("Enable", checked);
+			PumpFrame(instance);
+			Check(checked, "SdCheckBox toggles external bool on click");
+		}
+
+		{
+			SdInstance instance;
+			float value = 0.0f;
+			instance.BeginFrame({ 320.0f, 240.0f });
+			instance.ui.Declare<SdSliderFloat>(value, 0.0f, 1.0f);
+			PumpFrame(instance);
+
+			instance.GetInputSystem().PushEvent(SdInputEvent{
+				SdInputEventType::MouseMove,
+				SdInputDevice::Mouse,
+				SdMouseMoveEvent{ { 198.0f, 24.0f } }
+			});
+			instance.GetInputSystem().PushEvent(SdInputEvent{
+				SdInputEventType::MouseButton,
+				SdInputDevice::Mouse,
+				SdMouseButtonEvent{ SdMouseButton::Left, true }
+			});
+			instance.BeginFrame({ 320.0f, 240.0f });
+			instance.ui.Declare<SdSliderFloat>(value, 0.0f, 1.0f);
+			PumpFrame(instance);
+			Check(value > 0.9f, "SdSliderFloat updates value from captured pointer");
+		}
+
+		{
+			SdInstance instance;
+			SdUtf8String value = "A";
+			instance.BeginFrame({ 320.0f, 240.0f });
+			instance.ui.Declare<SdTextInput>(value, "Text");
+			PumpFrame(instance);
+
+			instance.GetInputSystem().PushEvent(SdInputEvent{
+				SdInputEventType::MouseMove,
+				SdInputDevice::Mouse,
+				SdMouseMoveEvent{ { 20.0f, 20.0f } }
+			});
+			instance.GetInputSystem().PushEvent(SdInputEvent{
+				SdInputEventType::MouseButton,
+				SdInputDevice::Mouse,
+				SdMouseButtonEvent{ SdMouseButton::Left, true }
+			});
+			instance.GetInputSystem().PushEvent(SdInputEvent{
+				SdInputEventType::MouseButton,
+				SdInputDevice::Mouse,
+				SdMouseButtonEvent{ SdMouseButton::Left, false }
+			});
+			instance.GetInputSystem().PushEvent(SdInputEvent{
+				SdInputEventType::TextCommit,
+				SdInputDevice::Text,
+				SdTextCommitEvent{ "Z" }
+			});
+			instance.BeginFrame({ 320.0f, 240.0f });
+			instance.ui.Declare<SdTextInput>(value, "Text");
+			PumpFrame(instance);
+			Check(value == "AZ", "SdTextInput appends committed text while focused");
+			Check(instance.GetInputSystem().GetActiveTextInputTarget() != nullptr, "SdTextInput activates IME target while focused");
+
+			instance.GetInputSystem().PushEvent(SdInputEvent{
+				SdInputEventType::Key,
+				SdInputDevice::Keyboard,
+				SdKeyEvent{ SdKeyCode::Backspace, true, false }
+			});
+			instance.BeginFrame({ 320.0f, 240.0f });
+			instance.ui.Declare<SdTextInput>(value, "Text");
+			PumpFrame(instance);
+			Check(value == "A", "SdTextInput handles backspace at the end of UTF-8 text");
+		}
 	}
 
 	void TestLayoutSystemDirect()
@@ -524,11 +1024,16 @@ int main()
 	TestSmokeAndDrawPacket();
 	TestIdAndKeySemantics();
 	TestLifecycleStateAndModel();
+	TestBasicTextModelI18n();
 	TestLayoutAnimationAndStyle();
 	TestIdStackAndStyleLayerSelectors();
+	TestComponentStyleTokenTags();
+	TestTypedStyleContractAndRuntimeCache();
 	TestContextOwnershipAndRenderSubmission();
 	TestInputLayerAndCustomWidgets();
 	TestInputSystemTextState();
+	TestBuiltInWidgetDeclarations();
+	TestBuiltInWidgetInteraction();
 	TestLayoutSystemDirect();
 	TestAnimationSystemDirect();
 	TestLayerSystemDirect();

@@ -17,6 +17,15 @@ namespace Sodium
 		SdIdStack idStack = {};
 		void BeginDeclarationFrame();
 
+		template<SdDeclarableWidget T, class TConfigureStyle, class... TArgs>
+		T& DeclareResolved(
+			SdWidgetId id,
+			SdWidgetId parentId,
+			SdResolvedKey resolvedKey,
+			SdUtf8StringView debugKey,
+			TConfigureStyle&& configureStyle,
+			TArgs&&... args);
+
 	public:
 		explicit SdUi(SdInstance& owner);
 
@@ -25,6 +34,18 @@ namespace Sodium
 
 		template<SdDeclarableWidget T, class... TArgs>
 		T& DeclareKeyed(SdUtf8StringView key, TArgs&&... args);
+
+		template<SdStylableWidget T, class... TArgs>
+		T& DeclareStyled(const typename T::Style* inlineStyle, TArgs&&... args);
+
+		template<SdStylableWidget T, class... TArgs>
+		T& DeclareStyled(SdStyleIdentity styleIdentity, const typename T::Style* inlineStyle, TArgs&&... args);
+
+		template<SdStylableWidget T, class... TArgs>
+		T& DeclareStyledKeyed(SdUtf8StringView key, const typename T::Style* inlineStyle, TArgs&&... args);
+
+		template<SdStylableWidget T, class... TArgs>
+		T& DeclareStyledKeyed(SdUtf8StringView key, SdStyleIdentity styleIdentity, const typename T::Style* inlineStyle, TArgs&&... args);
 
 		template<SdDeclarableWidget TWidget, class TModel = typename TWidget::Model>
 		TModel& Model(SdUtf8StringView key);

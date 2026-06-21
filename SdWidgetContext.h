@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "SdDrawList.h"
 #include "SdInput.h"
@@ -18,6 +18,11 @@ namespace Sodium
 		std::derived_from<T, SdWidgetTag>
 		&& std::is_default_constructible_v<T>;
 
+	template<class T>
+	concept SdStylableWidget =
+		SdDeclarableWidget<T>
+		&& requires { typename T::Style; };
+
 	enum class SdWidgetLifePhase : SdUInt8
 	{
 		Entering,
@@ -31,7 +36,7 @@ namespace Sodium
 		SdWidgetId id = 0;
 		SdWidgetLifePhase lifePhase = SdWidgetLifePhase::Entering;
 		SdLayerPriority layerPriority = SdLayerPriority::Content;
-		SdStyleWidgetClass styleClass = SdStyleWidgetClass::Default;
+		SdStyleTokenTag styleTokenTag = SdStyleTargetTags::Default;
 		bool submittedThisFrame = false;
 		bool inputEnabled = true;
 		bool manualLayout = false;
@@ -70,6 +75,12 @@ namespace Sodium
 
 		template<class T>
 		T& Model();
+
+		template<class TWidget>
+		const typename TWidget::Style& TargetStyle();
+
+		template<class TWidget>
+		const typename TWidget::Style& ComputedStyle();
 
 		bool HasModelKey() const noexcept;
 		bool IsHovered() const noexcept;

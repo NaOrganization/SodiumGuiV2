@@ -13,6 +13,8 @@
 #include <backends/SdDx11Renderer.h>
 #include <backends/SdWin32Platform.h>
 
+#include <SdBasicWidgets.h>
+
 #include <detours/detours.h>
 
 #pragma comment(lib, "d3d11.lib")
@@ -27,6 +29,40 @@ namespace SodiumDynamicExample
 {
 	using Microsoft::WRL::ComPtr;
 	using namespace std::chrono_literals;
+
+	constexpr Sodium::SdStyleClassId kOverlayAccentTextClass = Sodium::SdStyleClassLiteral("Sodium.DynamicExample.Text.Accent");
+	constexpr Sodium::SdStyleClassId kOverlayMutedTextClass = Sodium::SdStyleClassLiteral("Sodium.DynamicExample.Text.Muted");
+	constexpr Sodium::SdStyleScopeId kOverlayTextScope = Sodium::SdStyleScopeLiteral("Sodium.DynamicExample.Scope.Overlay");
+
+	void ConfigureBuiltInThemeTransitions(Sodium::SdStyleSystem& styleSystem)
+	{
+		const auto themeTransition = 360ms;
+		const Sodium::SdAnimationEasing easing = Sodium::SdAnimationEasing::OutCubic;
+		styleSystem.Rule<Sodium::SdText>()
+			.Transition(&Sodium::SdText::Style::color, themeTransition, easing);
+		styleSystem.Rule<Sodium::SdPanel>()
+			.Transition(&Sodium::SdPanel::Style::radius, themeTransition, easing);
+		styleSystem.Rule<Sodium::SdButton>()
+			.Transition(&Sodium::SdButton::Style::radius, themeTransition, easing);
+		styleSystem.Rule<Sodium::SdCheckBox>()
+			.Transition(&Sodium::SdCheckBox::Style::radius, themeTransition, easing);
+		styleSystem.Rule<Sodium::SdSliderFloat>()
+			.Transition(&Sodium::SdSliderFloat::Style::radius, themeTransition, easing);
+		styleSystem.Rule<Sodium::SdTextInput>()
+			.Transition(&Sodium::SdTextInput::Style::radius, themeTransition, easing);
+		styleSystem.Rule<Sodium::SdWindow>()
+			.Transition(&Sodium::SdWindow::Style::radius, themeTransition, easing);
+		styleSystem.Rule<Sodium::SdImageViewer>()
+			.Transition(&Sodium::SdImageViewer::Style::radius, themeTransition, easing);
+		styleSystem.Rule<Sodium::SdScrollView>()
+			.Transition(&Sodium::SdScrollView::Style::radius, themeTransition, easing);
+		styleSystem.Rule<Sodium::SdPopup>()
+			.Transition(&Sodium::SdPopup::Style::radius, themeTransition, easing);
+		styleSystem.Rule<Sodium::SdContextMenu>()
+			.Transition(&Sodium::SdContextMenu::Style::radius, themeTransition, easing);
+		styleSystem.Rule<Sodium::SdTooltip>()
+			.Transition(&Sodium::SdTooltip::Style::radius, themeTransition, easing);
+	}
 
 	class DetourHook final
 	{
@@ -193,6 +229,8 @@ namespace SodiumDynamicExample
 		bool popupOpen = true;
 		bool contextMenuOpen = true;
 		bool tooltipVisible = true;
+		bool lightTheme = false;
+		bool compactTheme = false;
 		int clickCount = 0;
 		float sliderValue = 0.45f;
 		Sodium::SdUtf8String textInputValue = "Edit SodiumGUI text";
@@ -208,6 +246,10 @@ namespace SodiumDynamicExample
 		Sodium::Backends::SdFreeTypeFontBackend fontBackend = {};
 		bool overlayWindowOpen = true;
 		bool initialized = false;
+		bool styleConfigured = false;
+		bool themeInitialized = false;
+		bool appliedLightTheme = false;
+		bool appliedCompactTheme = false;
 		DemoControlsState controls = {};
 		Sodium::SdFrameIndex frameCount = 0;
 		double liveFps = 0.0;
@@ -225,47 +267,226 @@ namespace SodiumDynamicExample
 
 			void OnUpdate(Sodium::SdUpdateContext& context, bool& windowOpen, DemoControlsState& controls, Sodium::SdFrameIndex frameCount, double liveFps, Sodium::SdTextureHandle fontAtlasTexture)
 			{
-				(void)fontAtlasTexture;
-				(void)frameCount;
-				(void)liveFps;
 				if (context.input.IsKeyDown(Sodium::SdKeyCode::Esc))
 					windowOpen = false;
 				State& state = context.State<State>();
 				state.hovered = context.IsHovered();
 				state.mouse = context.input.GetMousePosition();
-				if (context.WasClicked())
+
+				const bool accentPhase = ((frameCount / 90) % 2) == 0;
+				const Sodium::SdStyleClassId statusClasses[] =
+				{
+					accentPhase ? kOverlayAccentTextClass : kOverlayMutedTextClass
+				};
+				const Sodium::SdStyleIdentity statusIdentity{
+					Sodium::SdSpan<const Sodium::SdStyleClassId>(statusClasses, 1),
+					kOverlayTextScope
+				};
+				char overlayStatus[160] = {};
+				std::snprintf(overlayStatus, sizeof(overlayStatus), "Styled overlay text - %.1f FPS", liveFps);
+				context.ui.DeclareStyledKeyed<Sodium::SdText>("overlay_style_status", statusIdentity, nullptr, overlayStatus);
+
+				Sodium::SdText::Style inlineTextStyle = {};
+				inlineTextStyle.padding = { 2.0f, 1.0f, 2.0f, 1.0f };
+				inlineTextStyle.fontSize = 14.0f;
+				inlineTextStyle.lineHeight = 18.0f;
+				inlineTextStyle.color = { 255, 228, 170, 255 };
+				inlineTextStyle.opacity = 0.90f;
+				context.ui.DeclareStyledKeyed<Sodium::SdText>("overlay_inline_style", &inlineTextStyle, "Inline target style");
+
+				Sodium::SdPanel::Style panelStyle = {};
+				panelStyle.width = 472.0f;
+				panelStyle.height = 64.0f;
+				panelStyle.padding = { 8.0f, 8.0f, 8.0f, 8.0f };
+				panelStyle.childSpacing = 3.0f;
+				context.ui.DeclareStyledKeyed<Sodium::SdPanel>("overlay_basic_panel", &panelStyle, [](Sodium::SdUi& ui)
+				{
+					ui.Declare<Sodium::SdText>("SdPanel + SdText inside the DLL overlay");
+					ui.Declare<Sodium::SdText>("Built-in widgets use the same runtime path");
+				});
+
+				bool buttonClicked = false;
+				context.ui.DeclareKeyed<Sodium::SdButton>("overlay_basic_button", "SdButton: increment", buttonClicked);
+				if (buttonClicked)
 					++controls.clickCount;
 				state.clickCount = controls.clickCount;
+
+				context.ui.DeclareKeyed<Sodium::SdCheckBox>("overlay_option", "SdCheckBox: option enabled", controls.optionEnabled);
+				context.ui.DeclareKeyed<Sodium::SdCheckBox>("overlay_theme_light", "Theme demo: light palette", controls.lightTheme);
+				context.ui.DeclareKeyed<Sodium::SdCheckBox>("overlay_theme_compact", "Theme demo: compact metrics", controls.compactTheme);
+				context.ui.DeclareKeyed<Sodium::SdCheckBox>("overlay_show_window", "Show SdWindow", controls.mediaWindowOpen);
+				context.ui.DeclareKeyed<Sodium::SdCheckBox>("overlay_show_popup", "Show SdPopup / Tooltip", controls.popupOpen);
+				controls.tooltipVisible = controls.popupOpen;
+
+				char sliderLabel[96] = {};
+				std::snprintf(sliderLabel, sizeof(sliderLabel), "SdSliderFloat %.2f", controls.sliderValue);
+				context.ui.DeclareKeyed<Sodium::SdSliderFloat>("overlay_slider", sliderLabel, controls.sliderValue, 0.0f, 1.0f);
+				context.ui.DeclareKeyed<Sodium::SdTextInput>("overlay_text_input", controls.textInputValue, "SdTextInput");
+				context.ui.DeclareKeyed<Sodium::SdImageViewer>("overlay_image", fontAtlasTexture, Sodium::SdVec2{ 96.0f, 30.0f });
+
+				Sodium::SdScrollView::Style scrollStyle = {};
+				scrollStyle.width = 472.0f;
+				scrollStyle.height = 74.0f;
+				scrollStyle.padding = { 8.0f, 8.0f, 8.0f, 8.0f };
+				scrollStyle.childSpacing = 3.0f;
+				context.ui.DeclareStyledKeyed<Sodium::SdScrollView>("overlay_scroll", &scrollStyle, [](Sodium::SdUi& ui)
+				{
+					ui.Declare<Sodium::SdText>("SdScrollView row");
+					ui.Declare<Sodium::SdButton>("Child button");
+					ui.Declare<Sodium::SdText>("Clipped content row");
+				});
 			}
 
 			void OnLayout(Sodium::SdLayoutContext& context)
 			{
-				context.SetDesiredSize({ 410.0f, 150.0f });
+				context.SetDesiredSize({ 500.0f, 540.0f });
 				context.widgetState.manualLayout = true;
-				context.widgetState.manualRect = { 42.0f, 42.0f, 452.0f, 192.0f };
+				context.widgetState.manualRect = { 42.0f, 42.0f, 542.0f, 582.0f };
 				context.widgetState.layerPriority = Sodium::SdLayerPriority::Overlay;
-				context.widgetState.styleClass = Sodium::SdStyleWidgetClass::Panel;
+				context.widgetState.arrangeChildren = true;
+				context.widgetState.clipChildren = true;
+				context.widgetState.childPadding = { 14.0f, 96.0f, 14.0f, 10.0f };
+				context.widgetState.childSpacing = 5.0f;
+				context.widgetState.styleTokenTag = Sodium::SdStyleTargetTags::Panel;
 			}
 
 			void OnPaint(Sodium::SdPaintContext& context)
 			{
 				const State& state = context.State<State>();
-				const Sodium::SdTheme& theme = context.instance.GetStyleSystem().GetTheme();
-				const Sodium::SdColor panel = theme.GetColor(Sodium::SdStyleToken::ColorWindowBg);
-				const Sodium::SdColor accent = theme.GetColor(Sodium::SdStyleToken::ColorAccent);
 				const Sodium::SdRect rect = context.animatedRect;
-				context.renderList.AddRectFilled(rect, Sodium::SdColor(panel.r, panel.g, panel.b, static_cast<Sodium::SdUInt8>(panel.a * context.opacity)), context.clipRect, 5.0f);
-				context.renderList.AddRect(rect, accent, context.clipRect, 1.0f, 5.0f);
+				const Sodium::SdColor background = Sodium::SdColor(
+					context.style.background.r,
+					context.style.background.g,
+					context.style.background.b,
+					static_cast<Sodium::SdUInt8>(context.style.background.a * context.opacity));
+				const Sodium::SdColor border = Sodium::SdColor(
+					context.style.border.r,
+					context.style.border.g,
+					context.style.border.b,
+					static_cast<Sodium::SdUInt8>(context.style.border.a * context.opacity));
+				const Sodium::SdColor text = Sodium::SdColor(
+					context.style.color.r,
+					context.style.color.g,
+					context.style.color.b,
+					static_cast<Sodium::SdUInt8>(context.style.color.a * context.opacity));
+				context.renderList.AddRectFilled(rect, background, context.clipRect, context.style.radius);
+				context.renderList.AddRect(rect, border, context.clipRect, 1.0f, context.style.radius);
 
 				char line[160] = {};
 				std::snprintf(line, sizeof(line), "SodiumGUI DLL overlay smoke");
-				context.renderList.AddText(line, { rect.min.x + 14.0f, rect.min.y + 14.0f }, Sodium::SdColorWhite, context.clipRect);
+				context.renderList.AddText(line, { rect.min.x + 14.0f, rect.min.y + 14.0f }, text, context.clipRect);
 				std::snprintf(line, sizeof(line), "Frame %llu  Mouse %.0f, %.0f", static_cast<unsigned long long>(context.instance.GetFrameIndex()), state.mouse.x, state.mouse.y);
-				context.renderList.AddText(line, { rect.min.x + 14.0f, rect.min.y + 42.0f }, Sodium::SdColorWhite, context.clipRect);
+				context.renderList.AddText(line, { rect.min.x + 14.0f, rect.min.y + 42.0f }, text, context.clipRect);
 				std::snprintf(line, sizeof(line), "Clicks %d  Hover %s", state.clickCount, state.hovered ? "yes" : "no");
-				context.renderList.AddText(line, { rect.min.x + 14.0f, rect.min.y + 70.0f }, Sodium::SdColorWhite, context.clipRect);
+				context.renderList.AddText(line, { rect.min.x + 14.0f, rect.min.y + 70.0f }, text, context.clipRect);
 			}
 		};
+
+		void DeclareFloatingBuiltInWidgets()
+		{
+			Sodium::SdWindowOptions windowOptions = {};
+			windowOptions.position = { 566.0f, 52.0f };
+			windowOptions.size = { 330.0f, 176.0f };
+			gui.ui.DeclareKeyed<Sodium::SdWindow>("overlay_builtin_window", "SdWindow", controls.mediaWindowOpen, windowOptions, [](Sodium::SdUi& ui)
+			{
+				ui.Declare<Sodium::SdText>("Floating window in overlay");
+				ui.Declare<Sodium::SdButton>("Window button");
+				ui.Declare<Sodium::SdCheckBox>("Window option");
+			});
+
+			gui.ui.DeclareKeyed<Sodium::SdPopup>("overlay_builtin_popup", controls.popupOpen, Sodium::SdVec2{ 566.0f, 250.0f }, [](Sodium::SdUi& ui)
+			{
+				ui.Declare<Sodium::SdText>("SdPopup");
+				ui.Declare<Sodium::SdButton>("Popup action");
+			});
+
+			gui.ui.DeclareKeyed<Sodium::SdContextMenu>("overlay_builtin_context_menu", controls.contextMenuOpen, controls.contextMenuPosition, [](Sodium::SdUi& ui)
+			{
+				ui.Declare<Sodium::SdText>("SdContextMenu");
+				ui.Declare<Sodium::SdButton>("Overlay command");
+			});
+
+			gui.ui.DeclareKeyed<Sodium::SdTooltip>(
+				"overlay_builtin_tooltip",
+				controls.tooltipVisible,
+				Sodium::SdVec2{ 566.0f, 406.0f },
+				"SdTooltip on overlay layer");
+		}
+
+		void ConfigureStyleSystem()
+		{
+			if (styleConfigured)
+				return;
+
+			Sodium::SdStyleSystem& styleSystem = gui.GetStyleSystem();
+			ConfigureBuiltInThemeTransitions(styleSystem);
+			styleSystem.Rule<Sodium::SdText>()
+				.Scope(kOverlayTextScope)
+				.Set(&Sodium::SdText::Style::fontSize, 15.0f)
+				.Set(&Sodium::SdText::Style::lineHeight, 19.0f)
+				.Set(&Sodium::SdText::Style::padding, Sodium::SdSpacing{ 2.0f, 0.0f, 2.0f, 0.0f });
+			styleSystem.Rule<Sodium::SdText>()
+				.Scope(kOverlayTextScope)
+				.Class(kOverlayAccentTextClass)
+				.SetColorToken(&Sodium::SdText::Style::color, Sodium::SdStyleToken::ColorAccent)
+				.Transition(&Sodium::SdText::Style::color, 180ms, Sodium::SdAnimationEasing::OutCubic);
+			styleSystem.Rule<Sodium::SdText>()
+				.Scope(kOverlayTextScope)
+				.Class(kOverlayMutedTextClass)
+				.Set(&Sodium::SdText::Style::color, Sodium::SdColor{ 178, 196, 214, 255 })
+				.Transition(&Sodium::SdText::Style::color, 180ms, Sodium::SdAnimationEasing::OutCubic);
+			styleConfigured = true;
+		}
+
+		void ApplyGlobalTheme()
+		{
+			if (themeInitialized
+				&& appliedLightTheme == controls.lightTheme
+				&& appliedCompactTheme == controls.compactTheme)
+			{
+				return;
+			}
+
+			Sodium::SdStyleSystem& styleSystem = gui.GetStyleSystem();
+			if (controls.lightTheme)
+			{
+				styleSystem.SetColor(Sodium::SdStyleToken::ColorText, { 28, 34, 42, 255 });
+				styleSystem.SetColor(Sodium::SdStyleToken::ColorBackground, { 236, 241, 246, 255 });
+				styleSystem.SetColor(Sodium::SdStyleToken::ColorWindowBg, { 250, 252, 255, 245 });
+				styleSystem.SetColor(Sodium::SdStyleToken::ColorPanelBg, { 226, 234, 242, 242 });
+				styleSystem.SetColor(Sodium::SdStyleToken::ColorButton, { 214, 228, 241, 255 });
+				styleSystem.SetColor(Sodium::SdStyleToken::ColorButtonHovered, { 190, 215, 238, 255 });
+				styleSystem.SetColor(Sodium::SdStyleToken::ColorButtonPressed, { 158, 198, 230, 255 });
+				styleSystem.SetColor(Sodium::SdStyleToken::ColorAccent, { 30, 132, 112, 255 });
+				styleSystem.SetColor(Sodium::SdStyleToken::ColorBorder, { 126, 145, 164, 255 });
+				styleSystem.SetColor(Sodium::SdStyleToken::ColorBorderStrong, { 82, 102, 122, 255 });
+				styleSystem.SetColor(Sodium::SdStyleToken::ColorDanger, { 180, 70, 76, 255 });
+				styleSystem.SetColor(Sodium::SdStyleToken::ColorSelection, { 30, 132, 112, 90 });
+			}
+			else
+			{
+				styleSystem.SetColor(Sodium::SdStyleToken::ColorText, Sodium::SdColorWhite);
+				styleSystem.SetColor(Sodium::SdStyleToken::ColorBackground, { 24, 30, 39, 242 });
+				styleSystem.SetColor(Sodium::SdStyleToken::ColorWindowBg, { 24, 30, 39, 242 });
+				styleSystem.SetColor(Sodium::SdStyleToken::ColorPanelBg, { 35, 42, 52, 235 });
+				styleSystem.SetColor(Sodium::SdStyleToken::ColorButton, { 48, 72, 96, 255 });
+				styleSystem.SetColor(Sodium::SdStyleToken::ColorButtonHovered, { 62, 100, 138, 255 });
+				styleSystem.SetColor(Sodium::SdStyleToken::ColorButtonPressed, { 68, 118, 160, 255 });
+				styleSystem.SetColor(Sodium::SdStyleToken::ColorAccent, { 82, 170, 128, 255 });
+				styleSystem.SetColor(Sodium::SdStyleToken::ColorBorder, { 91, 109, 128, 255 });
+				styleSystem.SetColor(Sodium::SdStyleToken::ColorBorderStrong, { 128, 154, 180, 255 });
+				styleSystem.SetColor(Sodium::SdStyleToken::ColorDanger, { 164, 66, 66, 255 });
+				styleSystem.SetColor(Sodium::SdStyleToken::ColorSelection, { 82, 170, 128, 96 });
+			}
+
+			styleSystem.SetMetric(Sodium::SdStyleToken::SpacingSmall, controls.compactTheme ? 4.0f : 6.0f);
+			styleSystem.SetMetric(Sodium::SdStyleToken::SpacingMedium, controls.compactTheme ? 7.0f : 10.0f);
+			styleSystem.SetMetric(Sodium::SdStyleToken::RadiusSmall, controls.compactTheme ? 3.0f : 5.0f);
+			styleSystem.SetMetric(Sodium::SdStyleToken::DurationFast, 0.36f);
+			appliedLightTheme = controls.lightTheme;
+			appliedCompactTheme = controls.compactTheme;
+			themeInitialized = true;
+		}
 
 		bool Initialize(IDXGISwapChain* hostSwapChain)
 		{
@@ -295,6 +516,8 @@ namespace SodiumDynamicExample
 			{
 				fontBackend.LoadFont(request);
 			}
+			ConfigureStyleSystem();
+			ApplyGlobalTheme();
 			initialized = true;
 			return true;
 		}
@@ -307,8 +530,10 @@ namespace SodiumDynamicExample
 				return;
 
 			const auto frameStart = std::chrono::steady_clock::now();
+			ApplyGlobalTheme();
 			gui.BeginFrame(platform, dx.displaySize);
 			gui.ui.Declare<OverlayWindow>(overlayWindowOpen, controls, frameCount, liveFps, fontBackend.GetAtlasTexture());
+			DeclareFloatingBuiltInWidgets();
 			gui.EndFrame();
 
 			ID3D11RenderTargetView* target = dx.renderTargetView.Get();

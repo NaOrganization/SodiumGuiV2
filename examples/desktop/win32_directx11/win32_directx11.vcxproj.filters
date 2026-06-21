@@ -140,5 +140,8 @@
     <ClInclude Include="..\..\..\backends\FreeTypeFontBackend.h">
       <Filter>SodiumGUI\Backends</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\SdBasicWidgets.h">
+      <Filter>SodiumGUI\Widgets</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
