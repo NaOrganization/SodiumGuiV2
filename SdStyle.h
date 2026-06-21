@@ -1146,6 +1146,10 @@ namespace Sodium
 				SdStyleFieldImpact::Layout,
 				SdStyleInterpolation::Float,
 				true);
+			propertyRegistry.Register<&SdBoxStyle::flexGrow>(
+				SdStyleFieldImpact::Layout,
+				SdStyleInterpolation::Float,
+				true);
 		}
 
 		void InstallDefaultUserAgentStyleSheet(bool touchRevision = true)

@@ -1160,6 +1160,15 @@ namespace
 		const std::vector<SdBoxNode>& basisBoxes = basisTree.GetBoxes();
 		Check(basisBoxes[1].borderBox.Width() == 34.0f, "flex-basis overrides row child main size");
 
+		SdBoxStyle growChildStyle = childStyle;
+		growChildStyle.flexGrow = 1.0f;
+		SdBoxTree growTree = {};
+		const SdUInt32 growParent = growTree.AddBox(19, SdInvalidIndex<SdUInt32>, parentStyle, { 120.0f, 40.0f });
+		growTree.AddBox(20, growParent, growChildStyle, { 20.0f, 10.0f });
+		growTree.Layout({ 0.0f, 0.0f, 200.0f, 100.0f });
+		const std::vector<SdBoxNode>& growBoxes = growTree.GetBoxes();
+		Check(growBoxes[1].borderBox.Width() == growBoxes[0].contentBox.Width(), "flex-grow expands child into remaining row space");
+
 		parentStyle.justifyContent = SdJustifyContent::FlexStart;
 		parentStyle.alignItems = SdAlignItems::Stretch;
 		parentStyle.flexDirection = SdFlexDirection::Column;
@@ -1224,6 +1233,7 @@ namespace
 			.Set(&SdBoxStyle::justifyContent, SdJustifyContent::Center)
 			.Set(&SdBoxStyle::alignItems, SdAlignItems::FlexEnd)
 			.Set(&SdBoxStyle::flexBasis, SdLength::Percent(40.0f))
+			.Set(&SdBoxStyle::flexGrow, 2.0f)
 			.Set(&SdBoxStyle::boxSizing, SdBoxSizing::BorderBox)
 			.Set(&SdBoxStyle::maxWidth, SdLength::Pixels(96.0f))
 			.Set(&SdBoxStyle::maxHeight, SdLength::Pixels(72.0f))
@@ -1245,6 +1255,7 @@ namespace
 			&& overflowStyle.alignItems == SdAlignItems::FlexEnd
 			&& overflowStyle.flexBasis.unit == SdLengthUnit::Percent
 			&& overflowStyle.flexBasis.value == 40.0f
+			&& overflowStyle.flexGrow == 2.0f
 			&& overflowStyle.boxSizing == SdBoxSizing::BorderBox
 			&& overflowStyle.maxWidth.value == 96.0f
 			&& overflowStyle.maxHeight.value == 72.0f

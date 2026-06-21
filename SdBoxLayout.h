@@ -220,6 +220,7 @@ namespace Sodium
 			const bool row = parent.usedStyleValues.flexDirection == SdFlexDirection::Row;
 			const float parentMainSize = row ? parent.contentBox.Width() : parent.contentBox.Height();
 			float occupiedMainSize = 0.0f;
+			float totalFlexGrow = 0.0f;
 			SdSize visibleChildCount = 0;
 			const auto childBorderWidth = [row](const SdBoxNode& child) noexcept
 			{
@@ -254,6 +255,7 @@ namespace Sodium
 				occupiedMainSize += row
 					? child.usedStyleValues.margin.left + childWidth + child.usedStyleValues.margin.right
 					: child.usedStyleValues.margin.top + childHeight + child.usedStyleValues.margin.bottom;
+				totalFlexGrow += std::max(0.0f, child.usedStyleValues.flexGrow);
 				++visibleChildCount;
 			}
 
@@ -261,23 +263,27 @@ namespace Sodium
 				occupiedMainSize += parent.usedStyleValues.gap * static_cast<float>(visibleChildCount - 1);
 
 			const float remainingMainSize = std::max(0.0f, parentMainSize - occupiedMainSize);
+			const bool distributeFlexGrow = remainingMainSize > 0.0f && totalFlexGrow > 0.0f;
 			float main = row ? parent.contentBox.min.x : parent.contentBox.min.y;
 			float gap = parent.usedStyleValues.gap;
-			switch (parent.usedStyleValues.justifyContent)
+			if (!distributeFlexGrow)
 			{
-			case SdJustifyContent::Center:
-				main += remainingMainSize * 0.5f;
-				break;
-			case SdJustifyContent::FlexEnd:
-				main += remainingMainSize;
-				break;
-			case SdJustifyContent::SpaceBetween:
-				if (visibleChildCount > 1)
-					gap += remainingMainSize / static_cast<float>(visibleChildCount - 1);
-				break;
-			case SdJustifyContent::FlexStart:
-			default:
-				break;
+				switch (parent.usedStyleValues.justifyContent)
+				{
+				case SdJustifyContent::Center:
+					main += remainingMainSize * 0.5f;
+					break;
+				case SdJustifyContent::FlexEnd:
+					main += remainingMainSize;
+					break;
+				case SdJustifyContent::SpaceBetween:
+					if (visibleChildCount > 1)
+						gap += remainingMainSize / static_cast<float>(visibleChildCount - 1);
+					break;
+				case SdJustifyContent::FlexStart:
+				default:
+					break;
+				}
 			}
 
 			for (SdUInt32 childIndex = parent.firstChildIndex;
@@ -288,8 +294,16 @@ namespace Sodium
 				if (child.display == SdDisplay::None)
 					continue;
 
-				const float childWidth = childBorderWidth(child);
-				const float childHeight = childBorderHeight(child);
+				float childWidth = childBorderWidth(child);
+				float childHeight = childBorderHeight(child);
+				if (distributeFlexGrow)
+				{
+					const float growDelta = remainingMainSize * (std::max(0.0f, child.usedStyleValues.flexGrow) / totalFlexGrow);
+					if (row)
+						childWidth += growDelta;
+					else
+						childHeight += growDelta;
+				}
 				const auto resolveCrossAxis = [&parent](float childCrossSize, float marginStart, float marginEnd, float parentCrossMin, float parentCrossSize)
 				{
 					const float availableCrossSize = std::max(0.0f, parentCrossSize - marginStart - marginEnd);
