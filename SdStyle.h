@@ -420,12 +420,6 @@ namespace Sodium
 		}
 	};
 
-	struct SdTypedStyleDeclaration final
-	{
-		std::type_index styleType = std::type_index(typeid(void));
-		SdUInt64 fieldId = 0;
-	};
-
 	struct SdTypedStyleTransition final
 	{
 		std::type_index styleType = std::type_index(typeid(void));
@@ -444,7 +438,6 @@ namespace Sodium
 		bool matchLayer = false;
 		bool matchClass = false;
 		bool matchScope = false;
-		std::vector<SdTypedStyleDeclaration> declarations = {};
 		std::vector<SdTypedStyleTransition> transitions = {};
 	};
 
@@ -1389,10 +1382,6 @@ namespace Sodium
 			SdStyleRuleBuilder& SetValue(TField Style::* member, SdStyleValue value)
 			{
 				system.template RegisterTypedProperty<Style>(member);
-				SdTypedStyleDeclaration declaration = {};
-				declaration.styleType = std::type_index(typeid(Style));
-				declaration.fieldId = Detail::SdStyleFieldId(member);
-				rule.declarations.push_back(std::move(declaration));
 				BuildCompiledRule().Set(member, value);
 				system.compiledStyleSheet = system.typedStyleSheet.Compile();
 				system.Touch();
