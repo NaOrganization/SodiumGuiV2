@@ -1135,6 +1135,24 @@ namespace
 		Check(spacedBoxes[2].borderBox.max.x == spacedBoxes[0].contentBox.max.x, "flex justify-content space-between distributes row children");
 
 		parentStyle.justifyContent = SdJustifyContent::FlexStart;
+		parentStyle.alignItems = SdAlignItems::Center;
+		SdBoxTree alignedTree = {};
+		const SdUInt32 alignedParent = alignedTree.AddBox(13, SdInvalidIndex<SdUInt32>, parentStyle, { 120.0f, 40.0f });
+		alignedTree.AddBox(14, alignedParent, childStyle, { 20.0f, 10.0f });
+		alignedTree.Layout({ 0.0f, 0.0f, 200.0f, 100.0f });
+		const std::vector<SdBoxNode>& alignedBoxes = alignedTree.GetBoxes();
+		Check(alignedBoxes[1].borderBox.min.y == alignedBoxes[0].contentBox.min.y + 15.0f, "flex align-items center offsets row children");
+
+		parentStyle.alignItems = SdAlignItems::Stretch;
+		SdBoxTree stretchedTree = {};
+		const SdUInt32 stretchedParent = stretchedTree.AddBox(15, SdInvalidIndex<SdUInt32>, parentStyle, { 120.0f, 40.0f });
+		stretchedTree.AddBox(16, stretchedParent, childStyle, { 20.0f, 10.0f });
+		stretchedTree.Layout({ 0.0f, 0.0f, 200.0f, 100.0f });
+		const std::vector<SdBoxNode>& stretchedBoxes = stretchedTree.GetBoxes();
+		Check(stretchedBoxes[1].borderBox.Height() == stretchedBoxes[0].contentBox.Height(), "flex align-items stretch fills row cross axis");
+
+		parentStyle.justifyContent = SdJustifyContent::FlexStart;
+		parentStyle.alignItems = SdAlignItems::Stretch;
 		parentStyle.flexDirection = SdFlexDirection::Column;
 		SdBoxTree columnTree = {};
 		const SdUInt32 columnParent = columnTree.AddBox(4, SdInvalidIndex<SdUInt32>, parentStyle, { 120.0f, 40.0f });
@@ -1195,6 +1213,7 @@ namespace
 			.Set(&SdBoxStyle::display, SdDisplay::Flex)
 			.Set(&SdBoxStyle::flexDirection, SdFlexDirection::Column)
 			.Set(&SdBoxStyle::justifyContent, SdJustifyContent::Center)
+			.Set(&SdBoxStyle::alignItems, SdAlignItems::FlexEnd)
 			.Set(&SdBoxStyle::boxSizing, SdBoxSizing::BorderBox)
 			.Set(&SdBoxStyle::maxWidth, SdLength::Pixels(96.0f))
 			.Set(&SdBoxStyle::maxHeight, SdLength::Pixels(72.0f))
@@ -1213,6 +1232,7 @@ namespace
 			overflowStyle.display == SdDisplay::Flex
 			&& overflowStyle.flexDirection == SdFlexDirection::Column
 			&& overflowStyle.justifyContent == SdJustifyContent::Center
+			&& overflowStyle.alignItems == SdAlignItems::FlexEnd
 			&& overflowStyle.boxSizing == SdBoxSizing::BorderBox
 			&& overflowStyle.maxWidth.value == 96.0f
 			&& overflowStyle.maxHeight.value == 72.0f

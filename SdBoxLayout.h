@@ -280,23 +280,57 @@ namespace Sodium
 				const float childHeight = std::max(0.0f, child.usedStyleValues.height
 					+ child.usedStyleValues.padding.top + child.usedStyleValues.padding.bottom
 					+ child.usedStyleValues.border.top + child.usedStyleValues.border.bottom);
+				const auto resolveCrossAxis = [&parent](float childCrossSize, float marginStart, float marginEnd, float parentCrossMin, float parentCrossSize)
+				{
+					const float availableCrossSize = std::max(0.0f, parentCrossSize - marginStart - marginEnd);
+					float crossSize = childCrossSize;
+					float cross = parentCrossMin + marginStart;
+					switch (parent.usedStyleValues.alignItems)
+					{
+					case SdAlignItems::Center:
+						cross += std::max(0.0f, availableCrossSize - childCrossSize) * 0.5f;
+						break;
+					case SdAlignItems::FlexEnd:
+						cross += std::max(0.0f, availableCrossSize - childCrossSize);
+						break;
+					case SdAlignItems::Stretch:
+						crossSize = availableCrossSize;
+						break;
+					case SdAlignItems::FlexStart:
+					default:
+						break;
+					}
+					return SdVec2{ cross, std::max(0.0f, crossSize) };
+				};
 				SdRect rect = {};
 				if (row)
 				{
+					const SdVec2 cross = resolveCrossAxis(
+						childHeight,
+						child.usedStyleValues.margin.top,
+						child.usedStyleValues.margin.bottom,
+						parent.contentBox.min.y,
+						parent.contentBox.Height());
 					rect = {
 						main + child.usedStyleValues.margin.left,
-						parent.contentBox.min.y + child.usedStyleValues.margin.top,
+						cross.x,
 						main + child.usedStyleValues.margin.left + childWidth,
-						parent.contentBox.min.y + child.usedStyleValues.margin.top + childHeight
+						cross.x + cross.y
 					};
 					main = rect.max.x + child.usedStyleValues.margin.right + gap;
 				}
 				else
 				{
+					const SdVec2 cross = resolveCrossAxis(
+						childWidth,
+						child.usedStyleValues.margin.left,
+						child.usedStyleValues.margin.right,
+						parent.contentBox.min.x,
+						parent.contentBox.Width());
 					rect = {
-						parent.contentBox.min.x + child.usedStyleValues.margin.left,
+						cross.x,
 						main + child.usedStyleValues.margin.top,
-						parent.contentBox.min.x + child.usedStyleValues.margin.left + childWidth,
+						cross.x + cross.y,
 						main + child.usedStyleValues.margin.top + childHeight
 					};
 					main = rect.max.y + child.usedStyleValues.margin.bottom + gap;
