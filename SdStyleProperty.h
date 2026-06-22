@@ -3,6 +3,7 @@
 #include "SdStyleCore.h"
 
 #include <typeindex>
+#include <unordered_map>
 #include <vector>
 
 namespace Sodium
@@ -194,7 +195,29 @@ namespace Sodium
 	class SdPropertyRegistry final
 	{
 	private:
+		struct PropertyKey final
+		{
+			SdPropertyId propertyId = 0;
+			std::type_index styleType = std::type_index(typeid(void));
+
+			friend bool operator==(const PropertyKey& left, const PropertyKey& right) noexcept
+			{
+				return left.propertyId == right.propertyId && left.styleType == right.styleType;
+			}
+		};
+
+		struct PropertyKeyHash final
+		{
+			SdSize operator()(const PropertyKey& key) const noexcept
+			{
+				SdSize hash = key.styleType.hash_code();
+				hash ^= static_cast<SdSize>(key.propertyId + 0x9e3779b97f4a7c15ull + (hash << 6) + (hash >> 2));
+				return hash;
+			}
+		};
+
 		std::vector<SdPropertyDescriptor> properties = {};
+		std::unordered_map<PropertyKey, SdSize, PropertyKeyHash> propertyIndexByKey = {};
 
 		static bool CanUseBoxStyleProperty(std::type_index propertyStyleType, std::type_index requestedStyleType) noexcept
 		{
@@ -232,21 +255,30 @@ namespace Sodium
 				if (property.propertyId == descriptor.propertyId && property.styleType == descriptor.styleType)
 				{
 					property = descriptor;
+					propertyIndexByKey[{ descriptor.propertyId, descriptor.styleType }] = static_cast<SdSize>(&property - properties.data());
 					return property;
 				}
 			}
 
 			properties.push_back(descriptor);
+			propertyIndexByKey[{ descriptor.propertyId, descriptor.styleType }] = properties.size() - 1;
 			return properties.back();
 		}
 
 		const SdPropertyDescriptor* Find(SdPropertyId propertyId, std::type_index styleType) const noexcept
 		{
-			for (const SdPropertyDescriptor& property : properties)
+			const auto exactIt = propertyIndexByKey.find({ propertyId, styleType });
+			if (exactIt != propertyIndexByKey.end() && exactIt->second < properties.size())
+				return &properties[exactIt->second];
+
+			if (styleType == std::type_index(typeid(SdWidgetRootStyle))
+				|| styleType == std::type_index(typeid(SdWidgetPartStyle)))
 			{
-				if (property.propertyId == propertyId && property.styleType == styleType)
-					return &property;
+				const auto boxIt = propertyIndexByKey.find({ propertyId, std::type_index(typeid(SdBoxStyle)) });
+				if (boxIt != propertyIndexByKey.end() && boxIt->second < properties.size())
+					return &properties[boxIt->second];
 			}
+
 			for (const SdPropertyDescriptor& property : properties)
 			{
 				if (property.propertyId == propertyId && CanUseBoxStyleProperty(property.styleType, styleType))

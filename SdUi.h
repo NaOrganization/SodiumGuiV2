@@ -5,9 +5,20 @@
 
 #include <functional>
 #include <string_view>
+#include <type_traits>
 
 namespace Sodium
 {
+	namespace Detail
+	{
+		template<class TStyle, class... TArgs>
+		inline constexpr bool SdFirstArgumentIsStylePointer = false;
+
+		template<class TStyle, class TFirst, class... TRest>
+		inline constexpr bool SdFirstArgumentIsStylePointer<TStyle, TFirst, TRest...> =
+			std::is_convertible_v<std::remove_reference_t<TFirst>, const TStyle*>;
+	}
+
 	class SdUi final
 	{
 	private:
@@ -39,6 +50,7 @@ namespace Sodium
 		T& DeclareStyled(const typename T::Style* inlineStyle, TArgs&&... args);
 
 		template<SdStylableWidget T, class... TArgs>
+			requires (!Detail::SdFirstArgumentIsStylePointer<typename T::Style, TArgs...>)
 		T& DeclareStyled(SdStyleIdentity styleIdentity, TArgs&&... args);
 
 		template<SdStylableWidget T, class... TArgs>
@@ -48,6 +60,7 @@ namespace Sodium
 		T& DeclareStyledKeyed(SdUtf8StringView key, const typename T::Style* inlineStyle, TArgs&&... args);
 
 		template<SdStylableWidget T, class... TArgs>
+			requires (!Detail::SdFirstArgumentIsStylePointer<typename T::Style, TArgs...>)
 		T& DeclareStyledKeyed(SdUtf8StringView key, SdStyleIdentity styleIdentity, TArgs&&... args);
 
 		template<SdStylableWidget T, class... TArgs>

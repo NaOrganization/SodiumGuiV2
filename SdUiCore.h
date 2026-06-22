@@ -110,18 +110,6 @@ namespace Sodium
 		inline constexpr SdStyleId Tooltip = SdStyleIdLiteral("Sodium.Style.Target.Tooltip");
 	}
 
-	namespace SdStylePropertyIds
-	{
-		inline constexpr SdStyleId Color = SdStyleIdLiteral("Sodium.Style.Property.Color");
-		inline constexpr SdStyleId Background = SdStyleIdLiteral("Sodium.Style.Property.Background");
-		inline constexpr SdStyleId Border = SdStyleIdLiteral("Sodium.Style.Property.Border");
-		inline constexpr SdStyleId Padding = SdStyleIdLiteral("Sodium.Style.Property.Padding");
-		inline constexpr SdStyleId Width = SdStyleIdLiteral("Sodium.Style.Property.Width");
-		inline constexpr SdStyleId Height = SdStyleIdLiteral("Sodium.Style.Property.Height");
-		inline constexpr SdStyleId Radius = SdStyleIdLiteral("Sodium.Style.Property.Radius");
-		inline constexpr SdStyleId Opacity = SdStyleIdLiteral("Sodium.Style.Property.Opacity");
-	}
-
 	enum class SdStyleInteractionState : SdUInt8
 	{
 		Normal,
@@ -247,12 +235,6 @@ namespace Sodium
 	{
 		return SdStyleValue::FromMetricVariable(SdThemeVariableLiteral(name));
 	}
-
-	struct SdStyleDeclaration final
-	{
-		SdStyleId propertyTag = 0;
-		SdStyleValue value = {};
-	};
 
 	struct SdThemeView final
 	{

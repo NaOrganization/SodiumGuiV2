@@ -107,7 +107,7 @@ namespace Sodium
 
 	inline SdTransition SdInstance::GetDefaultTransition() const noexcept
 	{
-		const float seconds = std::max(0.001f, context.styleSystem.GetTheme().GetMetricVariable(SdThemeVariableLiteral("duration.fast")));
+		const float seconds = std::max(0.001f, context.styling.GetTheme().GetMetricVariable(SdThemeVariableLiteral("duration.fast")));
 		return {
 			std::chrono::duration_cast<SdDuration>(std::chrono::duration<float>(seconds)),
 			SdAnimationEasing::OutCubic
@@ -129,9 +129,9 @@ namespace Sodium
 		{
 			if (const SdWidgetRecord* record = context.stateStorage.FindWidgetRecord(widgetId))
 			{
-				context.styleAnimationChannels.RemoveStyleNode(record->rootStyleNodeId);
+				context.presentationChannels.RemoveStyleNode(record->rootStyleNodeId);
 				for (SdStyleNodeId partStyleNodeId : record->partStyleNodeIds)
-					context.styleAnimationChannels.RemoveStyleNode(partStyleNodeId);
+					context.presentationChannels.RemoveStyleNode(partStyleNodeId);
 			}
 			context.animationSystem.RemoveWidget(widgetId);
 		});

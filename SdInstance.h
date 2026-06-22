@@ -39,6 +39,19 @@ namespace Sodium
 		SdUInt32 modelCount = 0;
 		SdUInt32 styleNodeCount = 0;
 		SdUInt32 liveObjectCount = 0;
+		SdUInt32 styleResolveCount = 0;
+		SdUInt32 styleResolveCacheHitCount = 0;
+		SdUInt32 styleResolveCacheMissCount = 0;
+		SdUInt32 styleResolvedNodeCount = 0;
+		SdUInt32 applyStyleAnimationCount = 0;
+		SdUInt32 applyStyleAnimationSkipCount = 0;
+		SdUInt32 styleAnimationEnsureCount = 0;
+		SdUInt32 styleAnimationFindCount = 0;
+		SdUInt32 styleAnimationChannelCreatedCount = 0;
+		SdUInt32 styleAnimationTargetSetCount = 0;
+		SdUInt32 styleAnimationTargetNoopCount = 0;
+		SdUInt32 styleAnimationUpdateVisitedCount = 0;
+		SdUInt32 styleAnimationUpdateActiveCount = 0;
 
 		void ResetFrameTransient() noexcept
 		{
@@ -64,6 +77,19 @@ namespace Sodium
 			reusedWidgetCount = 0;
 			styleNodeCount = 0;
 			liveObjectCount = 0;
+			styleResolveCount = 0;
+			styleResolveCacheHitCount = 0;
+			styleResolveCacheMissCount = 0;
+			styleResolvedNodeCount = 0;
+			applyStyleAnimationCount = 0;
+			applyStyleAnimationSkipCount = 0;
+			styleAnimationEnsureCount = 0;
+			styleAnimationFindCount = 0;
+			styleAnimationChannelCreatedCount = 0;
+			styleAnimationTargetSetCount = 0;
+			styleAnimationTargetNoopCount = 0;
+			styleAnimationUpdateVisitedCount = 0;
+			styleAnimationUpdateActiveCount = 0;
 		}
 	};
 
@@ -82,8 +108,8 @@ namespace Sodium
 		std::vector<SdWidgetId> frameOrder = {};
 		SdInputSystem input{ 512 };
 		SdAnimationSystem animationSystem = {};
-		SdStyleAnimationChannels styleAnimationChannels = {};
-		SdStyleSystem styleSystem = {};
+		SdStyleAnimationChannels presentationChannels = {};
+		SdStyleSystem styling = {};
 		SdLayoutSystem layoutSystem = {};
 		SdBoxTree boxTree = {};
 		SdLayerSystem layerSystem = {};
@@ -164,6 +190,13 @@ namespace Sodium
 		}
 
 		template<class T>
+		static void ArrangeThunk(void* object, SdArrangeContext& context)
+		{
+			if constexpr (requires(T& widget, SdArrangeContext& arrangeContext) { widget.OnArrange(arrangeContext); })
+				static_cast<T*>(object)->OnArrange(context);
+		}
+
+		template<class T>
 		static void PaintThunk(void* object, SdPaintContext& context)
 		{
 			if constexpr (requires(T& widget, SdPaintContext& paintContext) { widget.OnPaint(paintContext); })
@@ -207,8 +240,8 @@ namespace Sodium
 		const SdLayerSystem& GetLayerSystem() const noexcept { return context.layerSystem; }
 		const SdAnimationSystem& GetAnimationSystem() const noexcept { return context.animationSystem; }
 		const SdStateStorage& GetStateStorage() const noexcept { return context.stateStorage; }
-		SdStyleSystem& GetStyleSystem() noexcept { return context.styleSystem; }
-		const SdStyleSystem& GetStyleSystem() const noexcept { return context.styleSystem; }
+		SdStyleSystem& GetStyleSystem() noexcept { return context.styling; }
+		const SdStyleSystem& GetStyleSystem() const noexcept { return context.styling; }
 		const SdRenderSystem& GetRenderSystem() const noexcept { return context.renderSystem; }
 		const SdDrawData& GetRenderData() const noexcept { return renderList.GetDrawData(); }
 		SdDrawPacket GetDrawPacket() const noexcept { return renderList.BuildPacket(static_cast<SdUInt32>(context.frame.frameIndex)); }
@@ -249,6 +282,9 @@ namespace Sodium
 		const SdStyleNode& GetRootStyleNode(SdWidgetId widgetId) const;
 		const SdStyleNode& GetStylePart(SdWidgetId widgetId, SdStylePart part) const;
 		SdStyleNode& EnsureStylePart(SdWidgetId widgetId, SdStylePart part);
+		void SetPartUsedBox(SdWidgetId widgetId, SdStylePart part, const SdUsedBox& usedBox);
+		void SetPartLayoutBox(SdWidgetId widgetId, SdStylePart part, const SdUsedBox& layoutBox);
+		void SetPartBorderBox(SdWidgetId widgetId, SdStylePart part, SdRect borderBox);
 
 	private:
 		void BeginInputFrame();

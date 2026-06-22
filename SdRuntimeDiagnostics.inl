@@ -42,8 +42,8 @@ namespace Sodium
 		diagnostics.hitTestRecordCount = static_cast<SdUInt32>(context.layerSystem.GetHitTestRecords().size());
 		diagnostics.layerDrawChannelCount = static_cast<SdUInt32>(context.layerSystem.GetDrawChannels().size());
 		diagnostics.activeAnimationChannelCount = static_cast<SdUInt32>(context.animationSystem.GetActiveChannelCount());
-		diagnostics.activeStyleNodeAnimationChannelCount = context.styleAnimationChannels.CountActive();
-		diagnostics.activeLayoutTransitionCount = context.styleAnimationChannels.CountActiveLayoutTransitions();
+		diagnostics.activeStyleNodeAnimationChannelCount = context.presentationChannels.CountActive();
+		diagnostics.activeLayoutTransitionCount = context.presentationChannels.CountActiveLayoutTransitions();
 		diagnostics.drawCommandCount = static_cast<SdUInt32>(drawData.commands.size());
 		diagnostics.drawVertexCount = static_cast<SdUInt32>(drawData.vertices.size());
 		diagnostics.drawIndexCount = static_cast<SdUInt32>(drawData.indices.size());
@@ -54,5 +54,13 @@ namespace Sodium
 		diagnostics.modelCount = context.stateStorage.GetStats().modelCount;
 		diagnostics.styleNodeCount = context.stateStorage.CountLiveStyleNodes();
 		diagnostics.liveObjectCount = context.stateStorage.GetStats().liveObjectCount;
+		const SdStyleAnimationChannelStats& styleAnimationStats = context.presentationChannels.GetFrameStats();
+		diagnostics.styleAnimationEnsureCount = styleAnimationStats.ensureCount;
+		diagnostics.styleAnimationFindCount = styleAnimationStats.findCount;
+		diagnostics.styleAnimationChannelCreatedCount = styleAnimationStats.channelCreatedCount;
+		diagnostics.styleAnimationTargetSetCount = styleAnimationStats.targetSetCount;
+		diagnostics.styleAnimationTargetNoopCount = styleAnimationStats.targetSetNoopCount;
+		diagnostics.styleAnimationUpdateVisitedCount = styleAnimationStats.updateVisitedCount;
+		diagnostics.styleAnimationUpdateActiveCount = styleAnimationStats.updateActiveCount;
 	}
 }

@@ -21,6 +21,7 @@ namespace Sodium
 			record.styleCallback = &SdInstance::StyleThunk<T>;
 			record.typedStyleAnimationCallback = &SdInstance::TypedStyleAnimationThunk<T>;
 			record.layoutCallback = &SdInstance::LayoutThunk<T>;
+			record.arrangeCallback = &SdInstance::ArrangeThunk<T>;
 			record.paintCallback = &SdInstance::PaintThunk<T>;
 		}
 
@@ -124,6 +125,7 @@ namespace Sodium
 	}
 
 	template<SdStylableWidget T, class... TArgs>
+		requires (!Detail::SdFirstArgumentIsStylePointer<typename T::Style, TArgs...>)
 	T& SdUi::DeclareStyled(SdStyleIdentity styleIdentity, TArgs&&... args)
 	{
 		const SdWidgetId parentId = idStack.CurrentParentId();
@@ -159,6 +161,7 @@ namespace Sodium
 	}
 
 	template<SdStylableWidget T, class... TArgs>
+		requires (!Detail::SdFirstArgumentIsStylePointer<typename T::Style, TArgs...>)
 	T& SdUi::DeclareStyledKeyed(SdUtf8StringView key, SdStyleIdentity styleIdentity, TArgs&&... args)
 	{
 		const SdWidgetId parentId = idStack.CurrentParentId();

@@ -55,6 +55,35 @@ namespace Sodium
 				: context.animatedRect;
 		}
 
+		inline SdRect StyleNodeRect(const SdStyleNode& node, const SdRect& fallback) noexcept
+		{
+			if (node.layoutBox.borderBox.Width() > 0.0f || node.layoutBox.borderBox.Height() > 0.0f)
+				return node.layoutBox.borderBox;
+			if (node.usedBox.borderBox.Width() > 0.0f || node.usedBox.borderBox.Height() > 0.0f)
+				return node.usedBox.borderBox;
+			return fallback;
+		}
+
+		inline SdRect StyleNodeUsedRect(const SdStyleNode& node, const SdRect& fallback = {}) noexcept
+		{
+			if (node.usedBox.borderBox.Width() > 0.0f || node.usedBox.borderBox.Height() > 0.0f)
+				return node.usedBox.borderBox;
+			if (node.layoutBox.borderBox.Width() > 0.0f || node.layoutBox.borderBox.Height() > 0.0f)
+				return node.layoutBox.borderBox;
+			return fallback;
+		}
+
+		inline SdRect StyleNodeArrangeRect(const SdStyleNode& node, const SdRect& fallback = {}) noexcept
+		{
+			SdRect result = StyleNodeRect(node, fallback);
+			const SdRect usedRect = StyleNodeUsedRect(node, result);
+			if (usedRect.Width() > result.Width())
+				result.max.x = result.min.x + usedRect.Width();
+			if (usedRect.Height() > result.Height())
+				result.max.y = result.min.y + usedRect.Height();
+			return result;
+		}
+
 		inline float ResolveLineHeight(const SdTextStyle& textStyle) noexcept
 		{
 			return textStyle.lineHeight > 0.0f ? textStyle.lineHeight : textStyle.pixelSize;
@@ -348,17 +377,38 @@ namespace Sodium
 			});
 		}
 
+		void OnArrange(SdArrangeContext& context)
+		{
+			const State& state = context.State<State>();
+			const SdStyleNode& rootNode = context.RootStyleNode();
+			const SdRect rootRect = BasicWidgetDetail::StyleNodeArrangeRect(rootNode);
+			const SdBoxStyle& rootStyle = rootNode.resolvedStyle;
+			const SdBoxStyle& labelStyle = context.Part(Parts::Label).resolvedStyle;
+			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(rootStyle, rootRect.Size(), {});
+			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, labelStyle.fontSize, labelStyle.lineHeight);
+			const float lineHeight = BasicWidgetDetail::ResolveLineHeight(textStyle);
+			const SdVec2 textSize = BasicWidgetDetail::MeasureText(context.instance, state.label, textStyle);
+			const SdRect labelRect = {
+				rootRect.min.x + std::max(usedStyle.padding.left, (rootRect.Width() - textSize.x) * 0.5f),
+				rootRect.min.y + std::max(usedStyle.padding.top, (rootRect.Height() - lineHeight) * 0.5f),
+				rootRect.min.x + std::max(usedStyle.padding.left, (rootRect.Width() - textSize.x) * 0.5f) + textSize.x,
+				rootRect.min.y + std::max(usedStyle.padding.top, (rootRect.Height() - lineHeight) * 0.5f) + lineHeight
+			};
+			context.SetPartBorderBox(Parts::Content, rootRect);
+			context.SetPartBorderBox(Parts::Label, labelRect);
+		}
+
 		void OnPaint(SdPaintContext& context)
 		{
 			const State& state = context.State<State>();
 			const SdBoxStyle& presentation = context.RootStyleNode().presentationStyle;
-			const SdBoxStyle& contentPresentation = context.Part(Parts::Content).presentationStyle;
-			const SdBoxStyle& labelPresentation = context.Part(Parts::Label).presentationStyle;
-			const SdRect paintRect = BasicWidgetDetail::PaintRect(context);
-			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(presentation, paintRect.Size(), {});
+			const SdStyleNode& contentNode = context.Part(Parts::Content);
+			const SdStyleNode& labelNode = context.Part(Parts::Label);
+			const SdBoxStyle& contentPresentation = contentNode.presentationStyle;
+			const SdBoxStyle& labelPresentation = labelNode.presentationStyle;
+			const SdRect paintRect = BasicWidgetDetail::StyleNodeRect(contentNode, BasicWidgetDetail::PaintRect(context));
+			const SdRect labelRect = BasicWidgetDetail::StyleNodeRect(labelNode, paintRect);
 			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, labelPresentation.fontSize, labelPresentation.lineHeight);
-			const float lineHeight = BasicWidgetDetail::ResolveLineHeight(textStyle);
-			const SdVec2 textSize = BasicWidgetDetail::MeasureText(context.instance, state.label, textStyle);
 			const SdColor background = BasicWidgetDetail::ApplyOpacity(contentPresentation.backgroundColor, context.opacity * contentPresentation.opacity);
 			const SdColor border = BasicWidgetDetail::ApplyOpacity(contentPresentation.border.left.color, context.opacity * contentPresentation.opacity);
 			const SdColor color = BasicWidgetDetail::ApplyOpacity(labelPresentation.color, context.opacity * labelPresentation.opacity);
@@ -366,11 +416,7 @@ namespace Sodium
 
 			context.renderList.AddRectFilled(paintRect, background, context.clipRect, radius);
 			context.renderList.AddRect(paintRect, border, context.clipRect, 1.0f, radius);
-			const SdVec2 position = {
-				paintRect.min.x + std::max(usedStyle.padding.left, (paintRect.Width() - textSize.x) * 0.5f),
-				paintRect.min.y + std::max(usedStyle.padding.top, (paintRect.Height() - lineHeight) * 0.5f)
-			};
-			context.renderList.AddText(state.label, textStyle, position, color, context.clipRect);
+			context.renderList.AddText(state.label, textStyle, labelRect.min, color, context.clipRect);
 		}
 
 	private:
@@ -605,6 +651,7 @@ namespace Sodium
 		{
 			const State& state = context.State<State>();
 			const Style& style = context.RootResolvedStyle<SdSliderFloat>();
+			(void)style;
 			const SdBoxStyle& rootStyle = context.RootStyleNode().resolvedStyle;
 			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(rootStyle, context.constraints.maxSize, { 180.0f, 30.0f });
 			SdVec2 labelSize = {};
@@ -621,41 +668,37 @@ namespace Sodium
 			});
 		}
 
-		void OnPaint(SdPaintContext& context)
+		void OnArrange(SdArrangeContext& context)
 		{
 			const State& state = context.State<State>();
-			const Style& style = context.RootPresentationStyle<SdSliderFloat>();
-			const SdBoxStyle& presentation = context.RootStyleNode().presentationStyle;
-			const SdBoxStyle& labelPresentation = context.Part(Parts::Label).presentationStyle;
-			const SdBoxStyle& trackPresentation = context.Part(Parts::Track).presentationStyle;
-			const SdBoxStyle& fillPresentation = context.Part(Parts::Fill).presentationStyle;
-			const SdBoxStyle& thumbPresentation = context.Part(Parts::Thumb).presentationStyle;
-			const SdRect paintRect = BasicWidgetDetail::PaintRect(context);
-			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(presentation, paintRect.Size(), { 180.0f, 30.0f });
+			const Style& style = context.RootResolvedStyle<SdSliderFloat>();
+			const SdStyleNode& rootNode = context.RootStyleNode();
+			const SdRect rootRect = BasicWidgetDetail::StyleNodeArrangeRect(rootNode);
+			const SdBoxStyle& rootStyle = rootNode.resolvedStyle;
+			const SdBoxStyle& labelStyle = context.Part(Parts::Label).resolvedStyle;
+			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(rootStyle, rootRect.Size(), { 180.0f, 30.0f });
 			const float labelGap = std::max(0.0f, usedStyle.gap);
-			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, labelPresentation.fontSize, labelPresentation.lineHeight);
+			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, labelStyle.fontSize, labelStyle.lineHeight);
 			const float lineHeight = BasicWidgetDetail::ResolveLineHeight(textStyle);
-			const SdColor textColor = BasicWidgetDetail::ApplyOpacity(labelPresentation.color, context.opacity * labelPresentation.opacity);
-			const SdColor trackColor = BasicWidgetDetail::ApplyOpacity(trackPresentation.backgroundColor, context.opacity * trackPresentation.opacity);
-			const SdColor trackBorder = BasicWidgetDetail::ApplyOpacity(trackPresentation.border.left.color, context.opacity * trackPresentation.opacity);
-			const SdColor fillColor = BasicWidgetDetail::ApplyOpacity(fillPresentation.backgroundColor, context.opacity * fillPresentation.opacity);
-			const SdColor thumbColor = BasicWidgetDetail::ApplyOpacity(thumbPresentation.backgroundColor, context.opacity * thumbPresentation.opacity);
-			const SdColor thumbBorder = BasicWidgetDetail::ApplyOpacity(thumbPresentation.border.left.color, context.opacity * thumbPresentation.opacity);
-			const float radius = SdResolveLength(trackPresentation.radius, usedStyle.width, SdResolveLength(presentation.radius, usedStyle.width));
-
-			float trackStartX = paintRect.min.x + usedStyle.padding.left;
+			float trackStartX = rootRect.min.x + usedStyle.padding.left;
 			if (!state.label.empty())
 			{
 				const SdVec2 labelSize = BasicWidgetDetail::MeasureText(context.instance, state.label, textStyle);
-				const SdVec2 labelPosition = {
+				const SdRect labelRect = {
 					trackStartX,
-					paintRect.min.y + std::max(usedStyle.padding.top, (paintRect.Height() - lineHeight) * 0.5f)
+					rootRect.min.y + std::max(usedStyle.padding.top, (rootRect.Height() - lineHeight) * 0.5f),
+					trackStartX + labelSize.x,
+					rootRect.min.y + std::max(usedStyle.padding.top, (rootRect.Height() - lineHeight) * 0.5f) + lineHeight
 				};
-				context.renderList.AddText(state.label, textStyle, labelPosition, textColor, context.clipRect);
+				context.SetPartBorderBox(Parts::Label, labelRect);
 				trackStartX += labelSize.x + labelGap;
 			}
+			else
+			{
+				context.SetPartBorderBox(Parts::Label, {});
+			}
 
-			const float trackCenterY = paintRect.min.y + (paintRect.Height() * 0.5f);
+			const float trackCenterY = rootRect.min.y + (rootRect.Height() * 0.5f);
 			const SdRect trackRect = {
 				trackStartX,
 				trackCenterY - (style.trackHeight * 0.5f),
@@ -665,11 +708,56 @@ namespace Sodium
 			const float t = BasicWidgetDetail::Normalize(state.value, state.minValue, state.maxValue);
 			const float thumbX = BasicWidgetDetail::Lerp(trackRect.min.x, trackRect.max.x, t);
 			const SdRect fillRect = { trackRect.min.x, trackRect.min.y, thumbX, trackRect.max.y };
+			const SdRect thumbRect = {
+				thumbX - style.thumbRadius,
+				trackCenterY - style.thumbRadius,
+				thumbX + style.thumbRadius,
+				trackCenterY + style.thumbRadius
+			};
+			context.SetPartBorderBox(Parts::Track, trackRect);
+			context.SetPartBorderBox(Parts::Fill, fillRect);
+			context.SetPartBorderBox(Parts::Thumb, thumbRect);
+		}
+
+		void OnPaint(SdPaintContext& context)
+		{
+			const State& state = context.State<State>();
+			const Style& style = context.RootPresentationStyle<SdSliderFloat>();
+			const SdBoxStyle& presentation = context.RootStyleNode().presentationStyle;
+			const SdStyleNode& labelNode = context.Part(Parts::Label);
+			const SdStyleNode& trackNode = context.Part(Parts::Track);
+			const SdStyleNode& fillNode = context.Part(Parts::Fill);
+			const SdStyleNode& thumbNode = context.Part(Parts::Thumb);
+			const SdBoxStyle& labelPresentation = labelNode.presentationStyle;
+			const SdBoxStyle& trackPresentation = trackNode.presentationStyle;
+			const SdBoxStyle& fillPresentation = fillNode.presentationStyle;
+			const SdBoxStyle& thumbPresentation = thumbNode.presentationStyle;
+			const SdRect paintRect = BasicWidgetDetail::PaintRect(context);
+			const SdRect trackRect = BasicWidgetDetail::StyleNodeRect(trackNode, paintRect);
+			const SdRect fillRect = BasicWidgetDetail::StyleNodeRect(fillNode, trackRect);
+			const SdRect thumbRect = BasicWidgetDetail::StyleNodeRect(thumbNode, trackRect);
+			const SdRect labelRect = BasicWidgetDetail::StyleNodeRect(labelNode, paintRect);
+			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, labelPresentation.fontSize, labelPresentation.lineHeight);
+			const SdColor textColor = BasicWidgetDetail::ApplyOpacity(labelPresentation.color, context.opacity * labelPresentation.opacity);
+			const SdColor trackColor = BasicWidgetDetail::ApplyOpacity(trackPresentation.backgroundColor, context.opacity * trackPresentation.opacity);
+			const SdColor trackBorder = BasicWidgetDetail::ApplyOpacity(trackPresentation.border.left.color, context.opacity * trackPresentation.opacity);
+			const SdColor fillColor = BasicWidgetDetail::ApplyOpacity(fillPresentation.backgroundColor, context.opacity * fillPresentation.opacity);
+			const SdColor thumbColor = BasicWidgetDetail::ApplyOpacity(thumbPresentation.backgroundColor, context.opacity * thumbPresentation.opacity);
+			const SdColor thumbBorder = BasicWidgetDetail::ApplyOpacity(thumbPresentation.border.left.color, context.opacity * thumbPresentation.opacity);
+			const float radius = SdResolveLength(trackPresentation.radius, trackRect.Width(), SdResolveLength(presentation.radius, trackRect.Width()));
+
+			if (!state.label.empty())
+				context.renderList.AddText(state.label, textStyle, labelRect.min, textColor, context.clipRect);
 			context.renderList.AddRectFilled(trackRect, trackColor, context.clipRect, radius);
 			context.renderList.AddRectFilled(fillRect, fillColor, context.clipRect, radius);
 			context.renderList.AddRect(trackRect, trackBorder, context.clipRect, 1.0f, radius);
-			context.renderList.AddCircleFilled({ thumbX, trackCenterY }, style.thumbRadius, thumbColor, context.clipRect);
-			context.renderList.AddCircle({ thumbX, trackCenterY }, style.thumbRadius, thumbBorder, context.clipRect, 1.0f);
+			const SdVec2 thumbCenter = {
+				(thumbRect.min.x + thumbRect.max.x) * 0.5f,
+				(thumbRect.min.y + thumbRect.max.y) * 0.5f
+			};
+			const float thumbRadius = thumbRect.Width() > 0.0f ? thumbRect.Width() * 0.5f : style.thumbRadius;
+			context.renderList.AddCircleFilled(thumbCenter, thumbRadius, thumbColor, context.clipRect);
+			context.renderList.AddCircle(thumbCenter, thumbRadius, thumbBorder, context.clipRect, 1.0f);
 		}
 
 	private:
@@ -798,20 +886,62 @@ namespace Sodium
 			});
 		}
 
+		void OnArrange(SdArrangeContext& context)
+		{
+			const State& state = context.State<State>();
+			const SdStyleNode& rootNode = context.RootStyleNode();
+			const SdRect rootRect = BasicWidgetDetail::StyleNodeArrangeRect(rootNode);
+			const SdBoxStyle& rootStyle = rootNode.resolvedStyle;
+			const bool showPlaceholder = state.text.empty() && state.composition.empty() && !state.placeholder.empty();
+			const SdBoxStyle& textStyleNode = context.Part(showPlaceholder ? Parts::Placeholder : Parts::Value).resolvedStyle;
+			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(rootStyle, rootRect.Size(), {});
+			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, textStyleNode.fontSize, textStyleNode.lineHeight);
+			const float lineHeight = BasicWidgetDetail::ResolveLineHeight(textStyle);
+			const SdUtf8StringView paintText = showPlaceholder ? SdUtf8StringView(state.placeholder) : SdUtf8StringView(state.text);
+			const SdVec2 textSize = BasicWidgetDetail::MeasureText(context.instance, paintText, textStyle);
+			const SdVec2 textPosition = {
+				rootRect.min.x + usedStyle.padding.left,
+				rootRect.min.y + std::max(usedStyle.padding.top, (rootRect.Height() - lineHeight) * 0.5f)
+			};
+			const SdRect textRect = {
+				textPosition.x,
+				textPosition.y,
+				textPosition.x + textSize.x,
+				textPosition.y + lineHeight
+			};
+			const SdVec2 caretTextSize = BasicWidgetDetail::MeasureText(context.instance, state.text, textStyle);
+			const SdRect caretRect = {
+				textPosition.x + caretTextSize.x + 1.0f,
+				textPosition.y,
+				textPosition.x + caretTextSize.x + 2.0f,
+				textPosition.y + lineHeight
+			};
+			context.SetPartBorderBox(Parts::Field, rootRect);
+			context.SetPartBorderBox(Parts::Value, textRect);
+			context.SetPartBorderBox(Parts::Placeholder, textRect);
+			context.SetPartBorderBox(Parts::Caret, caretRect);
+			context.SetPartBorderBox(Parts::Selection, {});
+		}
+
 		void OnPaint(SdPaintContext& context)
 		{
 			const State& state = context.State<State>();
 			const SdBoxStyle& presentation = context.RootStyleNode().presentationStyle;
-			const SdBoxStyle& fieldPresentation = context.Part(Parts::Field).presentationStyle;
-			const SdBoxStyle& valuePresentation = context.Part(Parts::Value).presentationStyle;
-			const SdBoxStyle& placeholderPresentation = context.Part(Parts::Placeholder).presentationStyle;
-			const SdBoxStyle& caretPresentation = context.Part(Parts::Caret).presentationStyle;
-			const SdRect paintRect = BasicWidgetDetail::PaintRect(context);
-			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(presentation, paintRect.Size(), {});
+			const SdStyleNode& fieldNode = context.Part(Parts::Field);
+			const SdStyleNode& valueNode = context.Part(Parts::Value);
+			const SdStyleNode& placeholderNode = context.Part(Parts::Placeholder);
+			const SdStyleNode& caretNode = context.Part(Parts::Caret);
+			const SdBoxStyle& fieldPresentation = fieldNode.presentationStyle;
+			const SdBoxStyle& valuePresentation = valueNode.presentationStyle;
+			const SdBoxStyle& placeholderPresentation = placeholderNode.presentationStyle;
+			const SdBoxStyle& caretPresentation = caretNode.presentationStyle;
+			const SdRect paintRect = BasicWidgetDetail::StyleNodeRect(fieldNode, BasicWidgetDetail::PaintRect(context));
 			const bool showPlaceholder = state.text.empty() && state.composition.empty() && !state.placeholder.empty();
 			const SdBoxStyle& textPresentation = showPlaceholder ? placeholderPresentation : valuePresentation;
+			const SdStyleNode& textNode = showPlaceholder ? placeholderNode : valueNode;
+			const SdRect textRect = BasicWidgetDetail::StyleNodeRect(textNode, paintRect);
+			const SdRect caretRect = BasicWidgetDetail::StyleNodeRect(caretNode, textRect);
 			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, textPresentation.fontSize, textPresentation.lineHeight);
-			const float lineHeight = BasicWidgetDetail::ResolveLineHeight(textStyle);
 			const SdColor background = BasicWidgetDetail::ApplyOpacity(fieldPresentation.backgroundColor, context.opacity * fieldPresentation.opacity);
 			const SdColor border = BasicWidgetDetail::ApplyOpacity(fieldPresentation.border.left.color, context.opacity * fieldPresentation.opacity);
 			const SdColor textColor = BasicWidgetDetail::ApplyOpacity(textPresentation.color, context.opacity * textPresentation.opacity);
@@ -825,28 +955,15 @@ namespace Sodium
 			if (!state.composition.empty())
 				paintText += state.composition;
 
-			const SdVec2 textPosition = {
-				paintRect.min.x + usedStyle.padding.left,
-				paintRect.min.y + std::max(usedStyle.padding.top, (paintRect.Height() - lineHeight) * 0.5f)
-			};
 			context.renderList.AddText(
 				paintText,
 				textStyle,
-				textPosition,
+				textRect.min,
 				textColor,
 				context.clipRect);
 
 			if (state.focused)
-			{
-				const SdVec2 textSize = BasicWidgetDetail::MeasureText(context.instance, state.text, textStyle);
-				const SdRect caretRect = {
-					textPosition.x + textSize.x + 1.0f,
-					textPosition.y,
-					textPosition.x + textSize.x + 2.0f,
-					textPosition.y + lineHeight
-				};
 				context.renderList.AddRectFilled(caretRect, caretColor, context.clipRect);
-			}
 		}
 
 	private:
@@ -981,6 +1098,57 @@ namespace Sodium
 			context.SetDesiredSize(state.open ? state.rect.Size() : SdVec2{});
 		}
 
+		void OnArrange(SdArrangeContext& context)
+		{
+			const State& state = context.State<State>();
+			if (!state.open)
+			{
+				context.SetPartBorderBox(Parts::Titlebar, {});
+				context.SetPartBorderBox(Parts::Title, {});
+				context.SetPartBorderBox(Parts::CloseButton, {});
+				context.SetPartBorderBox(Parts::Content, {});
+				context.SetPartBorderBox(Parts::ResizeHandle, {});
+				return;
+			}
+
+			const Style& style = context.RootResolvedStyle<SdWindow>();
+			const SdStyleNode& rootNode = context.RootStyleNode();
+			const SdRect rootRect = BasicWidgetDetail::StyleNodeArrangeRect(rootNode);
+			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(rootNode.resolvedStyle, rootRect.Size(), { 420.0f, 260.0f });
+			const SdBoxStyle& titleStyle = context.Part(Parts::Title).resolvedStyle;
+			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, titleStyle.fontSize, titleStyle.lineHeight);
+			const float lineHeight = BasicWidgetDetail::ResolveLineHeight(textStyle);
+			const SdRect titlebarRect = {
+				rootRect.min.x,
+				rootRect.min.y,
+				rootRect.max.x,
+				std::min(rootRect.max.y, rootRect.min.y + style.titleHeight)
+			};
+			const SdVec2 titleSize = BasicWidgetDetail::MeasureText(context.instance, state.title, textStyle);
+			const SdVec2 titlePosition = {
+				titlebarRect.min.x + usedStyle.padding.left,
+				titlebarRect.min.y + std::max(0.0f, (titlebarRect.Height() - lineHeight) * 0.5f)
+			};
+			const SdRect titleRect = {
+				titlePosition.x,
+				titlePosition.y,
+				titlePosition.x + titleSize.x,
+				titlePosition.y + lineHeight
+			};
+			const SdRect closeRect = state.options.closable ? CloseRect(titlebarRect) : SdRect{};
+			const SdRect resizeHandleRect = {
+				rootRect.max.x - 12.0f,
+				rootRect.max.y - 12.0f,
+				rootRect.max.x,
+				rootRect.max.y
+			};
+			context.SetPartBorderBox(Parts::Content, rootRect);
+			context.SetPartBorderBox(Parts::Titlebar, titlebarRect);
+			context.SetPartBorderBox(Parts::Title, titleRect);
+			context.SetPartBorderBox(Parts::CloseButton, closeRect);
+			context.SetPartBorderBox(Parts::ResizeHandle, resizeHandleRect);
+		}
+
 		void OnPaint(SdPaintContext& context)
 		{
 			const State& state = context.State<State>();
@@ -989,14 +1157,20 @@ namespace Sodium
 
 			const Style& style = context.RootPresentationStyle<SdWindow>();
 			const SdBoxStyle& presentation = context.RootStyleNode().presentationStyle;
-			const SdBoxStyle& titlebarPresentation = context.Part(Parts::Titlebar).presentationStyle;
-			const SdBoxStyle& titlePresentation = context.Part(Parts::Title).presentationStyle;
-			const SdBoxStyle& closeButtonPresentation = context.Part(Parts::CloseButton).presentationStyle;
-			const SdBoxStyle& contentPresentation = context.Part(Parts::Content).presentationStyle;
-			const SdRect paintRect = BasicWidgetDetail::PaintRect(context);
-			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(presentation, paintRect.Size(), { 420.0f, 260.0f });
+			(void)style;
+			const SdStyleNode& titlebarNode = context.Part(Parts::Titlebar);
+			const SdStyleNode& titleNode = context.Part(Parts::Title);
+			const SdStyleNode& closeButtonNode = context.Part(Parts::CloseButton);
+			const SdStyleNode& contentNode = context.Part(Parts::Content);
+			const SdBoxStyle& titlebarPresentation = titlebarNode.presentationStyle;
+			const SdBoxStyle& titlePresentation = titleNode.presentationStyle;
+			const SdBoxStyle& closeButtonPresentation = closeButtonNode.presentationStyle;
+			const SdBoxStyle& contentPresentation = contentNode.presentationStyle;
+			const SdRect paintRect = BasicWidgetDetail::StyleNodeRect(contentNode, BasicWidgetDetail::PaintRect(context));
+			const SdRect titleRect = BasicWidgetDetail::StyleNodeRect(titlebarNode, paintRect);
+			const SdRect titleTextRect = BasicWidgetDetail::StyleNodeRect(titleNode, titleRect);
+			const SdRect closeRect = BasicWidgetDetail::StyleNodeRect(closeButtonNode, titleRect);
 			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, titlePresentation.fontSize, titlePresentation.lineHeight);
-			const float lineHeight = BasicWidgetDetail::ResolveLineHeight(textStyle);
 			const SdColor background = BasicWidgetDetail::ApplyOpacity(contentPresentation.backgroundColor, context.opacity * contentPresentation.opacity);
 			const SdColor border = BasicWidgetDetail::ApplyOpacity(contentPresentation.border.left.color, context.opacity * contentPresentation.opacity);
 			const SdColor textColor = BasicWidgetDetail::ApplyOpacity(titlePresentation.color, context.opacity * titlePresentation.opacity);
@@ -1006,24 +1180,13 @@ namespace Sodium
 			const float titlebarRadius = SdResolveLength(titlebarPresentation.radius, paintRect.Width(), radius);
 
 			context.renderList.AddRectFilled(paintRect, background, context.clipRect, radius);
-			const SdRect titleRect = {
-				paintRect.min.x,
-				paintRect.min.y,
-				paintRect.max.x,
-				std::min(paintRect.max.y, paintRect.min.y + style.titleHeight)
-			};
 			context.renderList.AddRectFilled(titleRect, titleColor, context.clipRect, titlebarRadius);
 			context.renderList.AddRect(paintRect, border, context.clipRect, 1.0f, radius);
 
-			const SdVec2 titlePosition = {
-				titleRect.min.x + usedStyle.padding.left,
-				titleRect.min.y + std::max(0.0f, (titleRect.Height() - lineHeight) * 0.5f)
-			};
-			context.renderList.AddText(state.title, textStyle, titlePosition, textColor, context.clipRect);
+			context.renderList.AddText(state.title, textStyle, titleTextRect.min, textColor, context.clipRect);
 
 			if (state.options.closable)
 			{
-				const SdRect closeRect = CloseRect(titleRect);
 				context.renderList.AddLine(
 					{ closeRect.min.x + 5.0f, closeRect.min.y + 5.0f },
 					{ closeRect.max.x - 5.0f, closeRect.max.y - 5.0f },
@@ -1241,6 +1404,7 @@ namespace Sodium
 		void OnLayout(SdLayoutContext& context)
 		{
 			const Style& style = context.RootResolvedStyle<SdScrollView>();
+			(void)style;
 			const SdBoxStyle& rootStyle = context.RootStyleNode().resolvedStyle;
 			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(rootStyle, context.constraints.maxSize, { 240.0f, 160.0f });
 			context.SetDesiredSize({ std::max(0.0f, usedStyle.width), std::max(0.0f, usedStyle.height) });
@@ -1248,32 +1412,60 @@ namespace Sodium
 			context.widgetState.clipChildren = true;
 		}
 
-		void OnPaint(SdPaintContext& context)
+		void OnArrange(SdArrangeContext& context)
 		{
 			const State& state = context.State<State>();
+			const Style& style = context.RootResolvedStyle<SdScrollView>();
+			const SdRect rootRect = BasicWidgetDetail::StyleNodeArrangeRect(context.RootStyleNode());
+			if (style.scrollbarWidth <= 0.0f)
+			{
+				context.SetPartBorderBox(Parts::Scrollbar, {});
+				context.SetPartBorderBox(Parts::Thumb, {});
+				return;
+			}
+
+			const SdRect scrollbarRect = {
+				rootRect.max.x - style.scrollbarWidth - 4.0f,
+				rootRect.min.y + 4.0f,
+				rootRect.max.x - 4.0f,
+				rootRect.max.y - 4.0f
+			};
+			const float thumbHeight = std::max(18.0f, scrollbarRect.Height() * 0.35f);
+			const float travel = std::max(0.0f, scrollbarRect.Height() - thumbHeight);
+			const float thumbY = scrollbarRect.min.y + std::fmod(state.scrollOffset, std::max(1.0f, travel));
+			const SdRect thumbRect = {
+				scrollbarRect.min.x,
+				thumbY,
+				scrollbarRect.max.x,
+				std::min(scrollbarRect.max.y, thumbY + thumbHeight)
+			};
+			context.SetPartBorderBox(Parts::Scrollbar, scrollbarRect);
+			context.SetPartBorderBox(Parts::Thumb, thumbRect);
+		}
+
+		void OnPaint(SdPaintContext& context)
+		{
 			const Style& style = context.RootPresentationStyle<SdScrollView>();
 			const SdBoxStyle& presentation = context.RootStyleNode().presentationStyle;
-			const SdBoxStyle& scrollbarPresentation = context.Part(Parts::Scrollbar).presentationStyle;
-			const SdBoxStyle& thumbPresentation = context.Part(Parts::Thumb).presentationStyle;
+			const SdStyleNode& scrollbarNode = context.Part(Parts::Scrollbar);
+			const SdStyleNode& thumbNode = context.Part(Parts::Thumb);
+			const SdBoxStyle& scrollbarPresentation = scrollbarNode.presentationStyle;
+			const SdBoxStyle& thumbPresentation = thumbNode.presentationStyle;
 			const SdRect paintRect = BasicWidgetDetail::PaintRect(context);
+			const SdRect scrollbarRect = BasicWidgetDetail::StyleNodeRect(scrollbarNode, paintRect);
+			const SdRect thumbRect = BasicWidgetDetail::StyleNodeRect(thumbNode, scrollbarRect);
+			const SdColor rootBackground = BasicWidgetDetail::ApplyOpacity(presentation.backgroundColor, context.opacity * presentation.opacity);
 			const SdColor background = BasicWidgetDetail::ApplyOpacity(scrollbarPresentation.backgroundColor, context.opacity * scrollbarPresentation.opacity);
 			const SdColor border = BasicWidgetDetail::ApplyOpacity(scrollbarPresentation.border.left.color, context.opacity * scrollbarPresentation.opacity);
 			const SdColor thumbColor = BasicWidgetDetail::ApplyOpacity(thumbPresentation.backgroundColor, context.opacity * thumbPresentation.opacity);
-			const float radius = SdResolveLength(scrollbarPresentation.radius, paintRect.Width(), SdResolveLength(presentation.radius, paintRect.Width()));
-			context.renderList.AddRectFilled(paintRect, background, context.clipRect, radius);
-			context.renderList.AddRect(paintRect, border, context.clipRect, 1.0f, radius);
+			const float rootRadius = SdResolveLength(presentation.radius, paintRect.Width());
+			const float radius = SdResolveLength(scrollbarPresentation.radius, scrollbarRect.Width(), rootRadius);
+			context.renderList.AddRectFilled(paintRect, rootBackground, context.clipRect, rootRadius);
+			context.renderList.AddRectFilled(scrollbarRect, background, context.clipRect, radius);
+			context.renderList.AddRect(scrollbarRect, border, context.clipRect, 1.0f, radius);
 
-			if (style.scrollbarWidth > 0.0f && state.scrollOffset > 0.0f)
+			if (style.scrollbarWidth > 0.0f)
 			{
-				const float thumbHeight = std::max(18.0f, paintRect.Height() * 0.35f);
-				const float travel = std::max(0.0f, paintRect.Height() - thumbHeight - 8.0f);
-				const float thumbY = paintRect.min.y + 4.0f + std::fmod(state.scrollOffset, std::max(1.0f, travel));
-				const SdRect thumbRect = {
-					paintRect.max.x - style.scrollbarWidth - 4.0f,
-					thumbY,
-					paintRect.max.x - 4.0f,
-					thumbY + thumbHeight
-				};
 				context.renderList.AddRectFilled(thumbRect, thumbColor, context.clipRect, style.scrollbarWidth * 0.5f);
 			}
 		}

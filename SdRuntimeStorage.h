@@ -262,6 +262,7 @@ namespace Sodium
 		SdStyleInteractionState interactionState = SdStyleInteractionState::Normal;
 		SdLayerPriority layerPriority = SdLayerPriority::Content;
 		SdUInt64 styleIdentityRevision = 0;
+		SdUInt64 inlineStyleRevision = 0;
 		SdUInt64 styleRevision = 0;
 		bool valid = false;
 	};
@@ -305,6 +306,7 @@ namespace Sodium
 		void(*styleCallback)(SdInstance&, SdWidgetRecord&, SdStyleInteractionState, SdLayerPriority) = nullptr;
 		void(*typedStyleAnimationCallback)(SdInstance&, SdWidgetRecord&, SdDuration) = nullptr;
 		void(*layoutCallback)(void*, SdLayoutContext&) = nullptr;
+		void(*arrangeCallback)(void*, SdArrangeContext&) = nullptr;
 		void(*paintCallback)(void*, SdPaintContext&) = nullptr;
 
 		bool HasResolvedKey() const noexcept
@@ -743,6 +745,34 @@ namespace Sodium
 		}
 
 		template<class TStyle>
+		SdTypedStyleRecord* FindTypedStyleRecord(SdWidgetRecord& record) noexcept
+		{
+			auto it = record.typedStyles.find(std::type_index(typeid(TStyle)));
+			return it == record.typedStyles.end() ? nullptr : &it->second;
+		}
+
+		template<class TStyle>
+		const SdTypedStyleRecord* FindTypedStyleRecord(const SdWidgetRecord& record) const noexcept
+		{
+			auto it = record.typedStyles.find(std::type_index(typeid(TStyle)));
+			return it == record.typedStyles.end() ? nullptr : &it->second;
+		}
+
+		template<class TStyle>
+		const TStyle* FindInlineStyle(const SdWidgetRecord& record) const noexcept
+		{
+			const SdTypedStyleRecord* styleRecord = FindTypedStyleRecord<TStyle>(record);
+			return styleRecord ? const_cast<Detail::SdObjectStore&>(objectStore).Get<TStyle>(styleRecord->inlineStyle) : nullptr;
+		}
+
+		template<class TStyle>
+		SdUInt64 GetInlineStyleRevision(const SdWidgetRecord& record) const noexcept
+		{
+			const SdTypedStyleRecord* styleRecord = FindTypedStyleRecord<TStyle>(record);
+			return styleRecord ? styleRecord->inlineStyleRevision : 0;
+		}
+
+		template<class TStyle>
 		bool SetInlineStyle(SdWidgetRecord& record, const TStyle* inlineStyle)
 		{
 			SdTypedStyleRecord& styleRecord = GetOrCreateTypedStyleRecord<TStyle>(record);
@@ -756,6 +786,11 @@ namespace Sodium
 			}
 			else if (TStyle* storedStyle = objectStore.Get<TStyle>(styleRecord.inlineStyle))
 			{
+				if constexpr (requires(const TStyle& left, const TStyle& right) { left == right; })
+				{
+					if (*storedStyle == *inlineStyle)
+						return false;
+				}
 				*storedStyle = *inlineStyle;
 			}
 			else

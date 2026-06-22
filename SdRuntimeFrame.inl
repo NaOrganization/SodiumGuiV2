@@ -40,6 +40,7 @@ namespace Sodium
 		context.frameOrder.clear();
 		context.nextOrder = 0;
 		context.stateStorage.BeginFrame();
+		context.presentationChannels.ResetFrameStats();
 		context.frame.diagnostics.ResetFrameTransient();
 		uiObject.BeginDeclarationFrame();
 	}

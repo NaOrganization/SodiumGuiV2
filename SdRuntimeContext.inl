@@ -50,13 +50,15 @@ namespace Sodium
 		const SdWidgetRecord* record = context.stateStorage.FindWidgetRecord(widgetId);
 		assert(record);
 		if (!record)
-			return context.styleSystem.ResolveRootStyle(SdWidgetTargetIds::Default, interactionState, layerPriority);
-		return context.styleSystem.ResolveRootStyle(
+			return context.styling.ResolveRootStyle(SdWidgetTargetIds::Default, interactionState, layerPriority);
+		const SdWidgetRootStyle* inlineRootStyle = context.stateStorage.FindInlineStyle<SdWidgetRootStyle>(*record);
+		return context.styling.ResolveRootStyle(
 			record->state.targetTypeId,
 			interactionState,
 			layerPriority,
 			record->styleClasses,
-			record->styleScope);
+			record->styleScope,
+			inlineRootStyle);
 	}
 
 	inline const SdStyleNode& SdInstance::GetRootStyleNode(SdWidgetId widgetId) const
@@ -73,7 +75,6 @@ namespace Sodium
 		const SdWidgetRecord* record = context.stateStorage.FindWidgetRecord(widgetId);
 		assert(record);
 		const SdStyleNode* node = record ? context.stateStorage.FindStyleNode(*record, part) : nullptr;
-		assert(node);
 		return node ? *node : GetRootStyleNode(widgetId);
 	}
 
@@ -82,6 +83,26 @@ namespace Sodium
 		SdWidgetRecord* record = context.stateStorage.FindWidgetRecord(widgetId);
 		assert(record);
 		return context.stateStorage.EnsurePartStyleNode(*record, part);
+	}
+
+	inline void SdInstance::SetPartUsedBox(SdWidgetId widgetId, SdStylePart part, const SdUsedBox& usedBox)
+	{
+		SdStyleNode& node = EnsureStylePart(widgetId, part);
+		node.usedBox = usedBox;
+	}
+
+	inline void SdInstance::SetPartLayoutBox(SdWidgetId widgetId, SdStylePart part, const SdUsedBox& layoutBox)
+	{
+		SdStyleNode& node = EnsureStylePart(widgetId, part);
+		node.layoutBox = layoutBox;
+	}
+
+	inline void SdInstance::SetPartBorderBox(SdWidgetId widgetId, SdStylePart part, SdRect borderBox)
+	{
+		SdStyleNode& node = EnsureStylePart(widgetId, part);
+		const SdUsedBox box = SdBuildUsedBox(borderBox, node.resolvedStyle);
+		node.usedBox = box;
+		node.layoutBox = box;
 	}
 
 	template<class T>
@@ -110,6 +131,21 @@ namespace Sodium
 	inline SdStyleNode& SdWidgetContextBase::EnsurePart(SdStylePart part)
 	{
 		return instance.EnsureStylePart(id, part);
+	}
+
+	inline void SdWidgetContextBase::SetPartUsedBox(SdStylePart part, const SdUsedBox& usedBox)
+	{
+		instance.SetPartUsedBox(id, part, usedBox);
+	}
+
+	inline void SdWidgetContextBase::SetPartLayoutBox(SdStylePart part, const SdUsedBox& layoutBox)
+	{
+		instance.SetPartLayoutBox(id, part, layoutBox);
+	}
+
+	inline void SdWidgetContextBase::SetPartBorderBox(SdStylePart part, SdRect borderBox)
+	{
+		instance.SetPartBorderBox(id, part, borderBox);
 	}
 
 	template<class TWidget>

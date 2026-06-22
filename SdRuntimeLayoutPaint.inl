@@ -188,14 +188,6 @@ namespace Sodium
 					};
 				}
 				record.rootStyleNode = *rootNode;
-				for (SdStyleNodeId partNodeId : record.partStyleNodeIds)
-				{
-					if (SdStyleNode* partNode = context.stateStorage.FindStyleNodeById(partNodeId))
-					{
-						partNode->usedBox = rootNode->usedBox;
-						partNode->layoutBox = rootNode->layoutBox;
-					}
-				}
 			}
 			if (node.parentIndex != SdInvalidIndex<SdUInt32> && node.parentIndex < layoutNodes.size())
 			{
@@ -204,11 +196,29 @@ namespace Sodium
 					record.state.layerPriority = parentRecord.state.layerPriority;
 			}
 			ResolveWidgetStyle(record, resolveStyleInteraction(record.state.id), record.state.layerPriority);
+			if (record.arrangeCallback)
+			{
+				if (void* widgetObject = context.stateStorage.GetWidgetObjectPointer(record))
+				{
+					const SdStyleNode& rootStyleNode = GetRootStyleNode(record.state.id);
+					SdArrangeContext arrangeContext{
+						*this,
+						uiObject,
+						record.state.id,
+						record.parentId,
+						record.state,
+						context.theme,
+						record.resolvedKey,
+						rootStyleNode.layoutBox
+					};
+					record.arrangeCallback(widgetObject, arrangeContext);
+				}
+			}
 			setAnimatedRectTarget(record, record.state.targetRect);
 		}
 
 		context.animationSystem.Update(context.frame.deltaTime, false, false, true, true, false, false);
-		context.styleAnimationChannels.Update(context.frame.deltaTime);
+		context.presentationChannels.Update(context.frame.deltaTime);
 		for (SdWidgetId id : liveIds)
 		{
 			applyAnimatedRect(widgets[id]);

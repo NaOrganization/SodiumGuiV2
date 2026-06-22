@@ -71,6 +71,12 @@ namespace Sodium
 	{
 		const SdTheme& theme;
 	};
+}
+
+#include "SdDefaultUserAgentStyleSheet.h"
+
+namespace Sodium
+{
 
 	struct SdStyleFieldDescriptor final
 	{
@@ -729,17 +735,56 @@ namespace Sodium
 			SdStyleInteractionState interactionState,
 			SdLayerPriority layerPriority = SdLayerPriority::Content,
 			SdSpan<const SdStyleClassId> styleClasses = {},
-			SdStyleScopeId styleScope = 0) const
+			SdStyleScopeId styleScope = 0,
+			const SdWidgetRootStyle* inlineStyle = nullptr) const
 		{
-			SdWidgetRootStyle result = BuildDefaultRootStyle();
-			return ApplyCompiledTypedRules(
-				result,
+			const SdStyleResolveResult result = ResolveRootNode(
+				targetTypeId,
+				interactionState,
+				layerPriority,
+				styleClasses,
+				styleScope,
+				inlineStyle);
+			return ToRootStyle(result.resolvedStyle);
+		}
+
+		SdStyleResolveResult ResolveRootNode(
+			SdStyleId targetTypeId,
+			SdStyleInteractionState interactionState,
+			SdLayerPriority layerPriority = SdLayerPriority::Content,
+			SdSpan<const SdStyleClassId> styleClasses = {},
+			SdStyleScopeId styleScope = 0,
+			const SdWidgetRootStyle* inlineStyle = nullptr) const
+		{
+			SdWidgetRootStyle specifiedStyle = ApplyCompiledTypedRules(
+				BuildDefaultRootStyle(),
 				targetTypeId,
 				SdStylePart::Root(),
 				interactionState,
 				layerPriority,
 				styleClasses,
-				styleScope);
+				styleScope,
+				false);
+			SdWidgetRootStyle resolvedStyle = ApplyCompiledTypedRules(
+				BuildDefaultRootStyle(),
+				targetTypeId,
+				SdStylePart::Root(),
+				interactionState,
+				layerPriority,
+				styleClasses,
+				styleScope,
+				true);
+			if (inlineStyle)
+			{
+				specifiedStyle = *inlineStyle;
+				resolvedStyle = *inlineStyle;
+			}
+			ResolveBoxStyleVariables(resolvedStyle);
+			return {
+				ToBoxStyle(specifiedStyle),
+				ToBoxStyle(resolvedStyle),
+				ToBoxStyle(resolvedStyle)
+			};
 		}
 
 		SdWidgetPartStyle ResolvePartStyle(
@@ -751,20 +796,59 @@ namespace Sodium
 			SdSpan<const SdStyleClassId> styleClasses = {},
 			SdStyleScopeId styleScope = 0) const
 		{
-			SdWidgetPartStyle result = {};
-			if (result.inheritText)
-			{
-				result.color = rootStyle.color;
-				result.opacity = rootStyle.opacity;
-			}
-			return ApplyCompiledTypedRules(
-				result,
+			const SdStyleResolveResult result = ResolvePartNode(
+				targetTypeId,
+				part,
+				rootStyle,
+				interactionState,
+				layerPriority,
+				styleClasses,
+				styleScope);
+			return ToPartStyle(result.resolvedStyle);
+		}
+
+		SdStyleResolveResult ResolvePartNode(
+			SdStyleId targetTypeId,
+			SdStylePart part,
+			const SdWidgetRootStyle& rootStyle,
+			SdStyleInteractionState interactionState,
+			SdLayerPriority layerPriority = SdLayerPriority::Content,
+			SdSpan<const SdStyleClassId> styleClasses = {},
+			SdStyleScopeId styleScope = 0) const
+		{
+			const SdWidgetPartStyle specifiedStyle = ApplyCompiledTypedRules(
+				SdWidgetPartStyle{},
 				targetTypeId,
 				part,
 				interactionState,
 				layerPriority,
 				styleClasses,
-				styleScope);
+				styleScope,
+				false);
+			SdWidgetPartStyle resolvedBase = {};
+			resolvedBase.inheritText = specifiedStyle.inheritText;
+			if (resolvedBase.inheritText)
+			{
+				resolvedBase.color = rootStyle.color;
+				resolvedBase.opacity = rootStyle.opacity;
+				resolvedBase.fontSize = rootStyle.fontSize;
+				resolvedBase.lineHeight = rootStyle.lineHeight;
+			}
+			SdWidgetPartStyle resolvedStyle = ApplyCompiledTypedRules(
+				resolvedBase,
+				targetTypeId,
+				part,
+				interactionState,
+				layerPriority,
+				styleClasses,
+				styleScope,
+				true);
+			ResolveBoxStyleVariables(resolvedStyle);
+			return {
+				ToBoxStyle(specifiedStyle),
+				ToBoxStyle(resolvedStyle),
+				ToBoxStyle(resolvedStyle)
+			};
 		}
 
 		template<class TWidget>
@@ -878,6 +962,25 @@ namespace Sodium
 			return style;
 		}
 
+		static const SdBoxStyle& ToBoxStyle(const SdBoxStyle& style) noexcept
+		{
+			return style;
+		}
+
+		static SdWidgetRootStyle ToRootStyle(const SdBoxStyle& style) noexcept
+		{
+			SdWidgetRootStyle result = {};
+			static_cast<SdBoxStyle&>(result) = style;
+			return result;
+		}
+
+		static SdWidgetPartStyle ToPartStyle(const SdBoxStyle& style) noexcept
+		{
+			SdWidgetPartStyle result = {};
+			static_cast<SdBoxStyle&>(result) = style;
+			return result;
+		}
+
 		template<class TStyle>
 		const SdStyleContract<TStyle>& GetStyleContract() const
 		{
@@ -899,7 +1002,8 @@ namespace Sodium
 			SdStyleInteractionState interactionState,
 			SdLayerPriority layerPriority,
 			SdSpan<const SdStyleClassId> styleClasses,
-			SdStyleScopeId styleScope) const
+			SdStyleScopeId styleScope,
+			bool resolveValues = true) const
 		{
 			SdStyleResolveRequest request = {};
 			request.targetTag = targetTag;
@@ -934,7 +1038,7 @@ namespace Sodium
 
 					AppliedDeclaration candidate = {};
 					candidate.propertyId = declaration.propertyId;
-					candidate.value = ResolveValue(declaration.value);
+					candidate.value = resolveValues ? ResolveValue(declaration.value) : declaration.value;
 					candidate.important = declaration.important;
 					candidate.layer = rule.cascadeLayer;
 					candidate.specificity = rule.specificity;
@@ -969,6 +1073,9 @@ namespace Sodium
 			const SdStyleContract<TStyle>& contract = GetStyleContract<TStyle>();
 			for (const AppliedDeclaration& declaration : applied)
 			{
+				if (TryWriteBoxStyleDeclaration(style, declaration.propertyId, declaration.value, resolveValues))
+					continue;
+
 				const SdPropertyDescriptor* property = propertyRegistry.Find(declaration.propertyId, styleType);
 				if (property && property->writeValue)
 				{
@@ -981,6 +1088,153 @@ namespace Sodium
 					field->writeValue(*field, &style, declaration.value, theme);
 			}
 			return style;
+		}
+
+		template<class TStyle>
+		bool TryWriteBoxStyleDeclaration(
+			TStyle& style,
+			SdPropertyId propertyId,
+			const SdStyleValue& value,
+			bool resolveValues) const
+		{
+			if constexpr (!std::is_base_of_v<SdBoxStyle, TStyle>)
+			{
+				(void)style;
+				(void)propertyId;
+				(void)value;
+				(void)resolveValues;
+				return false;
+			}
+			else
+			{
+				SdBoxStyle& boxStyle = style;
+				if (propertyId == Detail::SdStylePropertyId(&SdBoxStyle::color))
+					return WriteColorDeclaration(boxStyle.color, boxStyle.colorVariable, value, resolveValues);
+				if (propertyId == Detail::SdStylePropertyId(&SdBoxStyle::backgroundColor))
+					return WriteColorDeclaration(boxStyle.backgroundColor, boxStyle.backgroundColorVariable, value, resolveValues);
+				if (propertyId == Detail::SdStylePropertyId(&SdBoxStyle::border))
+					return WriteBorderDeclaration(boxStyle, value, resolveValues);
+				if (propertyId == Detail::SdStylePropertyId(&SdBoxStyle::fontSize))
+					return WriteMetricDeclaration(boxStyle.fontSize, boxStyle.fontSizeVariable, value, resolveValues);
+				if (propertyId == Detail::SdStylePropertyId(&SdBoxStyle::lineHeight))
+					return WriteMetricDeclaration(boxStyle.lineHeight, boxStyle.lineHeightVariable, value, resolveValues);
+				return false;
+			}
+		}
+
+		bool WriteColorDeclaration(SdColor& color, SdThemeVariableId& variableId, const SdStyleValue& value, bool resolveValues) const
+		{
+			if (!resolveValues && value.kind == SdStyleValueKind::ColorVariable)
+			{
+				color = SdColorTransparent;
+				variableId = value.variableId;
+				return true;
+			}
+
+			const SdStyleValue resolvedValue = resolveValues ? ResolveValue(value) : value;
+			if (resolvedValue.kind != SdStyleValueKind::Color)
+				return false;
+			color = resolvedValue.color;
+			variableId = 0;
+			return true;
+		}
+
+		bool WriteBorderDeclaration(SdBoxStyle& style, const SdStyleValue& value, bool resolveValues) const
+		{
+			if (!resolveValues && value.kind == SdStyleValueKind::ColorVariable)
+			{
+				style.border = SdBorder::All(SdLength::Pixels(1.0f), SdColorTransparent);
+				style.borderColorVariable = value.variableId;
+				return true;
+			}
+
+			const SdStyleValue resolvedValue = resolveValues ? ResolveValue(value) : value;
+			if (resolvedValue.kind != SdStyleValueKind::Color)
+				return false;
+			style.border = SdBorder::All(SdLength::Pixels(1.0f), resolvedValue.color);
+			style.borderColorVariable = 0;
+			return true;
+		}
+
+		bool WriteMetricDeclaration(float& metric, SdThemeVariableId& variableId, const SdStyleValue& value, bool resolveValues) const
+		{
+			if (!resolveValues && value.kind == SdStyleValueKind::MetricVariable)
+			{
+				metric = 0.0f;
+				variableId = value.variableId;
+				return true;
+			}
+
+			const SdStyleValue resolvedValue = resolveValues ? ResolveValue(value) : value;
+			if (resolvedValue.kind != SdStyleValueKind::Float)
+				return false;
+			metric = resolvedValue.number;
+			variableId = 0;
+			return true;
+		}
+
+		void ResolveLengthVariable(SdLength& length) const noexcept
+		{
+			if (length.unit != SdLengthUnit::Variable)
+				return;
+			length = SdLength::Pixels(theme.GetMetricVariable(length.variableId));
+		}
+
+		void ResolveBoxEdges(SdBoxEdges& edges) const noexcept
+		{
+			ResolveLengthVariable(edges.left);
+			ResolveLengthVariable(edges.top);
+			ResolveLengthVariable(edges.right);
+			ResolveLengthVariable(edges.bottom);
+		}
+
+		void ResolveBorderVariables(SdBorder& border) const noexcept
+		{
+			ResolveLengthVariable(border.left.width);
+			ResolveLengthVariable(border.top.width);
+			ResolveLengthVariable(border.right.width);
+			ResolveLengthVariable(border.bottom.width);
+		}
+
+		void ResolveBoxStyleVariables(SdBoxStyle& style) const noexcept
+		{
+			if (style.colorVariable != 0)
+			{
+				style.color = theme.GetColorVariable(style.colorVariable);
+				style.colorVariable = 0;
+			}
+			if (style.backgroundColorVariable != 0)
+			{
+				style.backgroundColor = theme.GetColorVariable(style.backgroundColorVariable);
+				style.backgroundColorVariable = 0;
+			}
+			if (style.borderColorVariable != 0)
+			{
+				style.border = SdBorder::All(style.border.left.width, theme.GetColorVariable(style.borderColorVariable));
+				style.borderColorVariable = 0;
+			}
+			if (style.fontSizeVariable != 0)
+			{
+				style.fontSize = theme.GetMetricVariable(style.fontSizeVariable);
+				style.fontSizeVariable = 0;
+			}
+			if (style.lineHeightVariable != 0)
+			{
+				style.lineHeight = theme.GetMetricVariable(style.lineHeightVariable);
+				style.lineHeightVariable = 0;
+			}
+			ResolveLengthVariable(style.width);
+			ResolveLengthVariable(style.height);
+			ResolveLengthVariable(style.minWidth);
+			ResolveLengthVariable(style.minHeight);
+			ResolveLengthVariable(style.maxWidth);
+			ResolveLengthVariable(style.maxHeight);
+			ResolveBoxEdges(style.margin);
+			ResolveBoxEdges(style.padding);
+			ResolveBorderVariables(style.border);
+			ResolveLengthVariable(style.radius);
+			ResolveLengthVariable(style.gap);
+			ResolveLengthVariable(style.flexBasis);
 		}
 
 		static SdStyleValue ResolveCompiledValue(const SdStyleValue& value, const void* owner)
@@ -1162,192 +1416,13 @@ namespace Sodium
 
 		void InstallDefaultUserAgentStyleSheet(bool touchRevision = true)
 		{
-			auto global = typedStyleSheet.RuleForTarget<SdWidgetRootStyle>(SdWidgetTargetIds::Global);
-			global.Cascade(SdCascadeLayer::UserAgent)
-				.Set(&SdBoxStyle::color, ThemeColor("text"))
-				.Set(&SdBoxStyle::border, ThemeColor("border"))
-				.Set(&SdBoxStyle::radius, ThemeMetric("radius.small"))
-				.Set(&SdBoxStyle::opacity, 1.0f)
-				.Set(&SdBoxStyle::fontSize, ThemeMetric("font.button"))
-				.Set(&SdBoxStyle::lineHeight, 0.0f);
-			const float mediumSpacing = theme.GetMetricVariable(SdThemeVariableLiteral("spacing.medium"));
-			typedStyleSheet.RuleForTarget<SdWidgetRootStyle>(SdWidgetTargetIds::Panel)
-				.Cascade(SdCascadeLayer::UserAgent)
-				.Set(&SdBoxStyle::width, SdLength::Pixels(240.0f))
-				.Set(&SdBoxStyle::height, SdLength::Pixels(120.0f))
-				.Set(&SdBoxStyle::padding, SdStyleValue::FromSpacing({ mediumSpacing, mediumSpacing, mediumSpacing, mediumSpacing }))
-				.Set(&SdBoxStyle::gap, SdLength::Pixels(theme.GetMetricVariable(SdThemeVariableLiteral("spacing.small"))));
-			typedStyleSheet.RuleForTarget<SdWidgetRootStyle>(SdWidgetTargetIds::Window)
-				.Cascade(SdCascadeLayer::UserAgent)
-				.Set(&SdBoxStyle::width, SdLength::Pixels(420.0f))
-				.Set(&SdBoxStyle::height, SdLength::Pixels(260.0f))
-				.Set(&SdBoxStyle::padding, SdStyleValue::FromSpacing({ mediumSpacing, 40.0f, mediumSpacing, mediumSpacing }))
-				.Set(&SdBoxStyle::fontSize, ThemeMetric("font.button"))
-				.Set(&SdBoxStyle::lineHeight, 0.0f)
-				.Set(&SdBoxStyle::radius, ThemeMetric("radius.small"))
-				.Set(&SdBoxStyle::gap, SdLength::Pixels(theme.GetMetricVariable(SdThemeVariableLiteral("spacing.small"))))
-				.Set(&SdBoxStyle::opacity, 1.0f);
-			typedStyleSheet.PartForTarget(SdWidgetTargetIds::Window, SdStylePart::Make("Sodium.Window.Part.Content"))
-				.Cascade(SdCascadeLayer::UserAgent)
-				.Set(&SdBoxStyle::backgroundColor, ThemeColor("window.bg"))
-				.Set(&SdBoxStyle::border, ThemeColor("border"))
-				.Set(&SdBoxStyle::radius, ThemeMetric("radius.small"));
-			typedStyleSheet.PartForTarget(SdWidgetTargetIds::Window, SdStylePart::Make("Sodium.Window.Part.Titlebar"))
-				.Cascade(SdCascadeLayer::UserAgent)
-				.Set(&SdBoxStyle::backgroundColor, ThemeColor("button.bg"))
-				.Set(&SdBoxStyle::radius, ThemeMetric("radius.small"));
-			const float smallSpacing = theme.GetMetricVariable(SdThemeVariableLiteral("spacing.small"));
-			typedStyleSheet.RuleForTarget<SdWidgetRootStyle>(SdWidgetTargetIds::Button)
-				.Cascade(SdCascadeLayer::UserAgent)
-				.Set(&SdBoxStyle::minWidth, SdLength::Pixels(82.0f))
-				.Set(&SdBoxStyle::minHeight, SdLength::Pixels(30.0f))
-				.Set(&SdBoxStyle::padding, SdStyleValue::FromSpacing({ mediumSpacing, smallSpacing, mediumSpacing, smallSpacing }))
-				.Set(&SdBoxStyle::fontSize, ThemeMetric("font.button"))
-				.Set(&SdBoxStyle::lineHeight, 0.0f);
-			typedStyleSheet.PartForTarget(SdWidgetTargetIds::Button, SdStylePart::Make("Sodium.Button.Part.Content"))
-				.Cascade(SdCascadeLayer::UserAgent)
-				.Set(&SdBoxStyle::backgroundColor, ThemeColor("button.bg"))
-				.Set(&SdBoxStyle::border, ThemeColor("border"))
-				.Set(&SdBoxStyle::radius, ThemeMetric("radius.small"));
-			typedStyleSheet.PartForTarget(SdWidgetTargetIds::Button, SdStylePart::Make("Sodium.Button.Part.Content"))
-				.Cascade(SdCascadeLayer::UserAgent)
-				.Pseudo(SdStyleInteractionState::Hovered)
-				.Set(&SdBoxStyle::backgroundColor, ThemeColor("button.bg.hover"));
-			typedStyleSheet.PartForTarget(SdWidgetTargetIds::Button, SdStylePart::Make("Sodium.Button.Part.Content"))
-				.Cascade(SdCascadeLayer::UserAgent)
-				.Pseudo(SdStyleInteractionState::Pressed)
-				.Set(&SdBoxStyle::backgroundColor, ThemeColor("button.bg.pressed"));
-			typedStyleSheet.RuleForTarget<SdWidgetRootStyle>(SdWidgetTargetIds::CheckBox)
-				.Cascade(SdCascadeLayer::UserAgent)
-				.Set(&SdBoxStyle::minHeight, SdLength::Pixels(28.0f))
-				.Set(&SdBoxStyle::padding, SdStyleValue::FromSpacing({ smallSpacing, smallSpacing, smallSpacing, smallSpacing }))
-				.Set(&SdBoxStyle::fontSize, ThemeMetric("font.button"))
-				.Set(&SdBoxStyle::lineHeight, 0.0f)
-				.Set(&SdBoxStyle::gap, SdLength::Pixels(smallSpacing))
-				.Set(&SdBoxStyle::radius, SdLength::Pixels(std::max(2.0f, theme.GetMetricVariable(SdThemeVariableLiteral("radius.small")) - 1.0f)));
-			typedStyleSheet.PartForTarget(SdWidgetTargetIds::CheckBox, SdStylePart::Make("Sodium.CheckBox.Part.Box"))
-				.Cascade(SdCascadeLayer::UserAgent)
-				.Set(&SdBoxStyle::backgroundColor, ThemeColor("panel.bg"))
-				.Set(&SdBoxStyle::border, ThemeColor("border"))
-				.Set(&SdBoxStyle::radius, SdLength::Pixels(std::max(2.0f, theme.GetMetricVariable(SdThemeVariableLiteral("radius.small")) - 1.0f)));
-			typedStyleSheet.PartForTarget(SdWidgetTargetIds::CheckBox, SdStylePart::Make("Sodium.CheckBox.Part.Box"))
-				.Cascade(SdCascadeLayer::UserAgent)
-				.Pseudo(SdStyleInteractionState::Hovered)
-				.Set(&SdBoxStyle::backgroundColor, ThemeColor("button.bg.hover"));
-			typedStyleSheet.PartForTarget(SdWidgetTargetIds::CheckBox, SdStylePart::Make("Sodium.CheckBox.Part.Indicator"))
-				.Cascade(SdCascadeLayer::UserAgent)
-				.Set(&SdBoxStyle::backgroundColor, ThemeColor("accent"));
-			typedStyleSheet.RuleForTarget<SdWidgetRootStyle>(SdWidgetTargetIds::Slider)
-				.Cascade(SdCascadeLayer::UserAgent)
-				.Set(&SdBoxStyle::width, SdLength::Pixels(180.0f))
-				.Set(&SdBoxStyle::height, SdLength::Pixels(30.0f))
-				.Set(&SdBoxStyle::padding, SdStyleValue::FromSpacing({ smallSpacing, smallSpacing, smallSpacing, smallSpacing }))
-				.Set(&SdBoxStyle::fontSize, ThemeMetric("font.button"))
-				.Set(&SdBoxStyle::lineHeight, 0.0f)
-				.Set(&SdBoxStyle::gap, SdLength::Pixels(smallSpacing));
-			typedStyleSheet.PartForTarget(SdWidgetTargetIds::Slider, SdStylePart::Make("Sodium.Slider.Part.Track"))
-				.Cascade(SdCascadeLayer::UserAgent)
-				.Set(&SdBoxStyle::backgroundColor, ThemeColor("panel.bg"))
-				.Set(&SdBoxStyle::border, ThemeColor("border"))
-				.Set(&SdBoxStyle::radius, ThemeMetric("radius.small"));
-			typedStyleSheet.PartForTarget(SdWidgetTargetIds::Slider, SdStylePart::Make("Sodium.Slider.Part.Track"))
-				.Cascade(SdCascadeLayer::UserAgent)
-				.Pseudo(SdStyleInteractionState::Hovered)
-				.Set(&SdBoxStyle::backgroundColor, ThemeColor("button.bg.hover"));
-			typedStyleSheet.PartForTarget(SdWidgetTargetIds::Slider, SdStylePart::Make("Sodium.Slider.Part.Track"))
-				.Cascade(SdCascadeLayer::UserAgent)
-				.Pseudo(SdStyleInteractionState::Pressed)
-				.Set(&SdBoxStyle::backgroundColor, ThemeColor("button.bg.pressed"));
-			typedStyleSheet.PartForTarget(SdWidgetTargetIds::Slider, SdStylePart::Make("Sodium.Slider.Part.Fill"))
-				.Cascade(SdCascadeLayer::UserAgent)
-				.Set(&SdBoxStyle::backgroundColor, ThemeColor("accent"));
-			typedStyleSheet.PartForTarget(SdWidgetTargetIds::Slider, SdStylePart::Make("Sodium.Slider.Part.Thumb"))
-				.Cascade(SdCascadeLayer::UserAgent)
-				.Set(&SdBoxStyle::backgroundColor, ThemeColor("accent"))
-				.Set(&SdBoxStyle::border, ThemeColor("border"));
-			typedStyleSheet.RuleForTarget<SdWidgetRootStyle>(SdWidgetTargetIds::TextInput)
-				.Cascade(SdCascadeLayer::UserAgent)
-				.Set(&SdBoxStyle::width, SdLength::Pixels(220.0f))
-				.Set(&SdBoxStyle::minHeight, SdLength::Pixels(32.0f))
-				.Set(&SdBoxStyle::padding, SdStyleValue::FromSpacing({ mediumSpacing, smallSpacing, mediumSpacing, smallSpacing }))
-				.Set(&SdBoxStyle::fontSize, ThemeMetric("font.button"))
-				.Set(&SdBoxStyle::lineHeight, 0.0f);
-			typedStyleSheet.PartForTarget(SdWidgetTargetIds::TextInput, SdStylePart::Make("Sodium.TextInput.Part.Field"))
-				.Cascade(SdCascadeLayer::UserAgent)
-				.Set(&SdBoxStyle::backgroundColor, ThemeColor("panel.bg"))
-				.Set(&SdBoxStyle::border, ThemeColor("border"))
-				.Set(&SdBoxStyle::radius, ThemeMetric("radius.small"));
-			typedStyleSheet.PartForTarget(SdWidgetTargetIds::TextInput, SdStylePart::Make("Sodium.TextInput.Part.Field"))
-				.Cascade(SdCascadeLayer::UserAgent)
-				.Pseudo(SdStyleInteractionState::Focused)
-				.Set(&SdBoxStyle::backgroundColor, ThemeColor("button.bg"));
-			typedStyleSheet.PartForTarget(SdWidgetTargetIds::TextInput, SdStylePart::Make("Sodium.TextInput.Part.Placeholder"))
-				.Cascade(SdCascadeLayer::UserAgent)
-				.Set(&SdBoxStyle::opacity, 0.52f);
-			typedStyleSheet.RuleForTarget<SdWidgetRootStyle>(SdWidgetTargetIds::ImageViewer)
-				.Cascade(SdCascadeLayer::UserAgent)
-				.Set(&SdBoxStyle::width, SdLength::Pixels(160.0f))
-				.Set(&SdBoxStyle::height, SdLength::Pixels(120.0f));
-			typedStyleSheet.RuleForTarget<SdWidgetRootStyle>(SdWidgetTargetIds::ScrollView)
-				.Cascade(SdCascadeLayer::UserAgent)
-				.Set(&SdBoxStyle::width, SdLength::Pixels(240.0f))
-				.Set(&SdBoxStyle::height, SdLength::Pixels(160.0f))
-				.Set(&SdBoxStyle::padding, SdStyleValue::FromSpacing({ smallSpacing, smallSpacing, smallSpacing, smallSpacing }))
-				.Set(&SdBoxStyle::gap, SdLength::Pixels(smallSpacing));
-			typedStyleSheet.PartForTarget(SdWidgetTargetIds::ScrollView, SdStylePart::Make("Sodium.ScrollView.Part.Scrollbar"))
-				.Cascade(SdCascadeLayer::UserAgent)
-				.Set(&SdBoxStyle::backgroundColor, ThemeColor("panel.bg"))
-				.Set(&SdBoxStyle::border, ThemeColor("border"))
-				.Set(&SdBoxStyle::radius, ThemeMetric("radius.small"));
-			typedStyleSheet.PartForTarget(SdWidgetTargetIds::ScrollView, SdStylePart::Make("Sodium.ScrollView.Part.Thumb"))
-				.Cascade(SdCascadeLayer::UserAgent)
-				.Set(&SdBoxStyle::backgroundColor, ThemeColor("accent"));
-			typedStyleSheet.RuleForTarget<SdWidgetRootStyle>(SdWidgetTargetIds::Popup)
-				.Cascade(SdCascadeLayer::UserAgent)
-				.Set(&SdBoxStyle::width, SdLength::Pixels(220.0f))
-				.Set(&SdBoxStyle::height, SdLength::Pixels(140.0f))
-				.Set(&SdBoxStyle::padding, SdStyleValue::FromSpacing({ smallSpacing, smallSpacing, smallSpacing, smallSpacing }))
-				.Set(&SdBoxStyle::gap, SdLength::Pixels(smallSpacing));
-			typedStyleSheet.RuleForTarget<SdWidgetRootStyle>(SdWidgetTargetIds::ContextMenu)
-				.Cascade(SdCascadeLayer::UserAgent)
-				.Set(&SdBoxStyle::width, SdLength::Pixels(220.0f))
-				.Set(&SdBoxStyle::height, SdLength::Pixels(140.0f))
-				.Set(&SdBoxStyle::padding, SdStyleValue::FromSpacing({ smallSpacing, smallSpacing, smallSpacing, smallSpacing }))
-				.Set(&SdBoxStyle::gap, SdLength::Pixels(smallSpacing));
-			typedStyleSheet.RuleForTarget<SdWidgetRootStyle>(SdWidgetTargetIds::Tooltip)
-				.Cascade(SdCascadeLayer::UserAgent)
-				.Set(&SdBoxStyle::padding, SdStyleValue::FromSpacing({ smallSpacing, smallSpacing, smallSpacing, smallSpacing }))
-				.Set(&SdBoxStyle::fontSize, ThemeMetric("font.button"))
-				.Set(&SdBoxStyle::lineHeight, 0.0f);
-
-			AddDefaultRootBackgroundRule(SdWidgetTargetIds::Default, SdStyleInteractionState::Normal, SdLayerPriority::Content, "background");
-			AddDefaultRootBackgroundRule(SdWidgetTargetIds::Panel, SdStyleInteractionState::Normal, SdLayerPriority::Content, "panel.bg");
-			AddDefaultRootBackgroundRule(SdWidgetTargetIds::ImageViewer, SdStyleInteractionState::Normal, SdLayerPriority::Content, "panel.bg");
-			AddDefaultRootBackgroundRule(SdWidgetTargetIds::Popup, SdStyleInteractionState::Normal, SdLayerPriority::Popup, "window.bg", true);
-			AddDefaultRootBackgroundRule(SdWidgetTargetIds::ContextMenu, SdStyleInteractionState::Normal, SdLayerPriority::Popup, "window.bg", true);
-			AddDefaultRootBackgroundRule(SdWidgetTargetIds::Tooltip, SdStyleInteractionState::Normal, SdLayerPriority::Overlay, "panel.bg", true);
-
+			typedStyleSheet = SdDefaultUserAgentStyleSheet(theme);
 			compiledStyleSheet = typedStyleSheet.Compile();
 			if (touchRevision)
 				Touch();
 		}
 
-		void AddDefaultRootBackgroundRule(
-			SdStyleId targetTag,
-			SdStyleInteractionState interactionState,
-			SdLayerPriority layerPriority,
-			const char* backgroundVariable,
-			bool matchLayer = false)
-		{
-			auto rule = typedStyleSheet.RuleForTarget<SdWidgetRootStyle>(targetTag);
-			rule.Cascade(SdCascadeLayer::UserAgent)
-				.Pseudo(interactionState)
-				.Set(&SdBoxStyle::backgroundColor, ThemeColor(backgroundVariable));
-			if (matchLayer)
-				rule.Layer(layerPriority);
-		}
-
-			SdStyleValue ResolveValue(const SdStyleValue& value) const
+		SdStyleValue ResolveValue(const SdStyleValue& value) const
 		{
 			switch (value.kind)
 			{
@@ -1355,6 +1430,12 @@ namespace Sodium
 				return SdStyleValue::FromColor(theme.GetColorVariable(value.variableId));
 			case SdStyleValueKind::MetricVariable:
 				return SdStyleValue::FromFloat(theme.GetMetricVariable(value.variableId));
+			case SdStyleValueKind::Length:
+				if (value.lengthUnit == static_cast<SdUInt8>(SdLengthUnit::Variable))
+					return SdStyleValue::FromLength(
+						static_cast<SdUInt8>(SdLengthUnit::Pixels),
+						theme.GetMetricVariable(value.lengthVariableId));
+				return value;
 			default:
 				return value;
 			}

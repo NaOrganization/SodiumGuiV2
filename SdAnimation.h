@@ -75,8 +75,14 @@ namespace Sodium
 
 		void SetTarget(SdAnimationChannel& channel, float target, const SdTransition& transition)
 		{
-			if (channel.target == target && channel.transition.duration == transition.duration && channel.transition.easing == transition.easing)
+			if (channel.target == target
+				&& channel.transition.duration == transition.duration
+				&& channel.transition.easing == transition.easing
+				&& channel.transition.delay == transition.delay
+				&& channel.transition.behavior == transition.behavior)
+			{
 				return;
+			}
 			channel.startValue = channel.value;
 			channel.target = target;
 			channel.elapsed = {};
@@ -144,6 +150,14 @@ namespace Sodium
 		{
 			if (SdAnimationChannel* channel = FindChannel(id))
 			{
+				if (!channel->active
+					&& channel->value == value
+					&& channel->startValue == value
+					&& channel->target == value
+					&& channel->elapsed == SdDuration{})
+				{
+					return;
+				}
 				channel->value = value;
 				channel->startValue = value;
 				channel->target = value;

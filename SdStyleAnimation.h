@@ -3,6 +3,7 @@
 #include "SdStyleProperty.h"
 
 #include <algorithm>
+#include <unordered_map>
 #include <vector>
 
 namespace Sodium
@@ -24,10 +25,75 @@ namespace Sodium
 		bool discrete = false;
 	};
 
+	struct SdStyleAnimationChannelStats final
+	{
+		SdUInt32 ensureCount = 0;
+		SdUInt32 ensureHitCount = 0;
+		SdUInt32 findCount = 0;
+		SdUInt32 findHitCount = 0;
+		SdUInt32 channelCreatedCount = 0;
+		SdUInt32 indexRebuildCount = 0;
+		SdUInt32 targetSetCount = 0;
+		SdUInt32 targetSetNoopCount = 0;
+		SdUInt32 updateVisitedCount = 0;
+		SdUInt32 updateActiveCount = 0;
+
+		void ResetFrameTransient() noexcept
+		{
+			ensureCount = 0;
+			ensureHitCount = 0;
+			findCount = 0;
+			findHitCount = 0;
+			channelCreatedCount = 0;
+			indexRebuildCount = 0;
+			targetSetCount = 0;
+			targetSetNoopCount = 0;
+			updateVisitedCount = 0;
+			updateActiveCount = 0;
+		}
+	};
+
 	class SdStyleAnimationChannels final
 	{
 	private:
+		struct ChannelKey final
+		{
+			SdStyleNodeId styleNodeId = SdInvalidStyleNodeId;
+			SdPropertyId propertyId = 0;
+
+			friend bool operator==(const ChannelKey& left, const ChannelKey& right) noexcept
+			{
+				return left.styleNodeId == right.styleNodeId && left.propertyId == right.propertyId;
+			}
+		};
+
+		struct ChannelKeyHash final
+		{
+			SdSize operator()(const ChannelKey& key) const noexcept
+			{
+				SdSize hash = static_cast<SdSize>(key.styleNodeId);
+				hash ^= static_cast<SdSize>(key.propertyId + 0x9e3779b97f4a7c15ull + (hash << 6) + (hash >> 2));
+				return hash;
+			}
+		};
+
 		std::vector<SdPropertyAnimationChannel> channels = {};
+		std::unordered_map<ChannelKey, SdSize, ChannelKeyHash> channelIndexByKey = {};
+		mutable SdStyleAnimationChannelStats frameStats = {};
+
+		void RebuildIndex()
+		{
+			channelIndexByKey.clear();
+			channelIndexByKey.reserve(channels.size());
+			for (SdSize index = 0; index < channels.size(); ++index)
+			{
+				channelIndexByKey.emplace(ChannelKey{
+					channels[index].styleNodeId,
+					channels[index].propertyId
+				}, index);
+			}
+			++frameStats.indexRebuildCount;
+		}
 
 		static SdStyleValue InterpolateValue(
 			const SdStyleValue& start,
@@ -91,34 +157,63 @@ namespace Sodium
 	public:
 		SdPropertyAnimationChannel& Ensure(SdStyleNodeId styleNodeId, SdPropertyId propertyId)
 		{
-			for (SdPropertyAnimationChannel& channel : channels)
+			++frameStats.ensureCount;
+			const ChannelKey key{ styleNodeId, propertyId };
+			const auto it = channelIndexByKey.find(key);
+			if (it != channelIndexByKey.end() && it->second < channels.size())
 			{
+				SdPropertyAnimationChannel& channel = channels[it->second];
 				if (channel.styleNodeId == styleNodeId && channel.propertyId == propertyId)
+				{
+					++frameStats.ensureHitCount;
 					return channel;
+				}
+
+				RebuildIndex();
+				const auto rebuiltIt = channelIndexByKey.find(key);
+				if (rebuiltIt != channelIndexByKey.end() && rebuiltIt->second < channels.size())
+				{
+					++frameStats.ensureHitCount;
+					return channels[rebuiltIt->second];
+				}
 			}
 
 			SdPropertyAnimationChannel& channel = channels.emplace_back();
 			channel.styleNodeId = styleNodeId;
 			channel.propertyId = propertyId;
+			channelIndexByKey.emplace(key, channels.size() - 1);
+			++frameStats.channelCreatedCount;
 			return channel;
 		}
 
 		SdPropertyAnimationChannel* Find(SdStyleNodeId styleNodeId, SdPropertyId propertyId) noexcept
 		{
-			for (SdPropertyAnimationChannel& channel : channels)
+			++frameStats.findCount;
+			const ChannelKey key{ styleNodeId, propertyId };
+			const auto it = channelIndexByKey.find(key);
+			if (it == channelIndexByKey.end() || it->second >= channels.size())
+				return nullptr;
+			SdPropertyAnimationChannel& channel = channels[it->second];
+			if (channel.styleNodeId == styleNodeId && channel.propertyId == propertyId)
 			{
-				if (channel.styleNodeId == styleNodeId && channel.propertyId == propertyId)
-					return &channel;
+				++frameStats.findHitCount;
+				return &channel;
 			}
 			return nullptr;
 		}
 
 		const SdPropertyAnimationChannel* Find(SdStyleNodeId styleNodeId, SdPropertyId propertyId) const noexcept
 		{
-			for (const SdPropertyAnimationChannel& channel : channels)
+			++frameStats.findCount;
+			const ChannelKey key{ styleNodeId, propertyId };
+			const auto it = channelIndexByKey.find(key);
+			if (it == channelIndexByKey.end() || it->second >= channels.size())
+				return nullptr;
+			const SdPropertyAnimationChannel& channel = channels[it->second];
+			if (channel.styleNodeId == styleNodeId && channel.propertyId == propertyId)
 			{
-				if (channel.styleNodeId == styleNodeId && channel.propertyId == propertyId)
-					return &channel;
+				++frameStats.findHitCount;
+				return &channel;
 			}
 			return nullptr;
 		}
@@ -172,13 +267,32 @@ namespace Sodium
 			return channels;
 		}
 
+		const SdStyleAnimationChannelStats& GetFrameStats() const noexcept
+		{
+			return frameStats;
+		}
+
+		void ResetFrameStats() noexcept
+		{
+			frameStats.ResetFrameTransient();
+		}
+
+		void RecordTargetSet(bool noop) noexcept
+		{
+			++frameStats.targetSetCount;
+			if (noop)
+				++frameStats.targetSetNoopCount;
+		}
+
 		void Update(SdDuration deltaTime)
 		{
 			const float seconds = std::max(0.001f, static_cast<float>(deltaTime.count()) / 1000000000.0f);
 			for (SdPropertyAnimationChannel& channel : channels)
 			{
+				++frameStats.updateVisitedCount;
 				if (!channel.active)
 					continue;
+				++frameStats.updateActiveCount;
 
 				channel.elapsed += std::chrono::duration_cast<SdDuration>(std::chrono::duration<float>(seconds));
 				if (channel.elapsed < channel.delay)
@@ -208,10 +322,13 @@ namespace Sodium
 
 		void RemoveStyleNode(SdStyleNodeId styleNodeId)
 		{
+			const SdSize previousSize = channels.size();
 			channels.erase(std::remove_if(channels.begin(), channels.end(), [styleNodeId](const SdPropertyAnimationChannel& channel)
 			{
 				return channel.styleNodeId == styleNodeId;
 			}), channels.end());
+			if (channels.size() != previousSize)
+				RebuildIndex();
 		}
 	};
 }

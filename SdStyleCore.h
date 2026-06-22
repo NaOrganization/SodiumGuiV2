@@ -71,6 +71,8 @@ namespace Sodium
 			result.variableId = variableId;
 			return result;
 		}
+
+		friend constexpr bool operator==(const SdLength&, const SdLength&) = default;
 	};
 
 	struct SdBoxEdges final
@@ -94,6 +96,8 @@ namespace Sodium
 				SdLength::Pixels(value.bottom)
 			};
 		}
+
+		friend constexpr bool operator==(const SdBoxEdges&, const SdBoxEdges&) = default;
 	};
 
 	enum class SdDisplay : SdUInt8
@@ -152,6 +156,8 @@ namespace Sodium
 	{
 		SdLength width = SdLength::Pixels(0.0f);
 		SdColor color = SdColorTransparent;
+
+		friend constexpr bool operator==(const SdBorderSide&, const SdBorderSide&) = default;
 	};
 
 	struct SdBorder final
@@ -166,6 +172,8 @@ namespace Sodium
 			const SdBorderSide side{ width, color };
 			return { side, side, side, side };
 		}
+
+		friend constexpr bool operator==(const SdBorder&, const SdBorder&) = default;
 	};
 
 	struct SdTransform final
@@ -173,6 +181,8 @@ namespace Sodium
 		SdVec2 translate = {};
 		SdVec2 scale = { 1.0f, 1.0f };
 		float rotateRadians = 0.0f;
+
+		friend constexpr bool operator==(const SdTransform&, const SdTransform&) = default;
 	};
 
 	struct SdStyleTransition final
@@ -183,11 +193,15 @@ namespace Sodium
 		SdAnimationEasing easing = SdAnimationEasing::OutCubic;
 		SdTransitionBehavior behavior = SdTransitionBehavior::Normal;
 		bool allowExpensiveLayout = false;
+
+		friend constexpr bool operator==(const SdStyleTransition&, const SdStyleTransition&) = default;
 	};
 
 	struct SdTransitionList final
 	{
 		std::vector<SdStyleTransition> entries = {};
+
+		friend bool operator==(const SdTransitionList&, const SdTransitionList&) = default;
 	};
 
 	struct SdBoxStyle
@@ -209,9 +223,14 @@ namespace Sodium
 		SdLength radius = SdLength::Pixels(0.0f);
 		SdColor color = SdColorWhite;
 		SdColor backgroundColor = SdColorTransparent;
+		SdThemeVariableId colorVariable = 0;
+		SdThemeVariableId backgroundColorVariable = 0;
+		SdThemeVariableId borderColorVariable = 0;
 		float opacity = 1.0f;
 		float fontSize = 16.0f;
 		float lineHeight = 0.0f;
+		SdThemeVariableId fontSizeVariable = 0;
+		SdThemeVariableId lineHeightVariable = 0;
 		SdFlexDirection flexDirection = SdFlexDirection::Column;
 		SdJustifyContent justifyContent = SdJustifyContent::FlexStart;
 		SdAlignItems alignItems = SdAlignItems::Stretch;
@@ -221,15 +240,20 @@ namespace Sodium
 		SdLength flexBasis = SdLength::Auto();
 		SdTransform transform = {};
 		SdTransitionList transitions = {};
+
+		friend bool operator==(const SdBoxStyle&, const SdBoxStyle&) = default;
 	};
 
 	struct SdWidgetRootStyle : SdBoxStyle
 	{
+		friend bool operator==(const SdWidgetRootStyle&, const SdWidgetRootStyle&) = default;
 	};
 
 	struct SdWidgetPartStyle : SdBoxStyle
 	{
 		bool inheritText = true;
+
+		friend bool operator==(const SdWidgetPartStyle&, const SdWidgetPartStyle&) = default;
 	};
 
 	struct SdStylePart final

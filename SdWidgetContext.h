@@ -76,6 +76,9 @@ namespace Sodium
 		const SdStyleNode& RootStyleNode() const;
 		const SdStyleNode& Part(SdStylePart part) const;
 		SdStyleNode& EnsurePart(SdStylePart part);
+		void SetPartUsedBox(SdStylePart part, const SdUsedBox& usedBox);
+		void SetPartLayoutBox(SdStylePart part, const SdUsedBox& layoutBox);
+		void SetPartBorderBox(SdStylePart part, SdRect borderBox);
 
 		template<class TWidget>
 		const typename TWidget::Style& RootResolvedStyle();
@@ -113,6 +116,11 @@ namespace Sodium
 		{
 			result.desiredSize = size;
 		}
+	};
+
+	struct SdArrangeContext : SdWidgetContextBase
+	{
+		SdUsedBox rootLayoutBox = {};
 	};
 
 	struct SdPaintContext : SdWidgetContextBase

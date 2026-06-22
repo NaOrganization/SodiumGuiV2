@@ -131,6 +131,7 @@ namespace Sodium
 		constexpr SdVec2 operator/(float scalar) const { return { x / scalar, y / scalar }; }
 		constexpr SdVec2& operator+=(const SdVec2& other) { x += other.x; y += other.y; return *this; }
 		constexpr SdVec2& operator-=(const SdVec2& other) { x -= other.x; y -= other.y; return *this; }
+		friend constexpr bool operator==(const SdVec2&, const SdVec2&) = default;
 	};
 
 	struct SdVec4 final

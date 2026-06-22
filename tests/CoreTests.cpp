@@ -37,14 +37,7 @@ namespace
 	struct TestDrawWidget final : SdWidgetTag
 	{
 		static constexpr SdStyleId TargetTypeId = SdWidgetTargetIds::Button;
-
-		struct Style final
-		{
-			static constexpr SdStyleId Background = SdStylePropertyIds::Background;
-			static constexpr SdStyleId Border = SdStylePropertyIds::Border;
-			static constexpr SdStyleId Color = SdStylePropertyIds::Color;
-			static constexpr SdStyleId Radius = SdStylePropertyIds::Radius;
-		};
+		using Style = SdWidgetRootStyle;
 
 		struct State
 		{
@@ -88,12 +81,7 @@ namespace
 	struct TestContainer final : SdWidgetTag
 	{
 		static constexpr SdStyleId TargetTypeId = SdWidgetTargetIds::Panel;
-
-		struct Style final
-		{
-			static constexpr SdStyleId Background = SdStylePropertyIds::Background;
-			static constexpr SdStyleId Radius = SdStylePropertyIds::Radius;
-		};
+		using Style = SdWidgetRootStyle;
 
 		template<class TContent>
 			requires std::is_invocable_v<TContent&, SdUi&>
@@ -598,7 +586,7 @@ namespace
 				continue;
 			const SdStyleNode& contentNode = partStyleInstance.GetStylePart(record.state.id, SdButton::Parts::Content);
 			const SdStyleNode& labelNode = partStyleInstance.GetStylePart(record.state.id, SdButton::Parts::Label);
-			for (const SdPropertyAnimationChannel& channel : partStyleInstance.GetContext().styleAnimationChannels.GetChannels())
+			for (const SdPropertyAnimationChannel& channel : partStyleInstance.GetContext().presentationChannels.GetChannels())
 			{
 				if (channel.styleNodeId == contentNode.styleNodeId
 					&& channel.propertyId == partBackgroundPropertyId
@@ -1124,6 +1112,199 @@ namespace
 		Check(localStyle.color == SdColor(1, 2, 3, 4), "property registry dispatch writes typed field");
 	}
 
+	void TestStylePipelineClosingRequirements()
+	{
+		constexpr SdStyleClassId inlineClass = SdStyleClassLiteral("Tests.InlineRoot.Class");
+		constexpr SdStyleScopeId inlineScope = SdStyleScopeLiteral("Tests.InlineRoot.Scope");
+		const SdStyleClassId inlineClasses[] = { inlineClass };
+		const SdColor ruleColor = { 91, 12, 33, 255 };
+		const SdColor inlineColor = { 20, 90, 180, 255 };
+		SdWidgetRootStyle inlineRootStyle = {};
+		inlineRootStyle.width = SdLength::Pixels(96.0f);
+		inlineRootStyle.height = SdLength::Pixels(32.0f);
+		inlineRootStyle.minWidth = SdLength::Pixels(96.0f);
+		inlineRootStyle.minHeight = SdLength::Pixels(32.0f);
+		inlineRootStyle.backgroundColor = inlineColor;
+		inlineRootStyle.color = { 240, 241, 242, 255 };
+		inlineRootStyle.border = SdBorder::All(SdLength::Pixels(1.0f), SdColorTransparent);
+		inlineRootStyle.radius = SdLength::Pixels(0.0f);
+		inlineRootStyle.opacity = 0.73f;
+
+		SdInstance inlineInstance;
+		inlineInstance.GetStyleSystem().RootRule(SdButton::TargetTypeId)
+			.Scope(inlineScope)
+			.Class(inlineClass)
+			.Set(&SdBoxStyle::backgroundColor, ruleColor);
+		inlineInstance.BeginFrame({ 320.0f, 200.0f });
+		inlineInstance.ui.DeclareStyled<SdButton>(
+			SdStyleIdentity{ SdSpan<const SdStyleClassId>(inlineClasses, 1), inlineScope },
+			&inlineRootStyle,
+			"Inline");
+		PumpFrame(inlineInstance);
+		bool rootInlineApplied = false;
+		bool rootInlineCached = false;
+		for (const auto& [id, record] : inlineInstance.GetStateStorage().GetWidgetRecords())
+		{
+			(void)id;
+			if (record.widgetType != std::type_index(typeid(SdButton)))
+				continue;
+			const SdStyleNode& root = inlineInstance.GetRootStyleNode(record.state.id);
+			rootInlineApplied = root.resolvedStyle.backgroundColor == inlineColor
+				&& root.presentationStyle.backgroundColor == inlineColor
+				&& root.resolvedStyle.backgroundColor != ruleColor;
+			rootInlineCached = record.styleCache.inlineStyleRevision != 0;
+		}
+		Check(rootInlineApplied, "inline root style overrides class and UA rules in root style node");
+		Check(rootInlineCached, "root style cache records inline style revision");
+
+		SdInstance panelPaintInstance;
+		panelPaintInstance.GetRenderSharedData().flags = 0;
+		const SdColor panelInlineColor = { 12, 144, 88, 255 };
+		SdWidgetRootStyle panelInlineStyle = {};
+		panelInlineStyle.width = SdLength::Pixels(64.0f);
+		panelInlineStyle.height = SdLength::Pixels(28.0f);
+		panelInlineStyle.backgroundColor = panelInlineColor;
+		panelInlineStyle.border = SdBorder::All(SdLength::Pixels(1.0f), SdColorTransparent);
+		panelInlineStyle.radius = SdLength::Pixels(0.0f);
+		panelPaintInstance.BeginFrame({ 320.0f, 200.0f });
+		panelPaintInstance.ui.DeclareStyled<SdPanel>(&panelInlineStyle);
+		PumpFrame(panelPaintInstance);
+		const SdUInt32 panelInlinePackedRgb = panelInlineColor.Pack() & 0x00ffffffu;
+		const bool panelPaintedInlineRoot = std::any_of(
+			panelPaintInstance.GetRenderData().vertices.begin(),
+			panelPaintInstance.GetRenderData().vertices.end(),
+			[panelInlinePackedRgb](const SdVertex& vertex)
+			{
+				return (vertex.color & 0x00ffffffu) == panelInlinePackedRgb
+					&& (vertex.color >> 24) > 0u;
+			});
+		Check(panelPaintedInlineRoot, "root inline paint reads RootStyleNode presentation style");
+
+		SdInstance cacheInstance;
+		SdWidgetRootStyle cacheStyle = panelInlineStyle;
+		cacheInstance.BeginFrame({ 320.0f, 200.0f });
+		cacheInstance.ui.DeclareStyledKeyed<SdPanel>("cache-panel", &cacheStyle);
+		PumpFrame(cacheInstance);
+		cacheInstance.BeginFrame({ 320.0f, 200.0f });
+		cacheInstance.ui.DeclareStyledKeyed<SdPanel>("cache-panel", &cacheStyle);
+		PumpFrame(cacheInstance);
+		Check(cacheInstance.GetDiagnostics().styleResolveCacheHitCount > 0, "steady frame records style resolve cache hits");
+		Check(cacheInstance.GetDiagnostics().styleResolveCacheMissCount == 0, "steady frame does not miss style cache without revision changes");
+		Check(cacheInstance.GetDiagnostics().styleAnimationEnsureCount == 0, "steady frame does not ensure style animation channels on cache hit");
+		Check(cacheInstance.GetDiagnostics().styleAnimationFindCount > 0, "steady frame reads existing style animation channels through find");
+		cacheStyle.backgroundColor = { 190, 45, 75, 255 };
+		cacheInstance.BeginFrame({ 320.0f, 200.0f });
+		cacheInstance.ui.DeclareStyledKeyed<SdPanel>("cache-panel", &cacheStyle);
+		PumpFrame(cacheInstance);
+		Check(cacheInstance.GetDiagnostics().styleResolveCacheMissCount > 0, "inline root style change invalidates style cache");
+
+		SdInstance geometryInstance;
+		float geometrySliderValue = 0.5f;
+		SdUtf8String geometryInputValue = "A";
+		bool geometryWindowOpen = true;
+		SdWindowOptions geometryWindowOptions = {};
+		geometryWindowOptions.position = { 40.0f, 50.0f };
+		geometryWindowOptions.size = { 220.0f, 120.0f };
+		geometryInstance.BeginFrame({ 420.0f, 260.0f });
+		geometryInstance.ui.Declare<SdSliderFloat>("Geometry", geometrySliderValue, 0.0f, 1.0f);
+		geometryInstance.ui.DeclareKeyed<SdTextInput>("geometry-input", geometryInputValue, "");
+		geometryInstance.ui.Declare<SdWindow>("Geometry", geometryWindowOpen, geometryWindowOptions);
+		PumpFrame(geometryInstance);
+		bool sliderPartsHaveIndependentGeometry = false;
+		bool windowTitlebarHasUsedGeometry = false;
+		float firstCaretX = 0.0f;
+		for (const auto& [id, record] : geometryInstance.GetStateStorage().GetWidgetRecords())
+		{
+			(void)id;
+			if (record.widgetType == std::type_index(typeid(SdSliderFloat)))
+			{
+				const SdStyleNode& root = geometryInstance.GetRootStyleNode(record.state.id);
+				const SdStyleNode& track = geometryInstance.GetStylePart(record.state.id, SdSliderFloat::Parts::Track);
+				const SdStyleNode& thumb = geometryInstance.GetStylePart(record.state.id, SdSliderFloat::Parts::Thumb);
+				sliderPartsHaveIndependentGeometry = track.layoutBox.borderBox.Width() > 0.0f
+					&& thumb.layoutBox.borderBox.Width() > 0.0f
+					&& track.layoutBox.borderBox.Width() < root.usedBox.borderBox.Width()
+					&& thumb.layoutBox.borderBox.Width() != track.layoutBox.borderBox.Width();
+			}
+			if (record.widgetType == std::type_index(typeid(SdWindow)))
+			{
+				const SdStyleNode& titlebar = geometryInstance.GetStylePart(record.state.id, SdWindow::Parts::Titlebar);
+				windowTitlebarHasUsedGeometry = std::abs(titlebar.layoutBox.borderBox.Height() - 30.0f) < 0.001f;
+			}
+			if (record.widgetType == std::type_index(typeid(SdTextInput)))
+				firstCaretX = geometryInstance.GetStylePart(record.state.id, SdTextInput::Parts::Caret).layoutBox.borderBox.min.x;
+		}
+		geometryInputValue = "AAAAA";
+		geometryInstance.BeginFrame({ 420.0f, 260.0f });
+		geometryInstance.ui.Declare<SdSliderFloat>("Geometry", geometrySliderValue, 0.0f, 1.0f);
+		geometryInstance.ui.DeclareKeyed<SdTextInput>("geometry-input", geometryInputValue, "");
+		geometryInstance.ui.Declare<SdWindow>("Geometry", geometryWindowOpen, geometryWindowOptions);
+		PumpFrame(geometryInstance);
+		bool textInputCaretGeometryMoved = false;
+		for (const auto& [id, record] : geometryInstance.GetStateStorage().GetWidgetRecords())
+		{
+			(void)id;
+			if (record.widgetType == std::type_index(typeid(SdTextInput)))
+			{
+				const float secondCaretX = geometryInstance.GetStylePart(record.state.id, SdTextInput::Parts::Caret).layoutBox.borderBox.min.x;
+				textInputCaretGeometryMoved = secondCaretX > firstCaretX;
+			}
+		}
+		Check(sliderPartsHaveIndependentGeometry, "slider track and thumb parts own independent geometry");
+		Check(windowTitlebarHasUsedGeometry, "window titlebar part layout height equals title height");
+		Check(textInputCaretGeometryMoved, "text input caret part geometry follows text width");
+
+		SdStyleSystem phaseSystem;
+		constexpr SdThemeVariableId phaseBackgroundVariable = SdThemeVariableLiteral("tests.phase.bg");
+		constexpr SdThemeVariableId phaseRadiusVariable = SdThemeVariableLiteral("tests.phase.radius");
+		const SdColor phaseColor = { 7, 99, 155, 255 };
+		phaseSystem.SetColorVariable(phaseBackgroundVariable, phaseColor);
+		phaseSystem.SetMetricVariable(phaseRadiusVariable, 13.0f);
+		phaseSystem.RootRule(SdPanel::TargetTypeId)
+			.Set(&SdBoxStyle::backgroundColor, ThemeColor("tests.phase.bg"))
+			.Set(&SdBoxStyle::radius, SdLength::Variable(phaseRadiusVariable));
+		const SdStyleResolveResult phaseResult = phaseSystem.ResolveRootNode(SdPanel::TargetTypeId, SdStyleInteractionState::Normal);
+		Check(
+			phaseResult.specifiedStyle.backgroundColorVariable == phaseBackgroundVariable
+			&& phaseResult.specifiedStyle.radius.unit == SdLengthUnit::Variable,
+			"specified root style preserves theme variable inputs");
+		Check(
+			phaseResult.resolvedStyle.backgroundColor == phaseColor
+			&& phaseResult.resolvedStyle.radius.unit == SdLengthUnit::Pixels
+			&& phaseResult.resolvedStyle.radius.value == 13.0f,
+			"resolved root style resolves theme variables");
+		Check(phaseResult.presentationStyle.backgroundColor == phaseResult.resolvedStyle.backgroundColor, "presentation base starts from resolved style");
+		phaseSystem.SetColorVariable(phaseBackgroundVariable, { 88, 77, 66, 255 });
+		const SdStyleResolveResult updatedPhaseResult = phaseSystem.ResolveRootNode(SdPanel::TargetTypeId, SdStyleInteractionState::Normal);
+		Check(updatedPhaseResult.resolvedStyle.backgroundColor == SdColor(88, 77, 66, 255), "theme variable revision changes resolved style");
+
+		SdWidgetRootStyle inheritedRoot = {};
+		inheritedRoot.color = { 3, 4, 5, 255 };
+		inheritedRoot.opacity = 0.44f;
+		inheritedRoot.fontSize = 21.0f;
+		const SdStyleResolveResult inheritedPart = phaseSystem.ResolvePartNode(
+			SdButton::TargetTypeId,
+			SdButton::Parts::Label,
+			inheritedRoot,
+			SdStyleInteractionState::Normal);
+		Check(inheritedPart.specifiedStyle.color != inheritedRoot.color, "part specified style does not pre-copy root text");
+		Check(
+			inheritedPart.resolvedStyle.color == inheritedRoot.color
+			&& inheritedPart.resolvedStyle.opacity == inheritedRoot.opacity
+			&& inheritedPart.resolvedStyle.fontSize == inheritedRoot.fontSize,
+			"part text inheritance happens in resolved stage");
+
+		SdStyleSystem uaSystem;
+		Check(!uaSystem.GetCompiledStyleSheet().GetRules().empty(), "default UA stylesheet compiles non-empty");
+		uaSystem.RootRule(SdPanel::TargetTypeId)
+			.Set(&SdBoxStyle::width, SdLength::Pixels(333.0f));
+		Check(uaSystem.ResolveRootStyle(SdPanel::TargetTypeId, SdStyleInteractionState::Normal).width.value == 333.0f, "user rule overrides UA rule");
+		uaSystem.ClearRules();
+		const SdWidgetRootStyle clearedPanelDefault = uaSystem.ResolveRootStyle(SdPanel::TargetTypeId, SdStyleInteractionState::Normal);
+		Check(!uaSystem.GetCompiledStyleSheet().GetRules().empty(), "ClearRules reinstalls UA stylesheet");
+		Check(clearedPanelDefault.width.unit == SdLengthUnit::Pixels && clearedPanelDefault.width.value == 240.0f, "ClearRules keeps UA defaults after clearing user rules");
+	}
+
 	void TestBoxModelAndUsedStyleNodes()
 	{
 		SdBoxStyle style = {};
@@ -1280,16 +1461,18 @@ namespace
 				hasUsedBox = root.usedBox.borderBox.Width() > 0.0f
 					&& root.usedBox.contentBox.Width() <= root.usedBox.borderBox.Width();
 				hasPartUsedBox = content.usedBox.borderBox.Width() == root.usedBox.borderBox.Width()
-					&& label.usedBox.contentBox.Height() == root.usedBox.contentBox.Height();
+					&& label.usedBox.borderBox.Width() > 0.0f
+					&& label.usedBox.borderBox.Width() < root.usedBox.borderBox.Width();
 				hasShadowBox = box && box->borderBox.Width() > 0.0f && box->contentBox.Width() <= box->borderBox.Width();
 				hasLayoutBoxFromShadowBox = box
 					&& root.layoutBox.borderBox.min.x == box->borderBox.min.x
 					&& root.layoutBox.contentBox.max.y == box->contentBox.max.y
-					&& content.layoutBox.borderBox.Width() == root.layoutBox.borderBox.Width();
+					&& content.layoutBox.borderBox.Width() == root.layoutBox.borderBox.Width()
+					&& label.layoutBox.borderBox.Width() < root.layoutBox.borderBox.Width();
 			}
 		}
 		Check(hasUsedBox, "runtime writes used geometry to root style node");
-		Check(hasPartUsedBox, "runtime writes used geometry to part style nodes");
+		Check(hasPartUsedBox, "runtime writes independent used geometry to part style nodes");
 		Check(hasShadowBox, "runtime shadow box tree indexes root style nodes");
 		Check(hasLayoutBoxFromShadowBox, "runtime writes shadow box geometry to style nodes");
 
@@ -1615,7 +1798,7 @@ namespace
 		{
 			(void)id;
 			if (record.widgetType == std::type_index(typeid(SdScrollView)))
-				scrollViewLayoutMinX = scrollViewPaintInstance.GetRootStyleNode(record.state.id).layoutBox.borderBox.min.x;
+				scrollViewLayoutMinX = scrollViewPaintInstance.GetStylePart(record.state.id, SdScrollView::Parts::Scrollbar).layoutBox.borderBox.min.x;
 		}
 		const SdUInt32 scrollViewPaintPackedRgb = scrollViewPaintColor.Pack() & 0x00ffffffu;
 		float scrollViewPaintMinX = 1000000.0f;
@@ -1625,7 +1808,7 @@ namespace
 				scrollViewPaintMinX = std::min(scrollViewPaintMinX, vertex.position.x);
 		}
 		const bool scrollViewPaintUsesLayoutBox = scrollViewPaintMinX == scrollViewLayoutMinX;
-		Check(scrollViewPaintUsesLayoutBox, "scroll view paint uses root layout box geometry");
+		Check(scrollViewPaintUsesLayoutBox, "scroll view paint uses scrollbar part layout box geometry");
 
 		SdInstance windowPaintInstance;
 		windowPaintInstance.GetRenderSharedData().flags = 0;
@@ -1906,7 +2089,7 @@ namespace
 				|| (record.animation.rectWidth != 0 && record.animation.scrollOffset != 0);
 			if (record.state.targetTypeId == TestDrawWidget::TargetTypeId)
 			{
-				for (const SdPropertyAnimationChannel& channel : instance.GetContext().styleAnimationChannels.GetChannels())
+				for (const SdPropertyAnimationChannel& channel : instance.GetContext().presentationChannels.GetChannels())
 				{
 					if (channel.styleNodeId == record.rootStyleNodeId
 						&& channel.propertyId == backgroundPropertyId
@@ -1984,7 +2167,7 @@ namespace
 					record.styleCache.resolvedStyle,
 					SdStyleInteractionState::Normal);
 				hasUpdatedContentPartStyle = contentStyle.backgroundColor == updatedButtonColor;
-				for (const SdPropertyAnimationChannel& channel : instance.GetContext().styleAnimationChannels.GetChannels())
+				for (const SdPropertyAnimationChannel& channel : instance.GetContext().presentationChannels.GetChannels())
 				{
 					if (channel.styleNodeId == record.rootStyleNodeId
 						&& channel.propertyId == backgroundPropertyId
@@ -2227,7 +2410,7 @@ namespace
 			(void)id;
 			if (record.widgetType != std::type_index(typeid(TypedStyleWidget)))
 				continue;
-			for (const SdPropertyAnimationChannel& channel : transitionInstance.GetContext().styleAnimationChannels.GetChannels())
+			for (const SdPropertyAnimationChannel& channel : transitionInstance.GetContext().presentationChannels.GetChannels())
 			{
 				typedTransitionUsesStyleNodeChannel = typedTransitionUsesStyleNodeChannel
 					|| (channel.active
@@ -2272,7 +2455,7 @@ namespace
 		SdInstance instance;
 		const SdContext& context = instance.GetContext();
 		Check(static_cast<const void*>(&context.stateStorage) == static_cast<const void*>(&instance.GetStateStorage()), "context owns state storage");
-		Check(static_cast<const void*>(&context.styleSystem) == static_cast<const void*>(&instance.GetStyleSystem()), "context owns style system");
+		Check(static_cast<const void*>(&context.styling) == static_cast<const void*>(&instance.GetStyleSystem()), "context owns style system");
 		Check(static_cast<const void*>(&context.layoutSystem) == static_cast<const void*>(&instance.GetLayoutSystem()), "context owns layout system");
 		Check(static_cast<const void*>(&context.boxTree) == static_cast<const void*>(&instance.GetBoxTree()), "context owns box tree");
 		Check(static_cast<const void*>(&context.renderSystem) == static_cast<const void*>(&instance.GetRenderSystem()), "context owns render system");
@@ -2611,8 +2794,15 @@ namespace
 		animation.Update(std::chrono::milliseconds(50), false, false, false, false, false, true);
 		Check(animation.GetValue(scrollOffset) > 0.0f, "animation direct can update scroll offset independently");
 
-		SdStyleAnimationChannels styleChannels;
-		SdPropertyAnimationChannel& colorChannel = styleChannels.Ensure(7, Detail::SdStylePropertyId(&SdBoxStyle::color));
+		SdStyleAnimationChannels presentationChannels;
+		const SdPropertyId styleAnimationColorPropertyId = Detail::SdStylePropertyId(&SdBoxStyle::color);
+		Check(presentationChannels.Find(7, styleAnimationColorPropertyId) == nullptr, "style animation find does not create missing channels");
+		SdPropertyAnimationChannel& colorChannel = presentationChannels.Ensure(7, Detail::SdStylePropertyId(&SdBoxStyle::color));
+		SdPropertyAnimationChannel& sameColorChannel = presentationChannels.Ensure(7, styleAnimationColorPropertyId);
+		Check(
+			&sameColorChannel == &colorChannel
+			&& presentationChannels.GetChannels().size() == 1,
+			"style animation ensure reuses indexed channel");
 		colorChannel.impact = SdStyleFieldImpact::Paint;
 		colorChannel.interpolation = SdStyleInterpolation::Color;
 		colorChannel.transition = SdTransition{ std::chrono::milliseconds(100), SdAnimationEasing::Linear };
@@ -2620,7 +2810,7 @@ namespace
 		colorChannel.targetValue = SdStyleValue::FromColor({ 100, 50, 25, 255 });
 		colorChannel.currentValue = colorChannel.startValue;
 		colorChannel.active = true;
-		SdPropertyAnimationChannel& partChannel = styleChannels.Ensure(9, Detail::SdStylePropertyId(&SdBoxStyle::backgroundColor));
+		SdPropertyAnimationChannel& partChannel = presentationChannels.Ensure(9, Detail::SdStylePropertyId(&SdBoxStyle::backgroundColor));
 		partChannel.impact = SdStyleFieldImpact::Paint;
 		partChannel.interpolation = SdStyleInterpolation::Color;
 		partChannel.transition = SdTransition{ std::chrono::milliseconds(100), SdAnimationEasing::Linear };
@@ -2630,26 +2820,59 @@ namespace
 		partChannel.active = true;
 		const SdStyleNodeId partNodeIds[] = { 9 };
 		Check(
-			styleChannels.HasActiveStyleNode(7)
-			&& styleChannels.HasActiveAny(7, {})
-			&& styleChannels.HasActiveAny(3, SdSpan<const SdStyleNodeId>(partNodeIds, 1)),
+			presentationChannels.HasActiveStyleNode(7)
+			&& presentationChannels.HasActiveAny(7, {})
+			&& presentationChannels.HasActiveAny(3, SdSpan<const SdStyleNodeId>(partNodeIds, 1)),
 			"style node animation channels expose active root and part lookup");
-		styleChannels.Update(std::chrono::milliseconds(50));
-		const SdPropertyAnimationChannel* updatedColorChannel = styleChannels.Find(7, Detail::SdStylePropertyId(&SdBoxStyle::color));
+		presentationChannels.Update(std::chrono::milliseconds(50));
+		const SdPropertyAnimationChannel* updatedColorChannel = presentationChannels.Find(7, Detail::SdStylePropertyId(&SdBoxStyle::color));
 		Check(
 			updatedColorChannel
 			&& updatedColorChannel->currentValue.kind == SdStyleValueKind::Color
 			&& updatedColorChannel->currentValue.color.r > 0
 			&& updatedColorChannel->currentValue.color.r < 100
-			&& styleChannels.CountActive() == 2,
+			&& presentationChannels.CountActive() == 2,
 			"style node animation channel advances property color");
-		styleChannels.Update(std::chrono::milliseconds(100));
-		const SdPropertyAnimationChannel* completedColorChannel = styleChannels.Find(7, Detail::SdStylePropertyId(&SdBoxStyle::color));
+		presentationChannels.Update(std::chrono::milliseconds(100));
+		const SdPropertyAnimationChannel* completedColorChannel = presentationChannels.Find(7, Detail::SdStylePropertyId(&SdBoxStyle::color));
 		Check(
 			completedColorChannel
 			&& completedColorChannel->currentValue.color == completedColorChannel->targetValue.color
-			&& styleChannels.CountActive() == 0,
+			&& presentationChannels.CountActive() == 0,
 			"style node animation channel completes property color");
+		presentationChannels.RemoveStyleNode(7);
+		Check(
+			presentationChannels.Find(7, styleAnimationColorPropertyId) == nullptr
+			&& presentationChannels.GetChannels().size() == 1,
+			"style animation index rebuilds after style node removal");
+
+		SdStyleAnimationChannels noopStyleChannels;
+		const SdColor noopColor = { 45, 55, 65, 255 };
+		Detail::SetStylePropertyChannelTarget(
+			noopStyleChannels,
+			31,
+			styleAnimationColorPropertyId,
+			SdStyleFieldImpact::Paint,
+			SdStyleInterpolation::Color,
+			SdStyleValue::FromColor(noopColor),
+			SdStyleValue::FromColor(noopColor),
+			{},
+			true);
+		Detail::SetStylePropertyChannelTarget(
+			noopStyleChannels,
+			31,
+			styleAnimationColorPropertyId,
+			SdStyleFieldImpact::Paint,
+			SdStyleInterpolation::Color,
+			SdStyleValue::FromColor(noopColor),
+			SdStyleValue::FromColor(noopColor),
+			{},
+			true);
+		Check(
+			noopStyleChannels.GetFrameStats().targetSetCount == 2
+			&& noopStyleChannels.GetFrameStats().targetSetNoopCount == 1
+			&& noopStyleChannels.GetChannels().size() == 1,
+			"style animation target setter skips identical inactive targets");
 
 		SdStyleAnimationChannels delayedStyleChannels;
 		SdPropertyAnimationChannel& delayedChannel = delayedStyleChannels.Ensure(11, Detail::SdStylePropertyId(&SdBoxStyle::opacity));
@@ -2741,6 +2964,7 @@ int main()
 	TestStyleCorePhaseOneTypes();
 	TestStyleNodeRuntimeParts();
 	TestStyleSheetCascadeAndRegistry();
+	TestStylePipelineClosingRequirements();
 	TestBoxModelAndUsedStyleNodes();
 	TestIdAndKeySemantics();
 	TestLifecycleStateAndModel();
