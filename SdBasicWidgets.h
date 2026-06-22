@@ -993,7 +993,8 @@ namespace Sodium
 			const SdBoxStyle& titlePresentation = context.Part(Parts::Title).presentationStyle;
 			const SdBoxStyle& closeButtonPresentation = context.Part(Parts::CloseButton).presentationStyle;
 			const SdBoxStyle& contentPresentation = context.Part(Parts::Content).presentationStyle;
-			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(presentation, context.animatedRect.Size(), { 420.0f, 260.0f });
+			const SdRect paintRect = BasicWidgetDetail::PaintRect(context);
+			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(presentation, paintRect.Size(), { 420.0f, 260.0f });
 			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, titlePresentation.fontSize, titlePresentation.lineHeight);
 			const float lineHeight = BasicWidgetDetail::ResolveLineHeight(textStyle);
 			const SdColor background = BasicWidgetDetail::ApplyOpacity(contentPresentation.backgroundColor, context.opacity * contentPresentation.opacity);
@@ -1001,18 +1002,18 @@ namespace Sodium
 			const SdColor textColor = BasicWidgetDetail::ApplyOpacity(titlePresentation.color, context.opacity * titlePresentation.opacity);
 			const SdColor closeColor = BasicWidgetDetail::ApplyOpacity(closeButtonPresentation.color, context.opacity * closeButtonPresentation.opacity);
 			const SdColor titleColor = BasicWidgetDetail::ApplyOpacity(titlebarPresentation.backgroundColor, context.opacity * titlebarPresentation.opacity);
-			const float radius = SdResolveLength(contentPresentation.radius, context.animatedRect.Width(), SdResolveLength(presentation.radius, context.animatedRect.Width()));
-			const float titlebarRadius = SdResolveLength(titlebarPresentation.radius, context.animatedRect.Width(), radius);
+			const float radius = SdResolveLength(contentPresentation.radius, paintRect.Width(), SdResolveLength(presentation.radius, paintRect.Width()));
+			const float titlebarRadius = SdResolveLength(titlebarPresentation.radius, paintRect.Width(), radius);
 
-			context.renderList.AddRectFilled(context.animatedRect, background, context.clipRect, radius);
+			context.renderList.AddRectFilled(paintRect, background, context.clipRect, radius);
 			const SdRect titleRect = {
-				context.animatedRect.min.x,
-				context.animatedRect.min.y,
-				context.animatedRect.max.x,
-				std::min(context.animatedRect.max.y, context.animatedRect.min.y + style.titleHeight)
+				paintRect.min.x,
+				paintRect.min.y,
+				paintRect.max.x,
+				std::min(paintRect.max.y, paintRect.min.y + style.titleHeight)
 			};
 			context.renderList.AddRectFilled(titleRect, titleColor, context.clipRect, titlebarRadius);
-			context.renderList.AddRect(context.animatedRect, border, context.clipRect, 1.0f, radius);
+			context.renderList.AddRect(paintRect, border, context.clipRect, 1.0f, radius);
 
 			const SdVec2 titlePosition = {
 				titleRect.min.x + usedStyle.padding.left,

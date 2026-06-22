@@ -1627,6 +1627,44 @@ namespace
 		const bool scrollViewPaintUsesLayoutBox = scrollViewPaintMinX == scrollViewLayoutMinX;
 		Check(scrollViewPaintUsesLayoutBox, "scroll view paint uses root layout box geometry");
 
+		SdInstance windowPaintInstance;
+		windowPaintInstance.GetRenderSharedData().flags = 0;
+		const SdColor windowPaintColor{ 57, 111, 147, 255 };
+		const SdColor windowPaintBorderColor{ 147, 111, 57, 255 };
+		SdWindowOptions paintedWindowOptions = {};
+		bool paintedWindowOpen = true;
+		paintedWindowOptions.position = { 150.0f, 92.0f };
+		paintedWindowOptions.size = { 220.0f, 140.0f };
+		windowPaintInstance.GetStyleSystem().RootRule(SdWindow::TargetTypeId)
+			.Set(&SdBoxStyle::radius, SdLength::Pixels(0.0f))
+			.Set(&SdBoxStyle::backgroundColor, windowPaintColor)
+			.Set(&SdBoxStyle::border, SdStyleValue::FromColor(windowPaintBorderColor));
+		windowPaintInstance.GetStyleSystem().Part<SdWindow>(SdWindow::Parts::Content)
+			.Set(&SdBoxStyle::backgroundColor, windowPaintColor)
+			.Set(&SdBoxStyle::border, SdStyleValue::FromColor(SdColor(0, 0, 0, 0)))
+			.Set(&SdBoxStyle::radius, SdLength::Pixels(0.0f));
+		windowPaintInstance.BeginFrame({ 640.0f, 360.0f });
+		windowPaintInstance.ui.Declare<SdWindow>("Paint", paintedWindowOpen, paintedWindowOptions, [](SdUi&)
+		{
+		});
+		PumpFrame(windowPaintInstance);
+		float windowLayoutMinX = -1.0f;
+		for (const auto& [id, record] : windowPaintInstance.GetStateStorage().GetWidgetRecords())
+		{
+			(void)id;
+			if (record.widgetType == std::type_index(typeid(SdWindow)))
+				windowLayoutMinX = windowPaintInstance.GetRootStyleNode(record.state.id).layoutBox.borderBox.min.x;
+		}
+		const SdUInt32 windowPaintPackedRgb = windowPaintColor.Pack() & 0x00ffffffu;
+		float windowPaintMinX = 1000000.0f;
+		for (const SdVertex& vertex : windowPaintInstance.GetRenderData().vertices)
+		{
+			if ((vertex.color & 0x00ffffffu) == windowPaintPackedRgb && (vertex.color >> 24) > 0u)
+				windowPaintMinX = std::min(windowPaintMinX, vertex.position.x);
+		}
+		const bool windowPaintUsesLayoutBox = windowPaintMinX == windowLayoutMinX;
+		Check(windowPaintUsesLayoutBox, "window paint uses root layout box geometry");
+
 		SdInstance overflowInstance;
 		overflowInstance.GetStyleSystem().RootRule(TestOverflowContainer::TargetTypeId)
 			.Set(&SdBoxStyle::display, SdDisplay::Flex)
