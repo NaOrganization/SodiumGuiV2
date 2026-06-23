@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "SdStyleResolver.h"
 
@@ -46,24 +46,24 @@ namespace Sodium
 	private:
 		void SetDefaultVariables()
 		{
-			colorVariables[SdThemeVariableLiteral("text")] = SdColorWhite;
-			colorVariables[SdThemeVariableLiteral("background")] = { 24, 30, 39, 242 };
-			colorVariables[SdThemeVariableLiteral("window.bg")] = { 24, 30, 39, 242 };
-			colorVariables[SdThemeVariableLiteral("panel.bg")] = { 35, 42, 52, 235 };
-			colorVariables[SdThemeVariableLiteral("button.bg")] = { 48, 72, 96, 255 };
-			colorVariables[SdThemeVariableLiteral("button.bg.hover")] = { 62, 100, 138, 255 };
-			colorVariables[SdThemeVariableLiteral("button.bg.pressed")] = { 68, 118, 160, 255 };
-			colorVariables[SdThemeVariableLiteral("button.text")] = SdColorWhite;
-			colorVariables[SdThemeVariableLiteral("accent")] = { 82, 170, 128, 255 };
-			colorVariables[SdThemeVariableLiteral("border")] = { 91, 109, 128, 255 };
-			colorVariables[SdThemeVariableLiteral("border.strong")] = { 128, 154, 180, 255 };
-			colorVariables[SdThemeVariableLiteral("danger")] = { 164, 66, 66, 255 };
-			colorVariables[SdThemeVariableLiteral("selection")] = { 82, 170, 128, 96 };
-			metricVariables[SdThemeVariableLiteral("spacing.small")] = 6.0f;
-			metricVariables[SdThemeVariableLiteral("spacing.medium")] = 10.0f;
-			metricVariables[SdThemeVariableLiteral("font.button")] = 16.0f;
-			metricVariables[SdThemeVariableLiteral("radius.small")] = 5.0f;
-			metricVariables[SdThemeVariableLiteral("duration.fast")] = 0.16f;
+			colorVariables["text"_SdId] = SdColorWhite;
+			colorVariables["background"_SdId] = { 24, 30, 39, 242 };
+			colorVariables["window.bg"_SdId] = { 24, 30, 39, 242 };
+			colorVariables["panel.bg"_SdId] = { 35, 42, 52, 235 };
+			colorVariables["button.bg"_SdId] = { 48, 72, 96, 255 };
+			colorVariables["button.bg.hover"_SdId] = { 62, 100, 138, 255 };
+			colorVariables["button.bg.pressed"_SdId] = { 68, 118, 160, 255 };
+			colorVariables["button.text"_SdId] = SdColorWhite;
+			colorVariables["accent"_SdId] = { 82, 170, 128, 255 };
+			colorVariables["border"_SdId] = { 91, 109, 128, 255 };
+			colorVariables["border.strong"_SdId] = { 128, 154, 180, 255 };
+			colorVariables["danger"_SdId] = { 164, 66, 66, 255 };
+			colorVariables["selection"_SdId] = { 82, 170, 128, 96 };
+			metricVariables["spacing.small"_SdId] = 6.0f;
+			metricVariables["spacing.medium"_SdId] = 10.0f;
+			metricVariables["font.button"_SdId] = 16.0f;
+			metricVariables["radius.small"_SdId] = 5.0f;
+			metricVariables["duration.fast"_SdId] = 0.16f;
 		}
 	};
 
@@ -551,21 +551,11 @@ namespace Sodium
 				return *this;
 			}
 
-			SdStyleSystemSheetRuleBuilder& Class(const char* className) noexcept
-			{
-				return Class(SdStyleClassLiteral(className));
-			}
-
 			SdStyleSystemSheetRuleBuilder& Scope(SdStyleScopeId scopeId) noexcept
 			{
 				builder.Scope(scopeId);
 				TouchCompiledSheet();
 				return *this;
-			}
-
-			SdStyleSystemSheetRuleBuilder& Scope(const char* scopeName) noexcept
-			{
-				return Scope(SdStyleScopeLiteral(scopeName));
 			}
 
 			SdStyleSystemSheetRuleBuilder& Pseudo(SdPseudoState pseudoState) noexcept
@@ -708,20 +698,10 @@ namespace Sodium
 			Touch();
 		}
 
-		void SetColorVariable(const char* name, SdColor color)
-		{
-			SetColorVariable(SdThemeVariableLiteral(name), color);
-		}
-
 		void SetMetricVariable(SdThemeVariableId variableId, float value)
 		{
 			theme.SetMetricVariable(variableId, value);
 			Touch();
-		}
-
-		void SetMetricVariable(const char* name, float value)
-		{
-			SetMetricVariable(SdThemeVariableLiteral(name), value);
 		}
 
 		void ClearRules()
@@ -975,10 +955,10 @@ namespace Sodium
 		SdWidgetRootStyle BuildDefaultRootStyle() const
 		{
 			SdWidgetRootStyle style = {};
-			style.color = theme.GetColorVariable(SdThemeVariableLiteral("text"));
-			style.backgroundColor = theme.GetColorVariable(SdThemeVariableLiteral("background"));
-			style.border = SdBorder::All(SdLength::Pixels(1.0f), theme.GetColorVariable(SdThemeVariableLiteral("border")));
-			style.radius = SdLength::Pixels(theme.GetMetricVariable(SdThemeVariableLiteral("radius.small")));
+			style.color = theme.GetColorVariable("text"_SdId);
+			style.backgroundColor = theme.GetColorVariable("background"_SdId);
+			style.border = SdBorder::All(SdLength::Pixels(1.0f), theme.GetColorVariable("border"_SdId));
+			style.radius = SdLength::Pixels(theme.GetMetricVariable("radius.small"_SdId));
 			style.opacity = 1.0f;
 			return style;
 		}
@@ -1518,21 +1498,11 @@ namespace Sodium
 			return *this;
 		}
 
-		SdStyleRuleBuilder& Class(const char* className) noexcept
-		{
-			return Class(SdStyleClassLiteral(className));
-		}
-
 		SdStyleRuleBuilder& Scope(SdStyleScopeId scopeId) noexcept
 		{
 			builder.Scope(scopeId);
 			TouchCompiledSheet();
 			return *this;
-		}
-
-		SdStyleRuleBuilder& Scope(const char* scopeName) noexcept
-		{
-			return Scope(SdStyleScopeLiteral(scopeName));
 		}
 
 		template<class TField>

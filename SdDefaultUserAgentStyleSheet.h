@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <algorithm>
 
@@ -11,7 +11,7 @@ namespace Sodium
 			SdStyleId targetTag,
 			SdStyleInteractionState interactionState,
 			SdRootLayer rootLayer,
-			const char* backgroundVariable,
+			SdThemeVariableId backgroundVariable,
 			bool matchLayer = false)
 		{
 			auto rule = sheet.RuleForTarget<SdWidgetRootStyle>(targetTag);
@@ -28,130 +28,130 @@ namespace Sodium
 		SdStyleSheet sheet = {};
 		auto global = sheet.RuleForTarget<SdWidgetRootStyle>(SdWidgetTargetIds::Global);
 		global.Cascade(SdCascadeLayer::UserAgent)
-			.Set(&SdBoxStyle::color, ThemeColor("text"))
-			.Set(&SdBoxStyle::backgroundColor, ThemeColor("background"))
-			.Set(&SdBoxStyle::border, ThemeColor("border"))
-			.Set(&SdBoxStyle::radius, ThemeMetric("radius.small"))
+			.Set(&SdBoxStyle::color, ThemeColor(SdThemeVariableIds::Text))
+			.Set(&SdBoxStyle::backgroundColor, ThemeColor(SdThemeVariableIds::Background))
+			.Set(&SdBoxStyle::border, ThemeColor(SdThemeVariableIds::Border))
+			.Set(&SdBoxStyle::radius, ThemeMetric(SdThemeVariableIds::RadiusSmall))
 			.Set(&SdBoxStyle::opacity, 1.0f)
-			.Set(&SdBoxStyle::fontSize, ThemeMetric("font.button"))
+			.Set(&SdBoxStyle::fontSize, ThemeMetric(SdThemeVariableIds::FontButton))
 			.Set(&SdBoxStyle::lineHeight, 0.0f);
 
-		const float mediumSpacing = theme.GetMetricVariable(SdThemeVariableLiteral("spacing.medium"));
+		const float mediumSpacing = theme.GetMetricVariable(SdThemeVariableIds::SpacingMedium);
 		sheet.RuleForTarget<SdWidgetRootStyle>(SdWidgetTargetIds::Panel)
 			.Cascade(SdCascadeLayer::UserAgent)
 			.Set(&SdBoxStyle::width, SdLength::Pixels(240.0f))
 			.Set(&SdBoxStyle::height, SdLength::Pixels(120.0f))
 			.Set(&SdBoxStyle::padding, SdStyleValue::FromSpacing({ mediumSpacing, mediumSpacing, mediumSpacing, mediumSpacing }))
-			.Set(&SdBoxStyle::gap, SdLength::Pixels(theme.GetMetricVariable(SdThemeVariableLiteral("spacing.small"))));
+			.Set(&SdBoxStyle::gap, SdLength::Pixels(theme.GetMetricVariable(SdThemeVariableIds::SpacingSmall)));
 		sheet.RuleForTarget<SdWidgetRootStyle>(SdWidgetTargetIds::Window)
 			.Cascade(SdCascadeLayer::UserAgent)
 			.Set(&SdBoxStyle::width, SdLength::Pixels(420.0f))
 			.Set(&SdBoxStyle::height, SdLength::Pixels(260.0f))
 			.Set(&SdBoxStyle::padding, SdStyleValue::FromSpacing({ mediumSpacing, 40.0f, mediumSpacing, mediumSpacing }))
-			.Set(&SdBoxStyle::fontSize, ThemeMetric("font.button"))
+			.Set(&SdBoxStyle::fontSize, ThemeMetric(SdThemeVariableIds::FontButton))
 			.Set(&SdBoxStyle::lineHeight, 0.0f)
-			.Set(&SdBoxStyle::radius, ThemeMetric("radius.small"))
-			.Set(&SdBoxStyle::gap, SdLength::Pixels(theme.GetMetricVariable(SdThemeVariableLiteral("spacing.small"))))
+			.Set(&SdBoxStyle::radius, ThemeMetric(SdThemeVariableIds::RadiusSmall))
+			.Set(&SdBoxStyle::gap, SdLength::Pixels(theme.GetMetricVariable(SdThemeVariableIds::SpacingSmall)))
 			.Set(&SdBoxStyle::opacity, 1.0f);
-		sheet.PartForTarget(SdWidgetTargetIds::Window, SdStylePart::Make("Sodium.Window.Part.Content"))
+		sheet.PartForTarget(SdWidgetTargetIds::Window, SdWidgetPartIds::Window::Content)
 			.Cascade(SdCascadeLayer::UserAgent)
-			.Set(&SdBoxStyle::backgroundColor, ThemeColor("window.bg"))
-			.Set(&SdBoxStyle::border, ThemeColor("border"))
-			.Set(&SdBoxStyle::radius, ThemeMetric("radius.small"));
-		sheet.PartForTarget(SdWidgetTargetIds::Window, SdStylePart::Make("Sodium.Window.Part.Titlebar"))
+			.Set(&SdBoxStyle::backgroundColor, ThemeColor(SdThemeVariableIds::WindowBg))
+			.Set(&SdBoxStyle::border, ThemeColor(SdThemeVariableIds::Border))
+			.Set(&SdBoxStyle::radius, ThemeMetric(SdThemeVariableIds::RadiusSmall));
+		sheet.PartForTarget(SdWidgetTargetIds::Window, SdWidgetPartIds::Window::Titlebar)
 			.Cascade(SdCascadeLayer::UserAgent)
-			.Set(&SdBoxStyle::backgroundColor, ThemeColor("button.bg"))
-			.Set(&SdBoxStyle::radius, ThemeMetric("radius.small"));
+			.Set(&SdBoxStyle::backgroundColor, ThemeColor(SdThemeVariableIds::ButtonBg))
+			.Set(&SdBoxStyle::radius, ThemeMetric(SdThemeVariableIds::RadiusSmall));
 
-		const float smallSpacing = theme.GetMetricVariable(SdThemeVariableLiteral("spacing.small"));
+		const float smallSpacing = theme.GetMetricVariable(SdThemeVariableIds::SpacingSmall);
 		sheet.RuleForTarget<SdWidgetRootStyle>(SdWidgetTargetIds::Button)
 			.Cascade(SdCascadeLayer::UserAgent)
 			.Set(&SdBoxStyle::minWidth, SdLength::Pixels(82.0f))
 			.Set(&SdBoxStyle::minHeight, SdLength::Pixels(30.0f))
 			.Set(&SdBoxStyle::padding, SdStyleValue::FromSpacing({ mediumSpacing, smallSpacing, mediumSpacing, smallSpacing }))
-			.Set(&SdBoxStyle::fontSize, ThemeMetric("font.button"))
+			.Set(&SdBoxStyle::fontSize, ThemeMetric(SdThemeVariableIds::FontButton))
 			.Set(&SdBoxStyle::lineHeight, 0.0f);
-		sheet.PartForTarget(SdWidgetTargetIds::Button, SdStylePart::Make("Sodium.Button.Part.Content"))
+		sheet.PartForTarget(SdWidgetTargetIds::Button, SdWidgetPartIds::Button::Content)
 			.Cascade(SdCascadeLayer::UserAgent)
-			.Set(&SdBoxStyle::backgroundColor, ThemeColor("button.bg"))
-			.Set(&SdBoxStyle::border, ThemeColor("border"))
-			.Set(&SdBoxStyle::radius, ThemeMetric("radius.small"));
-		sheet.PartForTarget(SdWidgetTargetIds::Button, SdStylePart::Make("Sodium.Button.Part.Content"))
+			.Set(&SdBoxStyle::backgroundColor, ThemeColor(SdThemeVariableIds::ButtonBg))
+			.Set(&SdBoxStyle::border, ThemeColor(SdThemeVariableIds::Border))
+			.Set(&SdBoxStyle::radius, ThemeMetric(SdThemeVariableIds::RadiusSmall));
+		sheet.PartForTarget(SdWidgetTargetIds::Button, SdWidgetPartIds::Button::Content)
 			.Cascade(SdCascadeLayer::UserAgent)
 			.Pseudo(SdStyleInteractionState::Hovered)
-			.Set(&SdBoxStyle::backgroundColor, ThemeColor("button.bg.hover"));
-		sheet.PartForTarget(SdWidgetTargetIds::Button, SdStylePart::Make("Sodium.Button.Part.Content"))
+			.Set(&SdBoxStyle::backgroundColor, ThemeColor(SdThemeVariableIds::ButtonBgHover));
+		sheet.PartForTarget(SdWidgetTargetIds::Button, SdWidgetPartIds::Button::Content)
 			.Cascade(SdCascadeLayer::UserAgent)
 			.Pseudo(SdStyleInteractionState::Pressed)
-			.Set(&SdBoxStyle::backgroundColor, ThemeColor("button.bg.pressed"));
+			.Set(&SdBoxStyle::backgroundColor, ThemeColor(SdThemeVariableIds::ButtonBgPressed));
 
 		sheet.RuleForTarget<SdWidgetRootStyle>(SdWidgetTargetIds::CheckBox)
 			.Cascade(SdCascadeLayer::UserAgent)
 			.Set(&SdBoxStyle::minHeight, SdLength::Pixels(28.0f))
 			.Set(&SdBoxStyle::padding, SdStyleValue::FromSpacing({ smallSpacing, smallSpacing, smallSpacing, smallSpacing }))
-			.Set(&SdBoxStyle::fontSize, ThemeMetric("font.button"))
+			.Set(&SdBoxStyle::fontSize, ThemeMetric(SdThemeVariableIds::FontButton))
 			.Set(&SdBoxStyle::lineHeight, 0.0f)
 			.Set(&SdBoxStyle::gap, SdLength::Pixels(smallSpacing))
-			.Set(&SdBoxStyle::radius, SdLength::Pixels(std::max(2.0f, theme.GetMetricVariable(SdThemeVariableLiteral("radius.small")) - 1.0f)));
-		sheet.PartForTarget(SdWidgetTargetIds::CheckBox, SdStylePart::Make("Sodium.CheckBox.Part.Box"))
+			.Set(&SdBoxStyle::radius, SdLength::Pixels(std::max(2.0f, theme.GetMetricVariable(SdThemeVariableIds::RadiusSmall) - 1.0f)));
+		sheet.PartForTarget(SdWidgetTargetIds::CheckBox, SdWidgetPartIds::CheckBox::Box)
 			.Cascade(SdCascadeLayer::UserAgent)
-			.Set(&SdBoxStyle::backgroundColor, ThemeColor("panel.bg"))
-			.Set(&SdBoxStyle::border, ThemeColor("border"))
-			.Set(&SdBoxStyle::radius, SdLength::Pixels(std::max(2.0f, theme.GetMetricVariable(SdThemeVariableLiteral("radius.small")) - 1.0f)));
-		sheet.PartForTarget(SdWidgetTargetIds::CheckBox, SdStylePart::Make("Sodium.CheckBox.Part.Box"))
+			.Set(&SdBoxStyle::backgroundColor, ThemeColor(SdThemeVariableIds::PanelBg))
+			.Set(&SdBoxStyle::border, ThemeColor(SdThemeVariableIds::Border))
+			.Set(&SdBoxStyle::radius, SdLength::Pixels(std::max(2.0f, theme.GetMetricVariable(SdThemeVariableIds::RadiusSmall) - 1.0f)));
+		sheet.PartForTarget(SdWidgetTargetIds::CheckBox, SdWidgetPartIds::CheckBox::Box)
 			.Cascade(SdCascadeLayer::UserAgent)
 			.Pseudo(SdStyleInteractionState::Hovered)
-			.Set(&SdBoxStyle::backgroundColor, ThemeColor("button.bg.hover"));
-		sheet.PartForTarget(SdWidgetTargetIds::CheckBox, SdStylePart::Make("Sodium.CheckBox.Part.Indicator"))
+			.Set(&SdBoxStyle::backgroundColor, ThemeColor(SdThemeVariableIds::ButtonBgHover));
+		sheet.PartForTarget(SdWidgetTargetIds::CheckBox, SdWidgetPartIds::CheckBox::Indicator)
 			.Cascade(SdCascadeLayer::UserAgent)
-			.Set(&SdBoxStyle::backgroundColor, ThemeColor("accent"));
+			.Set(&SdBoxStyle::backgroundColor, ThemeColor(SdThemeVariableIds::Accent));
 
 		sheet.RuleForTarget<SdWidgetRootStyle>(SdWidgetTargetIds::Slider)
 			.Cascade(SdCascadeLayer::UserAgent)
 			.Set(&SdBoxStyle::width, SdLength::Pixels(180.0f))
 			.Set(&SdBoxStyle::height, SdLength::Pixels(30.0f))
 			.Set(&SdBoxStyle::padding, SdStyleValue::FromSpacing({ smallSpacing, smallSpacing, smallSpacing, smallSpacing }))
-			.Set(&SdBoxStyle::fontSize, ThemeMetric("font.button"))
+			.Set(&SdBoxStyle::fontSize, ThemeMetric(SdThemeVariableIds::FontButton))
 			.Set(&SdBoxStyle::lineHeight, 0.0f)
 			.Set(&SdBoxStyle::gap, SdLength::Pixels(smallSpacing));
-		sheet.PartForTarget(SdWidgetTargetIds::Slider, SdStylePart::Make("Sodium.Slider.Part.Track"))
+		sheet.PartForTarget(SdWidgetTargetIds::Slider, SdWidgetPartIds::Slider::Track)
 			.Cascade(SdCascadeLayer::UserAgent)
-			.Set(&SdBoxStyle::backgroundColor, ThemeColor("panel.bg"))
-			.Set(&SdBoxStyle::border, ThemeColor("border"))
-			.Set(&SdBoxStyle::radius, ThemeMetric("radius.small"));
-		sheet.PartForTarget(SdWidgetTargetIds::Slider, SdStylePart::Make("Sodium.Slider.Part.Track"))
+			.Set(&SdBoxStyle::backgroundColor, ThemeColor(SdThemeVariableIds::PanelBg))
+			.Set(&SdBoxStyle::border, ThemeColor(SdThemeVariableIds::Border))
+			.Set(&SdBoxStyle::radius, ThemeMetric(SdThemeVariableIds::RadiusSmall));
+		sheet.PartForTarget(SdWidgetTargetIds::Slider, SdWidgetPartIds::Slider::Track)
 			.Cascade(SdCascadeLayer::UserAgent)
 			.Pseudo(SdStyleInteractionState::Hovered)
-			.Set(&SdBoxStyle::backgroundColor, ThemeColor("button.bg.hover"));
-		sheet.PartForTarget(SdWidgetTargetIds::Slider, SdStylePart::Make("Sodium.Slider.Part.Track"))
+			.Set(&SdBoxStyle::backgroundColor, ThemeColor(SdThemeVariableIds::ButtonBgHover));
+		sheet.PartForTarget(SdWidgetTargetIds::Slider, SdWidgetPartIds::Slider::Track)
 			.Cascade(SdCascadeLayer::UserAgent)
 			.Pseudo(SdStyleInteractionState::Pressed)
-			.Set(&SdBoxStyle::backgroundColor, ThemeColor("button.bg.pressed"));
-		sheet.PartForTarget(SdWidgetTargetIds::Slider, SdStylePart::Make("Sodium.Slider.Part.Fill"))
+			.Set(&SdBoxStyle::backgroundColor, ThemeColor(SdThemeVariableIds::ButtonBgPressed));
+		sheet.PartForTarget(SdWidgetTargetIds::Slider, SdWidgetPartIds::Slider::Fill)
 			.Cascade(SdCascadeLayer::UserAgent)
-			.Set(&SdBoxStyle::backgroundColor, ThemeColor("accent"));
-		sheet.PartForTarget(SdWidgetTargetIds::Slider, SdStylePart::Make("Sodium.Slider.Part.Thumb"))
+			.Set(&SdBoxStyle::backgroundColor, ThemeColor(SdThemeVariableIds::Accent));
+		sheet.PartForTarget(SdWidgetTargetIds::Slider, SdWidgetPartIds::Slider::Thumb)
 			.Cascade(SdCascadeLayer::UserAgent)
-			.Set(&SdBoxStyle::backgroundColor, ThemeColor("accent"))
-			.Set(&SdBoxStyle::border, ThemeColor("border"));
+			.Set(&SdBoxStyle::backgroundColor, ThemeColor(SdThemeVariableIds::Accent))
+			.Set(&SdBoxStyle::border, ThemeColor(SdThemeVariableIds::Border));
 
 		sheet.RuleForTarget<SdWidgetRootStyle>(SdWidgetTargetIds::TextInput)
 			.Cascade(SdCascadeLayer::UserAgent)
 			.Set(&SdBoxStyle::width, SdLength::Pixels(220.0f))
 			.Set(&SdBoxStyle::minHeight, SdLength::Pixels(32.0f))
 			.Set(&SdBoxStyle::padding, SdStyleValue::FromSpacing({ mediumSpacing, smallSpacing, mediumSpacing, smallSpacing }))
-			.Set(&SdBoxStyle::fontSize, ThemeMetric("font.button"))
+			.Set(&SdBoxStyle::fontSize, ThemeMetric(SdThemeVariableIds::FontButton))
 			.Set(&SdBoxStyle::lineHeight, 0.0f);
-		sheet.PartForTarget(SdWidgetTargetIds::TextInput, SdStylePart::Make("Sodium.TextInput.Part.Field"))
+		sheet.PartForTarget(SdWidgetTargetIds::TextInput, SdWidgetPartIds::TextInput::Field)
 			.Cascade(SdCascadeLayer::UserAgent)
-			.Set(&SdBoxStyle::backgroundColor, ThemeColor("panel.bg"))
-			.Set(&SdBoxStyle::border, ThemeColor("border"))
-			.Set(&SdBoxStyle::radius, ThemeMetric("radius.small"));
-		sheet.PartForTarget(SdWidgetTargetIds::TextInput, SdStylePart::Make("Sodium.TextInput.Part.Field"))
+			.Set(&SdBoxStyle::backgroundColor, ThemeColor(SdThemeVariableIds::PanelBg))
+			.Set(&SdBoxStyle::border, ThemeColor(SdThemeVariableIds::Border))
+			.Set(&SdBoxStyle::radius, ThemeMetric(SdThemeVariableIds::RadiusSmall));
+		sheet.PartForTarget(SdWidgetTargetIds::TextInput, SdWidgetPartIds::TextInput::Field)
 			.Cascade(SdCascadeLayer::UserAgent)
 			.Pseudo(SdStyleInteractionState::Focused)
-			.Set(&SdBoxStyle::backgroundColor, ThemeColor("button.bg"));
-		sheet.PartForTarget(SdWidgetTargetIds::TextInput, SdStylePart::Make("Sodium.TextInput.Part.Placeholder"))
+			.Set(&SdBoxStyle::backgroundColor, ThemeColor(SdThemeVariableIds::ButtonBg));
+		sheet.PartForTarget(SdWidgetTargetIds::TextInput, SdWidgetPartIds::TextInput::Placeholder)
 			.Cascade(SdCascadeLayer::UserAgent)
 			.Set(&SdBoxStyle::opacity, 0.52f);
 
@@ -165,14 +165,14 @@ namespace Sodium
 			.Set(&SdBoxStyle::height, SdLength::Pixels(160.0f))
 			.Set(&SdBoxStyle::padding, SdStyleValue::FromSpacing({ smallSpacing, smallSpacing, smallSpacing, smallSpacing }))
 			.Set(&SdBoxStyle::gap, SdLength::Pixels(smallSpacing));
-		sheet.PartForTarget(SdWidgetTargetIds::ScrollView, SdStylePart::Make("Sodium.ScrollView.Part.Scrollbar"))
+		sheet.PartForTarget(SdWidgetTargetIds::ScrollView, SdWidgetPartIds::ScrollView::Scrollbar)
 			.Cascade(SdCascadeLayer::UserAgent)
-			.Set(&SdBoxStyle::backgroundColor, ThemeColor("panel.bg"))
-			.Set(&SdBoxStyle::border, ThemeColor("border"))
-			.Set(&SdBoxStyle::radius, ThemeMetric("radius.small"));
-		sheet.PartForTarget(SdWidgetTargetIds::ScrollView, SdStylePart::Make("Sodium.ScrollView.Part.Thumb"))
+			.Set(&SdBoxStyle::backgroundColor, ThemeColor(SdThemeVariableIds::PanelBg))
+			.Set(&SdBoxStyle::border, ThemeColor(SdThemeVariableIds::Border))
+			.Set(&SdBoxStyle::radius, ThemeMetric(SdThemeVariableIds::RadiusSmall));
+		sheet.PartForTarget(SdWidgetTargetIds::ScrollView, SdWidgetPartIds::ScrollView::Thumb)
 			.Cascade(SdCascadeLayer::UserAgent)
-			.Set(&SdBoxStyle::backgroundColor, ThemeColor("accent"));
+			.Set(&SdBoxStyle::backgroundColor, ThemeColor(SdThemeVariableIds::Accent));
 
 		sheet.RuleForTarget<SdWidgetRootStyle>(SdWidgetTargetIds::Popup)
 			.Cascade(SdCascadeLayer::UserAgent)
@@ -189,15 +189,15 @@ namespace Sodium
 		sheet.RuleForTarget<SdWidgetRootStyle>(SdWidgetTargetIds::Tooltip)
 			.Cascade(SdCascadeLayer::UserAgent)
 			.Set(&SdBoxStyle::padding, SdStyleValue::FromSpacing({ smallSpacing, smallSpacing, smallSpacing, smallSpacing }))
-			.Set(&SdBoxStyle::fontSize, ThemeMetric("font.button"))
+			.Set(&SdBoxStyle::fontSize, ThemeMetric(SdThemeVariableIds::FontButton))
 			.Set(&SdBoxStyle::lineHeight, 0.0f);
 
-		Detail::SdAddDefaultUserAgentRootBackgroundRule(sheet, SdWidgetTargetIds::Default, SdStyleInteractionState::Normal, SdRootLayer::Content, "background");
-		Detail::SdAddDefaultUserAgentRootBackgroundRule(sheet, SdWidgetTargetIds::Panel, SdStyleInteractionState::Normal, SdRootLayer::Content, "panel.bg");
-		Detail::SdAddDefaultUserAgentRootBackgroundRule(sheet, SdWidgetTargetIds::ImageViewer, SdStyleInteractionState::Normal, SdRootLayer::Content, "panel.bg");
-		Detail::SdAddDefaultUserAgentRootBackgroundRule(sheet, SdWidgetTargetIds::Popup, SdStyleInteractionState::Normal, SdRootLayer::Popup, "window.bg", true);
-		Detail::SdAddDefaultUserAgentRootBackgroundRule(sheet, SdWidgetTargetIds::ContextMenu, SdStyleInteractionState::Normal, SdRootLayer::Popup, "window.bg", true);
-		Detail::SdAddDefaultUserAgentRootBackgroundRule(sheet, SdWidgetTargetIds::Tooltip, SdStyleInteractionState::Normal, SdRootLayer::Tooltip, "panel.bg", true);
+		Detail::SdAddDefaultUserAgentRootBackgroundRule(sheet, SdWidgetTargetIds::Default, SdStyleInteractionState::Normal, SdRootLayer::Content, SdThemeVariableIds::Background);
+		Detail::SdAddDefaultUserAgentRootBackgroundRule(sheet, SdWidgetTargetIds::Panel, SdStyleInteractionState::Normal, SdRootLayer::Content, SdThemeVariableIds::PanelBg);
+		Detail::SdAddDefaultUserAgentRootBackgroundRule(sheet, SdWidgetTargetIds::ImageViewer, SdStyleInteractionState::Normal, SdRootLayer::Content, SdThemeVariableIds::PanelBg);
+		Detail::SdAddDefaultUserAgentRootBackgroundRule(sheet, SdWidgetTargetIds::Popup, SdStyleInteractionState::Normal, SdRootLayer::Popup, SdThemeVariableIds::WindowBg, true);
+		Detail::SdAddDefaultUserAgentRootBackgroundRule(sheet, SdWidgetTargetIds::ContextMenu, SdStyleInteractionState::Normal, SdRootLayer::Popup, SdThemeVariableIds::WindowBg, true);
+		Detail::SdAddDefaultUserAgentRootBackgroundRule(sheet, SdWidgetTargetIds::Tooltip, SdStyleInteractionState::Normal, SdRootLayer::Tooltip, SdThemeVariableIds::PanelBg, true);
 
 		return sheet;
 	}

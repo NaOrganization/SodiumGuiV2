@@ -1,4 +1,4 @@
-#include "SodiumGUI.h"
+﻿#include "SodiumGUI.h"
 
 #include <algorithm>
 #include <chrono>
@@ -109,7 +109,7 @@ namespace
 
 	struct TestOverflowContainer final : SdWidgetTag
 	{
-		static constexpr SdStyleId TargetTypeId = SdStyleIdLiteral("Tests.OverflowContainer");
+		static constexpr SdStyleId TargetTypeId = "Tests.OverflowContainer"_SdId;
 		using Style = SdWidgetRootStyle;
 
 		template<class TContent>
@@ -128,7 +128,7 @@ namespace
 
 	struct TestManualLayoutWidget final : SdWidgetTag
 	{
-		static constexpr SdStyleId TargetTypeId = SdStyleIdLiteral("Tests.ManualLayoutWidget");
+		static constexpr SdStyleId TargetTypeId = "Tests.ManualLayoutWidget"_SdId;
 		using Style = SdWidgetRootStyle;
 
 		void OnUpdate(SdUpdateContext& context)
@@ -146,9 +146,9 @@ namespace
 
 	struct CustomComponentStyle final
 	{
-		static constexpr SdStyleId TargetTypeId = SdStyleIdLiteral("Tests.CustomComponent");
-		static constexpr SdStyleId Highlight = SdStyleIdLiteral("Tests.CustomComponent.Highlight");
-		static constexpr SdStyleId ContentPadding = SdStyleIdLiteral("Tests.CustomComponent.ContentPadding");
+		static constexpr SdStyleId TargetTypeId = "Tests.CustomComponent"_SdId;
+		static constexpr SdStyleId Highlight = "Tests.CustomComponent.Highlight"_SdId;
+		static constexpr SdStyleId ContentPadding = "Tests.CustomComponent.ContentPadding"_SdId;
 	};
 
 	struct CustomComponentWidget final : SdWidgetTag
@@ -218,7 +218,7 @@ namespace
 
 	struct TypedStyleWidget final : SdWidgetTag
 	{
-		static constexpr SdStyleId TargetTypeId = SdStyleIdLiteral("Tests.TypedStyleWidget");
+		static constexpr SdStyleId TargetTypeId = "Tests.TypedStyleWidget"_SdId;
 
 		struct Style final
 		{
@@ -229,7 +229,7 @@ namespace
 			{
 				Style style = {};
 				style.width = 24.0f;
-				style.color = context.theme.GetColorVariable(SdThemeVariableLiteral("text"));
+				style.color = context.theme.GetColorVariable(SdThemeVariableIds::Text);
 				return style;
 			}
 
@@ -263,7 +263,7 @@ namespace
 	{
 		struct Parts final
 		{
-			static constexpr SdStylePart Label = SdStylePart::Make("Tests.StyleNodeApiWidget.Part.Label");
+			static constexpr SdStylePart Label = SdStylePart::Make("Tests.StyleNodeApiWidget.Part.Label"_SdId);
 		};
 
 		struct Style final
@@ -417,7 +417,7 @@ namespace
 
 	struct PaintLayoutBoxWidget final : SdWidgetTag
 	{
-		static constexpr SdStyleId TargetTypeId = SdStyleIdLiteral("Tests.PaintLayoutBoxWidget");
+		static constexpr SdStyleId TargetTypeId = "Tests.PaintLayoutBoxWidget"_SdId;
 		using Style = SdWidgetRootStyle;
 
 		void OnUpdate(SdUpdateContext& context)
@@ -928,12 +928,14 @@ namespace
 
 	void TestStyleSheetCascadeAndRegistry()
 	{
+		constexpr SdThemeVariableId kTestsWidthVariable = "tests.width"_SdId;
+
 		SdPropertyRegistry registry = {};
 		registry.Register<&RegistryDispatchStyle::color>(SdStyleFieldImpact::Paint, SdStyleInterpolation::Color);
 		registry.Register<&RegistryDispatchStyle::opacity>(SdStyleFieldImpact::Composite, SdStyleInterpolation::Float);
 
 		SdStyleSheet sheet = {};
-		constexpr SdStyleClassId dangerClass = SdStyleClassLiteral("Tests.Cascade.Danger");
+		constexpr SdStyleClassId dangerClass = "Tests.Cascade.Danger"_SdId;
 		sheet.Rule<RegistryDispatchWidget>()
 			.Set(&RegistryDispatchStyle::opacity, 0.25f);
 		sheet.Rule<RegistryDispatchWidget>()
@@ -963,10 +965,10 @@ namespace
 		Check(resolved.opacity == 0.75f, "compiled stylesheet cascade applies class specificity and important");
 
 		SdStyleSystem styleSystem;
-		styleSystem.SetMetricVariable("tests.width", 72.0f);
+		styleSystem.SetMetricVariable(kTestsWidthVariable, 72.0f);
 		styleSystem.Rule<StyleNodeApiWidget>()
 			.Class(dangerClass)
-			.Set(&StyleNodeApiWidget::Style::width, ThemeMetric("tests.width"));
+			.Set(&StyleNodeApiWidget::Style::width, ThemeMetric(kTestsWidthVariable));
 		const StyleNodeApiWidget::Style systemResolved = styleSystem.ResolveTypedStyle<StyleNodeApiWidget>(
 			SdStyleInteractionState::Normal,
 			SdRootLayer::Content,
@@ -1034,10 +1036,10 @@ namespace
 		const SdWidgetRootStyle panelDefault = styleSystem.ResolveRootStyle(SdPanel::TargetTypeId, SdStyleInteractionState::Normal);
 		Check(panelDefault.width.unit == SdLengthUnit::Pixels && panelDefault.width.value == 240.0f, "panel default width resolves through root style");
 		Check(SdResolveLength(panelDefault.padding.left, 0.0f) > 0.0f, "panel default padding resolves through root style");
-		Check(SdResolveLength(panelDefault.gap, 0.0f) == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableLiteral("spacing.small")), "panel default gap resolves through root gap");
+		Check(SdResolveLength(panelDefault.gap, 0.0f) == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableIds::SpacingSmall), "panel default gap resolves through root gap");
 
-		constexpr SdStyleClassId textClass = SdStyleClassLiteral("Tests.Text.RootStyle");
-		constexpr SdStyleScopeId textScope = SdStyleScopeLiteral("Tests.Text.Scope");
+		constexpr SdStyleClassId textClass = "Tests.Text.RootStyle"_SdId;
+		constexpr SdStyleScopeId textScope = "Tests.Text.Scope"_SdId;
 		const SdStyleClassId textClasses[] = { textClass };
 		styleSystem.RootRule(SdText::TargetTypeId)
 			.Scope(textScope)
@@ -1055,44 +1057,44 @@ namespace
 		Check(windowDefault.width.unit == SdLengthUnit::Pixels && windowDefault.width.value == 420.0f, "window default width resolves through root style");
 		Check(windowDefault.height.unit == SdLengthUnit::Pixels && windowDefault.height.value == 260.0f, "window default height resolves through root style");
 		Check(windowDefault.padding.top.value == 40.0f, "window default title padding resolves through root style");
-		Check(SdResolveLength(windowDefault.gap, 0.0f) == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableLiteral("spacing.small")), "window default gap resolves through root gap");
+		Check(SdResolveLength(windowDefault.gap, 0.0f) == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableIds::SpacingSmall), "window default gap resolves through root gap");
 		const SdWidgetPartStyle windowContentDefault = styleSystem.ResolvePartStyle(SdWindow::TargetTypeId, SdWindow::Parts::Content, windowDefault, SdStyleInteractionState::Normal, SdRootLayer::Floating);
 		const SdWidgetPartStyle windowTitlebarDefault = styleSystem.ResolvePartStyle(SdWindow::TargetTypeId, SdWindow::Parts::Titlebar, windowDefault, SdStyleInteractionState::Normal, SdRootLayer::Floating);
-		Check(windowContentDefault.backgroundColor == styleSystem.GetTheme().GetColorVariable(SdThemeVariableLiteral("window.bg")), "window content default background resolves through part style");
-		Check(windowTitlebarDefault.backgroundColor == styleSystem.GetTheme().GetColorVariable(SdThemeVariableLiteral("button.bg")), "window titlebar default background resolves through part style");
+		Check(windowContentDefault.backgroundColor == styleSystem.GetTheme().GetColorVariable(SdThemeVariableIds::WindowBg), "window content default background resolves through part style");
+		Check(windowTitlebarDefault.backgroundColor == styleSystem.GetTheme().GetColorVariable(SdThemeVariableIds::ButtonBg), "window titlebar default background resolves through part style");
 
 		const SdWidgetRootStyle buttonDefault = styleSystem.ResolveRootStyle(SdButton::TargetTypeId, SdStyleInteractionState::Normal);
 		Check(buttonDefault.minWidth.unit == SdLengthUnit::Pixels && buttonDefault.minWidth.value == 82.0f, "button default min width resolves through root style");
 		Check(buttonDefault.padding.left.value > buttonDefault.padding.top.value, "button default padding resolves through root style");
-		Check(buttonDefault.fontSize == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableLiteral("font.button")), "button font size resolves through root style");
+		Check(buttonDefault.fontSize == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableIds::FontButton), "button font size resolves through root style");
 		const SdWidgetPartStyle buttonContentDefault = styleSystem.ResolvePartStyle(SdButton::TargetTypeId, SdButton::Parts::Content, buttonDefault, SdStyleInteractionState::Normal);
 		const SdWidgetPartStyle buttonContentHoveredDefault = styleSystem.ResolvePartStyle(SdButton::TargetTypeId, SdButton::Parts::Content, buttonDefault, SdStyleInteractionState::Hovered);
 		const SdWidgetPartStyle buttonContentPressedDefault = styleSystem.ResolvePartStyle(SdButton::TargetTypeId, SdButton::Parts::Content, buttonDefault, SdStyleInteractionState::Pressed);
-		Check(buttonContentDefault.backgroundColor == styleSystem.GetTheme().GetColorVariable(SdThemeVariableLiteral("button.bg")), "button content default background resolves through part style");
-		Check(buttonContentHoveredDefault.backgroundColor == styleSystem.GetTheme().GetColorVariable(SdThemeVariableLiteral("button.bg.hover")), "button content hovered background resolves through part style");
-		Check(buttonContentPressedDefault.backgroundColor == styleSystem.GetTheme().GetColorVariable(SdThemeVariableLiteral("button.bg.pressed")), "button content pressed background resolves through part style");
+		Check(buttonContentDefault.backgroundColor == styleSystem.GetTheme().GetColorVariable(SdThemeVariableIds::ButtonBg), "button content default background resolves through part style");
+		Check(buttonContentHoveredDefault.backgroundColor == styleSystem.GetTheme().GetColorVariable(SdThemeVariableIds::ButtonBgHover), "button content hovered background resolves through part style");
+		Check(buttonContentPressedDefault.backgroundColor == styleSystem.GetTheme().GetColorVariable(SdThemeVariableIds::ButtonBgPressed), "button content pressed background resolves through part style");
 
 		const SdWidgetRootStyle checkBoxDefault = styleSystem.ResolveRootStyle(SdCheckBox::TargetTypeId, SdStyleInteractionState::Normal);
 		Check(checkBoxDefault.minHeight.unit == SdLengthUnit::Pixels && checkBoxDefault.minHeight.value == 28.0f, "checkbox default min height resolves through root style");
-		Check(checkBoxDefault.padding.left.value == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableLiteral("spacing.small")), "checkbox default padding resolves through root style");
-		Check(SdResolveLength(checkBoxDefault.gap, 0.0f) == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableLiteral("spacing.small")), "checkbox default label gap resolves through root style");
+		Check(checkBoxDefault.padding.left.value == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableIds::SpacingSmall), "checkbox default padding resolves through root style");
+		Check(SdResolveLength(checkBoxDefault.gap, 0.0f) == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableIds::SpacingSmall), "checkbox default label gap resolves through root style");
 		Check(SdResolveLength(checkBoxDefault.radius, 18.0f) >= 2.0f, "checkbox radius resolves through root style");
 		const SdWidgetPartStyle checkBoxBoxDefault = styleSystem.ResolvePartStyle(SdCheckBox::TargetTypeId, SdCheckBox::Parts::Box, checkBoxDefault, SdStyleInteractionState::Normal);
 		const SdWidgetPartStyle checkBoxIndicatorDefault = styleSystem.ResolvePartStyle(SdCheckBox::TargetTypeId, SdCheckBox::Parts::Indicator, checkBoxDefault, SdStyleInteractionState::Normal);
-		Check(checkBoxBoxDefault.backgroundColor == styleSystem.GetTheme().GetColorVariable(SdThemeVariableLiteral("panel.bg")), "checkbox box default background resolves through part style");
-		Check(checkBoxIndicatorDefault.backgroundColor == styleSystem.GetTheme().GetColorVariable(SdThemeVariableLiteral("accent")), "checkbox indicator default background resolves through part style");
+		Check(checkBoxBoxDefault.backgroundColor == styleSystem.GetTheme().GetColorVariable(SdThemeVariableIds::PanelBg), "checkbox box default background resolves through part style");
+		Check(checkBoxIndicatorDefault.backgroundColor == styleSystem.GetTheme().GetColorVariable(SdThemeVariableIds::Accent), "checkbox indicator default background resolves through part style");
 
 		const SdWidgetRootStyle sliderDefault = styleSystem.ResolveRootStyle(SdSliderFloat::TargetTypeId, SdStyleInteractionState::Normal);
 		Check(sliderDefault.width.unit == SdLengthUnit::Pixels && sliderDefault.width.value == 180.0f, "slider default width resolves through root style");
 		Check(sliderDefault.height.unit == SdLengthUnit::Pixels && sliderDefault.height.value == 30.0f, "slider default height resolves through root style");
-		Check(sliderDefault.padding.left.value == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableLiteral("spacing.small")), "slider default padding resolves through root style");
-		Check(SdResolveLength(sliderDefault.gap, 0.0f) == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableLiteral("spacing.small")), "slider default label gap resolves through root style");
+		Check(sliderDefault.padding.left.value == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableIds::SpacingSmall), "slider default padding resolves through root style");
+		Check(SdResolveLength(sliderDefault.gap, 0.0f) == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableIds::SpacingSmall), "slider default label gap resolves through root style");
 		const SdWidgetPartStyle sliderTrackDefault = styleSystem.ResolvePartStyle(SdSliderFloat::TargetTypeId, SdSliderFloat::Parts::Track, sliderDefault, SdStyleInteractionState::Normal);
 		const SdWidgetPartStyle sliderFillDefault = styleSystem.ResolvePartStyle(SdSliderFloat::TargetTypeId, SdSliderFloat::Parts::Fill, sliderDefault, SdStyleInteractionState::Normal);
 		const SdWidgetPartStyle sliderThumbDefault = styleSystem.ResolvePartStyle(SdSliderFloat::TargetTypeId, SdSliderFloat::Parts::Thumb, sliderDefault, SdStyleInteractionState::Normal);
-		Check(sliderTrackDefault.backgroundColor == styleSystem.GetTheme().GetColorVariable(SdThemeVariableLiteral("panel.bg")), "slider track default background resolves through part style");
-		Check(sliderFillDefault.backgroundColor == styleSystem.GetTheme().GetColorVariable(SdThemeVariableLiteral("accent")), "slider fill default background resolves through part style");
-		Check(sliderThumbDefault.backgroundColor == styleSystem.GetTheme().GetColorVariable(SdThemeVariableLiteral("accent")), "slider thumb default background resolves through part style");
+		Check(sliderTrackDefault.backgroundColor == styleSystem.GetTheme().GetColorVariable(SdThemeVariableIds::PanelBg), "slider track default background resolves through part style");
+		Check(sliderFillDefault.backgroundColor == styleSystem.GetTheme().GetColorVariable(SdThemeVariableIds::Accent), "slider fill default background resolves through part style");
+		Check(sliderThumbDefault.backgroundColor == styleSystem.GetTheme().GetColorVariable(SdThemeVariableIds::Accent), "slider thumb default background resolves through part style");
 
 		const SdWidgetRootStyle textInputDefault = styleSystem.ResolveRootStyle(SdTextInput::TargetTypeId, SdStyleInteractionState::Normal);
 		Check(textInputDefault.width.unit == SdLengthUnit::Pixels && textInputDefault.width.value == 220.0f, "text input default width resolves through root style");
@@ -1100,8 +1102,8 @@ namespace
 		Check(textInputDefault.padding.left.value > textInputDefault.padding.top.value, "text input default padding resolves through root style");
 		const SdWidgetPartStyle textInputFieldDefault = styleSystem.ResolvePartStyle(SdTextInput::TargetTypeId, SdTextInput::Parts::Field, textInputDefault, SdStyleInteractionState::Normal);
 		const SdWidgetPartStyle textInputFieldFocusedDefault = styleSystem.ResolvePartStyle(SdTextInput::TargetTypeId, SdTextInput::Parts::Field, textInputDefault, SdStyleInteractionState::Focused);
-		Check(textInputFieldDefault.backgroundColor == styleSystem.GetTheme().GetColorVariable(SdThemeVariableLiteral("panel.bg")), "text input field default background resolves through part style");
-		Check(textInputFieldFocusedDefault.backgroundColor == styleSystem.GetTheme().GetColorVariable(SdThemeVariableLiteral("button.bg")), "text input field focused background resolves through part style");
+		Check(textInputFieldDefault.backgroundColor == styleSystem.GetTheme().GetColorVariable(SdThemeVariableIds::PanelBg), "text input field default background resolves through part style");
+		Check(textInputFieldFocusedDefault.backgroundColor == styleSystem.GetTheme().GetColorVariable(SdThemeVariableIds::ButtonBg), "text input field focused background resolves through part style");
 
 		const SdWidgetRootStyle imageViewerDefault = styleSystem.ResolveRootStyle(SdImageViewer::TargetTypeId, SdStyleInteractionState::Normal);
 		Check(imageViewerDefault.width.unit == SdLengthUnit::Pixels && imageViewerDefault.width.value == 160.0f, "image viewer default width resolves through root style");
@@ -1110,26 +1112,26 @@ namespace
 		const SdWidgetRootStyle scrollViewDefault = styleSystem.ResolveRootStyle(SdScrollView::TargetTypeId, SdStyleInteractionState::Normal);
 		Check(scrollViewDefault.width.unit == SdLengthUnit::Pixels && scrollViewDefault.width.value == 240.0f, "scroll view default width resolves through root style");
 		Check(scrollViewDefault.height.unit == SdLengthUnit::Pixels && scrollViewDefault.height.value == 160.0f, "scroll view default height resolves through root style");
-		Check(scrollViewDefault.padding.left.value == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableLiteral("spacing.small")), "scroll view default padding resolves through root style");
-		Check(SdResolveLength(scrollViewDefault.gap, 0.0f) == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableLiteral("spacing.small")), "scroll view default gap resolves through root gap");
+		Check(scrollViewDefault.padding.left.value == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableIds::SpacingSmall), "scroll view default padding resolves through root style");
+		Check(SdResolveLength(scrollViewDefault.gap, 0.0f) == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableIds::SpacingSmall), "scroll view default gap resolves through root gap");
 		const SdWidgetPartStyle scrollViewScrollbarDefault = styleSystem.ResolvePartStyle(SdScrollView::TargetTypeId, SdScrollView::Parts::Scrollbar, scrollViewDefault, SdStyleInteractionState::Normal);
 		const SdWidgetPartStyle scrollViewThumbDefault = styleSystem.ResolvePartStyle(SdScrollView::TargetTypeId, SdScrollView::Parts::Thumb, scrollViewDefault, SdStyleInteractionState::Normal);
-		Check(scrollViewScrollbarDefault.backgroundColor == styleSystem.GetTheme().GetColorVariable(SdThemeVariableLiteral("panel.bg")), "scroll view scrollbar default background resolves through part style");
-		Check(scrollViewThumbDefault.backgroundColor == styleSystem.GetTheme().GetColorVariable(SdThemeVariableLiteral("accent")), "scroll view thumb default background resolves through part style");
+		Check(scrollViewScrollbarDefault.backgroundColor == styleSystem.GetTheme().GetColorVariable(SdThemeVariableIds::PanelBg), "scroll view scrollbar default background resolves through part style");
+		Check(scrollViewThumbDefault.backgroundColor == styleSystem.GetTheme().GetColorVariable(SdThemeVariableIds::Accent), "scroll view thumb default background resolves through part style");
 
 		const SdWidgetRootStyle popupDefault = styleSystem.ResolveRootStyle(SdPopup::TargetTypeId, SdStyleInteractionState::Normal, SdRootLayer::Popup);
 		const SdWidgetRootStyle contextMenuDefault = styleSystem.ResolveRootStyle(SdContextMenu::TargetTypeId, SdStyleInteractionState::Normal, SdRootLayer::Popup);
 		Check(popupDefault.width.unit == SdLengthUnit::Pixels && popupDefault.width.value == 220.0f, "popup default width resolves through root style");
 		Check(contextMenuDefault.height.unit == SdLengthUnit::Pixels && contextMenuDefault.height.value == 140.0f, "context menu default height resolves through root style");
-		Check(SdResolveLength(popupDefault.gap, 0.0f) == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableLiteral("spacing.small")), "popup default gap resolves through root gap");
-		Check(SdResolveLength(contextMenuDefault.gap, 0.0f) == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableLiteral("spacing.small")), "context menu default gap resolves through root gap");
+		Check(SdResolveLength(popupDefault.gap, 0.0f) == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableIds::SpacingSmall), "popup default gap resolves through root gap");
+		Check(SdResolveLength(contextMenuDefault.gap, 0.0f) == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableIds::SpacingSmall), "context menu default gap resolves through root gap");
 
 		const SdWidgetRootStyle tooltipDefault = styleSystem.ResolveRootStyle(SdTooltip::TargetTypeId, SdStyleInteractionState::Normal, SdRootLayer::Tooltip);
-		Check(tooltipDefault.padding.left.value == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableLiteral("spacing.small")), "tooltip default padding resolves through root style");
-		Check(tooltipDefault.fontSize == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableLiteral("font.button")), "tooltip font size resolves through root style");
+		Check(tooltipDefault.padding.left.value == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableIds::SpacingSmall), "tooltip default padding resolves through root style");
+		Check(tooltipDefault.fontSize == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableIds::FontButton), "tooltip font size resolves through root style");
 
-		constexpr SdStyleClassId panelClass = SdStyleClassLiteral("Tests.Panel.RootStyle");
-		constexpr SdStyleScopeId panelScope = SdStyleScopeLiteral("Tests.Panel.Scope");
+		constexpr SdStyleClassId panelClass = "Tests.Panel.RootStyle"_SdId;
+		constexpr SdStyleScopeId panelScope = "Tests.Panel.Scope"_SdId;
 		const SdStyleClassId panelClasses[] = { panelClass };
 		styleSystem.RootRule(SdPanel::TargetTypeId)
 			.Scope(panelScope)
@@ -1157,8 +1159,8 @@ namespace
 
 	void TestStylePipelineClosingRequirements()
 	{
-		constexpr SdStyleClassId inlineClass = SdStyleClassLiteral("Tests.InlineRoot.Class");
-		constexpr SdStyleScopeId inlineScope = SdStyleScopeLiteral("Tests.InlineRoot.Scope");
+		constexpr SdStyleClassId inlineClass = "Tests.InlineRoot.Class"_SdId;
+		constexpr SdStyleScopeId inlineScope = "Tests.InlineRoot.Scope"_SdId;
 		const SdStyleClassId inlineClasses[] = { inlineClass };
 		const SdColor ruleColor = { 91, 12, 33, 255 };
 		const SdColor inlineColor = { 20, 90, 180, 255 };
@@ -1298,13 +1300,13 @@ namespace
 		Check(textInputCaretGeometryMoved, "text input caret part geometry follows text width");
 
 		SdStyleSystem phaseSystem;
-		constexpr SdThemeVariableId phaseBackgroundVariable = SdThemeVariableLiteral("tests.phase.bg");
-		constexpr SdThemeVariableId phaseRadiusVariable = SdThemeVariableLiteral("tests.phase.radius");
+		constexpr SdThemeVariableId phaseBackgroundVariable = "tests.phase.bg"_SdId;
+		constexpr SdThemeVariableId phaseRadiusVariable = "tests.phase.radius"_SdId;
 		const SdColor phaseColor = { 7, 99, 155, 255 };
 		phaseSystem.SetColorVariable(phaseBackgroundVariable, phaseColor);
 		phaseSystem.SetMetricVariable(phaseRadiusVariable, 13.0f);
 		phaseSystem.RootRule(SdPanel::TargetTypeId)
-			.Set(&SdBoxStyle::backgroundColor, ThemeColor("tests.phase.bg"))
+			.Set(&SdBoxStyle::backgroundColor, ThemeColor(phaseBackgroundVariable))
 			.Set(&SdBoxStyle::radius, SdLength::Variable(phaseRadiusVariable));
 		const SdStyleResolveResult phaseResult = phaseSystem.ResolveRootNode(SdPanel::TargetTypeId, SdStyleInteractionState::Normal);
 		Check(
@@ -2332,7 +2334,7 @@ namespace
 			buttonStyle,
 			SdStyleInteractionState::Hovered);
 		Check(normalContent.backgroundColor != hoveredContent.backgroundColor, "style interaction selector changes button content background");
-		Check(normalContent.border.left.color == instance.GetStyleSystem().GetTheme().GetColorVariable(SdThemeVariableLiteral("border")), "button content style carries theme border color");
+		Check(normalContent.border.left.color == instance.GetStyleSystem().GetTheme().GetColorVariable(SdThemeVariableIds::Border), "button content style carries theme border color");
 
 		const SdUInt64 previousStyleRevision = instance.GetStyleSystem().GetRevision();
 		const SdColor updatedButtonColor = { 11, 22, 33, 255 };
@@ -2340,7 +2342,7 @@ namespace
 		const SdColor updatedTextColor = { 203, 191, 179, 255 };
 		const SdColor updatedBorderColor = { 71, 83, 97, 255 };
 		const float updatedOpacity = 0.38f;
-		instance.GetStyleSystem().SetColorVariable("button.bg", updatedButtonColor);
+		instance.GetStyleSystem().SetColorVariable(SdThemeVariableIds::ButtonBg, updatedButtonColor);
 		instance.GetStyleSystem().RootRule(TestDrawWidget::TargetTypeId)
 			.Set(&SdBoxStyle::backgroundColor, updatedRootColor)
 			.Transition(&SdBoxStyle::backgroundColor, std::chrono::milliseconds(320), SdAnimationEasing::Linear)
@@ -2477,12 +2479,12 @@ namespace
 		SdStyleSystem styleSystem;
 		styleSystem.RootRule(SdWidgetTargetIds::Default)
 			.Layer(SdRootLayer::Tooltip)
-			.Set(&SdBoxStyle::backgroundColor, ThemeColor("accent"));
+			.Set(&SdBoxStyle::backgroundColor, ThemeColor(SdThemeVariableIds::Accent));
 
 		const SdWidgetRootStyle content = styleSystem.ResolveRootStyle(SdWidgetTargetIds::Default, SdStyleInteractionState::Normal, SdRootLayer::Content);
 		const SdWidgetRootStyle overlay = styleSystem.ResolveRootStyle(SdWidgetTargetIds::Default, SdStyleInteractionState::Normal, SdRootLayer::Tooltip);
 		Check(content.backgroundColor != overlay.backgroundColor, "style layer selector changes overlay background");
-		Check(overlay.backgroundColor == styleSystem.GetTheme().GetColorVariable(SdThemeVariableLiteral("accent")), "style layer selector applies matching rule");
+		Check(overlay.backgroundColor == styleSystem.GetTheme().GetColorVariable(SdThemeVariableIds::Accent), "style layer selector applies matching rule");
 		styleSystem.RootRule(SdWidgetTargetIds::Default)
 			.Layer(SdRootLayer::Tooltip)
 			.Set(&SdBoxStyle::zIndex, SdInt32{ 17 });
@@ -2501,7 +2503,7 @@ namespace
 		const SdWidgetRootStyle text = styleSystem.ResolveRootStyle(SdWidgetTargetIds::Text, SdStyleInteractionState::Normal);
 		Check(custom.highlight == SdColor(9, 8, 7, 6), "component target id resolves typed component style");
 		Check(custom.contentPadding.left == 3.0f, "component target id resolves typed layout property");
-		Check(text.backgroundColor == styleSystem.GetTheme().GetColorVariable(SdThemeVariableLiteral("background")), "typed component style does not leak to unrelated root targets");
+		Check(text.backgroundColor == styleSystem.GetTheme().GetColorVariable(SdThemeVariableIds::Background), "typed component style does not leak to unrelated root targets");
 	}
 
 	void TestTypedStyleContractAndRuntimeCache()
@@ -2519,8 +2521,8 @@ namespace
 		Check(resolved.width == 77.0f, "typed style rule sets layout field");
 		Check(resolved.color == danger, "typed style rule sets paint field");
 
-		constexpr SdStyleClassId dangerClass = SdStyleClassLiteral("tests.typed.danger");
-		constexpr SdStyleScopeId dialogScope = SdStyleScopeLiteral("tests.typed.dialog");
+		constexpr SdStyleClassId dangerClass = "tests.typed.danger"_SdId;
+		constexpr SdStyleScopeId dialogScope = "tests.typed.dialog"_SdId;
 		const SdStyleClassId classList[] = { dangerClass };
 		const SdColor scopedColor = { 40, 180, 90, 255 };
 		styleSystem.Rule<TypedStyleWidget>()

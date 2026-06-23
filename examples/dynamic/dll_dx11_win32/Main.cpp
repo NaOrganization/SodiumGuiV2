@@ -1,4 +1,4 @@
-#include <Windows.h>
+﻿#include <Windows.h>
 #include <d3d11.h>
 #include <dxgi.h>
 #include <wrl/client.h>
@@ -17,6 +17,8 @@
 
 #include <detours/detours.h>
 
+using namespace Sodium::Literals;
+
 #pragma comment(lib, "d3d11.lib")
 
 namespace SodiumDynamicExample
@@ -30,16 +32,16 @@ namespace SodiumDynamicExample
 	using Microsoft::WRL::ComPtr;
 	using namespace std::chrono_literals;
 
-	constexpr Sodium::SdStyleClassId kOverlayAccentTextClass = Sodium::SdStyleClassLiteral("Sodium.DynamicExample.Text.Accent");
-	constexpr Sodium::SdStyleClassId kOverlayMutedTextClass = Sodium::SdStyleClassLiteral("Sodium.DynamicExample.Text.Muted");
-	constexpr Sodium::SdStyleClassId kOverlayPaddedTextClass = Sodium::SdStyleClassLiteral("Sodium.DynamicExample.Text.Padded");
-	constexpr Sodium::SdStyleClassId kOverlayWindowClass = Sodium::SdStyleClassLiteral("Sodium.DynamicExample.Window.Overlay");
-	constexpr Sodium::SdStyleClassId kOverlayBasicPanelClass = Sodium::SdStyleClassLiteral("Sodium.DynamicExample.Panel.Basic");
-	constexpr Sodium::SdStyleClassId kOverlayBasicScrollClass = Sodium::SdStyleClassLiteral("Sodium.DynamicExample.Scroll.Basic");
-	constexpr Sodium::SdStyleScopeId kOverlayWindowScope = Sodium::SdStyleScopeLiteral("Sodium.DynamicExample.Scope.Overlay.Root");
-	constexpr Sodium::SdStyleScopeId kOverlayTextScope = Sodium::SdStyleScopeLiteral("Sodium.DynamicExample.Scope.Overlay");
-	constexpr Sodium::SdStyleScopeId kOverlayPanelScope = Sodium::SdStyleScopeLiteral("Sodium.DynamicExample.Scope.Panel");
-	constexpr Sodium::SdStyleScopeId kOverlayScrollScope = Sodium::SdStyleScopeLiteral("Sodium.DynamicExample.Scope.Scroll");
+	constexpr Sodium::SdStyleClassId kOverlayAccentTextClass = "Sodium.DynamicExample.Text.Accent"_SdId;
+	constexpr Sodium::SdStyleClassId kOverlayMutedTextClass = "Sodium.DynamicExample.Text.Muted"_SdId;
+	constexpr Sodium::SdStyleClassId kOverlayPaddedTextClass = "Sodium.DynamicExample.Text.Padded"_SdId;
+	constexpr Sodium::SdStyleClassId kOverlayWindowClass = "Sodium.DynamicExample.Window.Overlay"_SdId;
+	constexpr Sodium::SdStyleClassId kOverlayBasicPanelClass = "Sodium.DynamicExample.Panel.Basic"_SdId;
+	constexpr Sodium::SdStyleClassId kOverlayBasicScrollClass = "Sodium.DynamicExample.Scroll.Basic"_SdId;
+	constexpr Sodium::SdStyleScopeId kOverlayWindowScope = "Sodium.DynamicExample.Scope.Overlay.Root"_SdId;
+	constexpr Sodium::SdStyleScopeId kOverlayTextScope = "Sodium.DynamicExample.Scope.Overlay"_SdId;
+	constexpr Sodium::SdStyleScopeId kOverlayPanelScope = "Sodium.DynamicExample.Scope.Panel"_SdId;
+	constexpr Sodium::SdStyleScopeId kOverlayScrollScope = "Sodium.DynamicExample.Scope.Scroll"_SdId;
 
 	void ConfigureBuiltInThemeTransitions(Sodium::SdStyleSystem& styleSystem)
 	{
@@ -416,7 +418,7 @@ namespace SodiumDynamicExample
 			styleSystem.RootRule(Sodium::SdText::TargetTypeId)
 				.Scope(kOverlayTextScope)
 				.Class(kOverlayAccentTextClass)
-				.Set(&Sodium::SdBoxStyle::color, Sodium::ThemeColor("accent"));
+				.Set(&Sodium::SdBoxStyle::color, Sodium::ThemeColor(Sodium::SdThemeVariableIds::Accent));
 			styleSystem.RootRule(Sodium::SdText::TargetTypeId)
 				.Scope(kOverlayTextScope)
 				.Class(kOverlayMutedTextClass)
@@ -454,41 +456,41 @@ namespace SodiumDynamicExample
 			Sodium::SdStyleSystem& styleSystem = gui.GetStyleSystem();
 			if (controls.lightTheme)
 			{
-				styleSystem.SetColorVariable("text", { 28, 34, 42, 255 });
-				styleSystem.SetColorVariable("button.text", { 28, 34, 42, 255 });
-				styleSystem.SetColorVariable("background", { 236, 241, 246, 255 });
-				styleSystem.SetColorVariable("window.bg", { 250, 252, 255, 245 });
-				styleSystem.SetColorVariable("panel.bg", { 226, 234, 242, 242 });
-				styleSystem.SetColorVariable("button.bg", { 214, 228, 241, 255 });
-				styleSystem.SetColorVariable("button.bg.hover", { 190, 215, 238, 255 });
-				styleSystem.SetColorVariable("button.bg.pressed", { 158, 198, 230, 255 });
-				styleSystem.SetColorVariable("accent", { 30, 132, 112, 255 });
-				styleSystem.SetColorVariable("border", { 126, 145, 164, 255 });
-				styleSystem.SetColorVariable("border.strong", { 82, 102, 122, 255 });
-				styleSystem.SetColorVariable("danger", { 180, 70, 76, 255 });
-				styleSystem.SetColorVariable("selection", { 30, 132, 112, 90 });
+				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::Text, { 28, 34, 42, 255 });
+				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::ButtonText, { 28, 34, 42, 255 });
+				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::Background, { 236, 241, 246, 255 });
+				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::WindowBg, { 250, 252, 255, 245 });
+				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::PanelBg, { 226, 234, 242, 242 });
+				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::ButtonBg, { 214, 228, 241, 255 });
+				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::ButtonBgHover, { 190, 215, 238, 255 });
+				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::ButtonBgPressed, { 158, 198, 230, 255 });
+				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::Accent, { 30, 132, 112, 255 });
+				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::Border, { 126, 145, 164, 255 });
+				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::BorderStrong, { 82, 102, 122, 255 });
+				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::Danger, { 180, 70, 76, 255 });
+				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::Selection, { 30, 132, 112, 90 });
 			}
 			else
 			{
-				styleSystem.SetColorVariable("text", Sodium::SdColorWhite);
-				styleSystem.SetColorVariable("button.text", Sodium::SdColorWhite);
-				styleSystem.SetColorVariable("background", { 24, 30, 39, 242 });
-				styleSystem.SetColorVariable("window.bg", { 24, 30, 39, 242 });
-				styleSystem.SetColorVariable("panel.bg", { 35, 42, 52, 235 });
-				styleSystem.SetColorVariable("button.bg", { 48, 72, 96, 255 });
-				styleSystem.SetColorVariable("button.bg.hover", { 62, 100, 138, 255 });
-				styleSystem.SetColorVariable("button.bg.pressed", { 68, 118, 160, 255 });
-				styleSystem.SetColorVariable("accent", { 82, 170, 128, 255 });
-				styleSystem.SetColorVariable("border", { 91, 109, 128, 255 });
-				styleSystem.SetColorVariable("border.strong", { 128, 154, 180, 255 });
-				styleSystem.SetColorVariable("danger", { 164, 66, 66, 255 });
-				styleSystem.SetColorVariable("selection", { 82, 170, 128, 96 });
+				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::Text, Sodium::SdColorWhite);
+				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::ButtonText, Sodium::SdColorWhite);
+				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::Background, { 24, 30, 39, 242 });
+				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::WindowBg, { 24, 30, 39, 242 });
+				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::PanelBg, { 35, 42, 52, 235 });
+				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::ButtonBg, { 48, 72, 96, 255 });
+				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::ButtonBgHover, { 62, 100, 138, 255 });
+				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::ButtonBgPressed, { 68, 118, 160, 255 });
+				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::Accent, { 82, 170, 128, 255 });
+				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::Border, { 91, 109, 128, 255 });
+				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::BorderStrong, { 128, 154, 180, 255 });
+				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::Danger, { 164, 66, 66, 255 });
+				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::Selection, { 82, 170, 128, 96 });
 			}
 
-			styleSystem.SetMetricVariable("spacing.small", controls.compactTheme ? 4.0f : 6.0f);
-			styleSystem.SetMetricVariable("spacing.medium", controls.compactTheme ? 7.0f : 10.0f);
-			styleSystem.SetMetricVariable("radius.small", controls.compactTheme ? 3.0f : 5.0f);
-			styleSystem.SetMetricVariable("duration.fast", 0.36f);
+			styleSystem.SetMetricVariable(Sodium::SdThemeVariableIds::SpacingSmall, controls.compactTheme ? 4.0f : 6.0f);
+			styleSystem.SetMetricVariable(Sodium::SdThemeVariableIds::SpacingMedium, controls.compactTheme ? 7.0f : 10.0f);
+			styleSystem.SetMetricVariable(Sodium::SdThemeVariableIds::RadiusSmall, controls.compactTheme ? 3.0f : 5.0f);
+			styleSystem.SetMetricVariable(Sodium::SdThemeVariableIds::DurationFast, 0.36f);
 			appliedLightTheme = controls.lightTheme;
 			appliedCompactTheme = controls.compactTheme;
 			themeInitialized = true;

@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "SdRuntime.h"
 #include "SdText.h"
@@ -427,9 +427,9 @@ namespace Sodium
 
 		struct Parts final
 		{
-			static constexpr SdStylePart Content = SdStylePart::Make("Sodium.Button.Part.Content");
-			static constexpr SdStylePart Icon = SdStylePart::Make("Sodium.Button.Part.Icon");
-			static constexpr SdStylePart Label = SdStylePart::Make("Sodium.Button.Part.Label");
+			static constexpr SdStylePart Content = SdWidgetPartIds::Button::Content;
+			static constexpr SdStylePart Icon = SdWidgetPartIds::Button::Icon;
+			static constexpr SdStylePart Label = SdWidgetPartIds::Button::Label;
 		};
 		using Style = SdWidgetRootStyle;
 
@@ -532,9 +532,9 @@ namespace Sodium
 
 		struct Parts final
 		{
-			static constexpr SdStylePart Box = SdStylePart::Make("Sodium.CheckBox.Part.Box");
-			static constexpr SdStylePart Indicator = SdStylePart::Make("Sodium.CheckBox.Part.Indicator");
-			static constexpr SdStylePart Label = SdStylePart::Make("Sodium.CheckBox.Part.Label");
+			static constexpr SdStylePart Box = SdWidgetPartIds::CheckBox::Box;
+			static constexpr SdStylePart Indicator = SdWidgetPartIds::CheckBox::Indicator;
+			static constexpr SdStylePart Label = SdWidgetPartIds::CheckBox::Label;
 		};
 
 		struct Style final
@@ -711,10 +711,10 @@ namespace Sodium
 
 		struct Parts final
 		{
-			static constexpr SdStylePart Label = SdStylePart::Make("Sodium.Slider.Part.Label");
-			static constexpr SdStylePart Track = SdStylePart::Make("Sodium.Slider.Part.Track");
-			static constexpr SdStylePart Fill = SdStylePart::Make("Sodium.Slider.Part.Fill");
-			static constexpr SdStylePart Thumb = SdStylePart::Make("Sodium.Slider.Part.Thumb");
+			static constexpr SdStylePart Label = SdWidgetPartIds::Slider::Label;
+			static constexpr SdStylePart Track = SdWidgetPartIds::Slider::Track;
+			static constexpr SdStylePart Fill = SdWidgetPartIds::Slider::Fill;
+			static constexpr SdStylePart Thumb = SdWidgetPartIds::Slider::Thumb;
 		};
 
 		struct Style final
@@ -935,11 +935,11 @@ namespace Sodium
 
 		struct Parts final
 		{
-			static constexpr SdStylePart Field = SdStylePart::Make("Sodium.TextInput.Part.Field");
-			static constexpr SdStylePart Value = SdStylePart::Make("Sodium.TextInput.Part.Value");
-			static constexpr SdStylePart Placeholder = SdStylePart::Make("Sodium.TextInput.Part.Placeholder");
-			static constexpr SdStylePart Selection = SdStylePart::Make("Sodium.TextInput.Part.Selection");
-			static constexpr SdStylePart Caret = SdStylePart::Make("Sodium.TextInput.Part.Caret");
+			static constexpr SdStylePart Field = SdWidgetPartIds::TextInput::Field;
+			static constexpr SdStylePart Value = SdWidgetPartIds::TextInput::Value;
+			static constexpr SdStylePart Placeholder = SdWidgetPartIds::TextInput::Placeholder;
+			static constexpr SdStylePart Selection = SdWidgetPartIds::TextInput::Selection;
+			static constexpr SdStylePart Caret = SdWidgetPartIds::TextInput::Caret;
 		};
 		using Style = SdWidgetRootStyle;
 
@@ -1139,11 +1139,11 @@ namespace Sodium
 
 		struct Parts final
 		{
-			static constexpr SdStylePart Titlebar = SdStylePart::Make("Sodium.Window.Part.Titlebar");
-			static constexpr SdStylePart Title = SdStylePart::Make("Sodium.Window.Part.Title");
-			static constexpr SdStylePart CloseButton = SdStylePart::Make("Sodium.Window.Part.CloseButton");
-			static constexpr SdStylePart Content = SdStylePart::Make("Sodium.Window.Part.Content");
-			static constexpr SdStylePart ResizeHandle = SdStylePart::Make("Sodium.Window.Part.ResizeHandle");
+			static constexpr SdStylePart Titlebar = SdWidgetPartIds::Window::Titlebar;
+			static constexpr SdStylePart Title = SdWidgetPartIds::Window::Title;
+			static constexpr SdStylePart CloseButton = SdWidgetPartIds::Window::CloseButton;
+			static constexpr SdStylePart Content = SdWidgetPartIds::Window::Content;
+			static constexpr SdStylePart ResizeHandle = SdWidgetPartIds::Window::ResizeHandle;
 		};
 
 		struct Style final
@@ -1506,8 +1506,8 @@ namespace Sodium
 
 		struct Parts final
 		{
-			static constexpr SdStylePart Scrollbar = SdStylePart::Make("Sodium.ScrollView.Part.Scrollbar");
-			static constexpr SdStylePart Thumb = SdStylePart::Make("Sodium.ScrollView.Part.Thumb");
+			static constexpr SdStylePart Scrollbar = SdWidgetPartIds::ScrollView::Scrollbar;
+			static constexpr SdStylePart Thumb = SdWidgetPartIds::ScrollView::Thumb;
 		};
 
 		struct Style final

@@ -1,4 +1,4 @@
-#include "SdDx11Renderer.h"
+﻿#include "SdDx11Renderer.h"
 
 #if defined(SODIUM_DX11_USE_PRECOMPILED_SHADERS)
 #include "SdDx11PrecompiledShaders.h"
@@ -532,20 +532,6 @@ namespace Sodium::Backends
 		if (!entry.occupied || entry.generation != texture.generation)
 			return nullptr;
 		return &entry;
-	}
-
-	void SdDx11Renderer::BeginFrame(const SdRendererFrameInfo& frameInfo)
-	{
-		currentFrameInfo = frameInfo;
-	}
-
-	void SdDx11Renderer::Submit(const SdDrawPacket& packet)
-	{
-		Render(currentFrameInfo, packet);
-	}
-
-	void SdDx11Renderer::EndFrame()
-	{
 	}
 
 	void SdDx11Renderer::Render(const SdRendererFrameInfo& frameInfo, const SdDrawPacket& packet)

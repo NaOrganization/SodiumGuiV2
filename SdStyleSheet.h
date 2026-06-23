@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "SdStyleProperty.h"
 
@@ -250,22 +250,12 @@ namespace Sodium
 			return *this;
 		}
 
-		SdStyleSheetRuleBuilder& Class(const char* className) noexcept
-		{
-			return Class(SdStyleClassLiteral(className));
-		}
-
 		SdStyleSheetRuleBuilder& Scope(SdStyleScopeId scopeId) noexcept
 		{
 			rule.selector.scopeId = scopeId;
 			rule.selector.matchScope = true;
 			++rule.specificity.classes;
 			return *this;
-		}
-
-		SdStyleSheetRuleBuilder& Scope(const char* scopeName) noexcept
-		{
-			return Scope(SdStyleScopeLiteral(scopeName));
 		}
 
 		SdStyleSheetRuleBuilder& Pseudo(SdPseudoState pseudoState) noexcept
