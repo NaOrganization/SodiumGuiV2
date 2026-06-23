@@ -2454,6 +2454,11 @@ namespace
 		const SdWidgetRootStyle overlay = styleSystem.ResolveRootStyle(SdWidgetTargetIds::Default, SdStyleInteractionState::Normal, SdLayerPriority::Overlay);
 		Check(content.backgroundColor != overlay.backgroundColor, "style layer selector changes overlay background");
 		Check(overlay.backgroundColor == styleSystem.GetTheme().GetColorVariable(SdThemeVariableLiteral("accent")), "style layer selector applies matching rule");
+		styleSystem.RootRule(SdWidgetTargetIds::Default)
+			.Layer(SdLayerPriority::Overlay)
+			.Set(&SdBoxStyle::zIndex, SdInt32{ 17 });
+		const SdWidgetRootStyle overlayWithZIndex = styleSystem.ResolveRootStyle(SdWidgetTargetIds::Default, SdStyleInteractionState::Normal, SdLayerPriority::Overlay);
+		Check(overlayWithZIndex.zIndex == 17, "style layer selector resolves z-index");
 	}
 
 	void TestComponentStyleTargetTypeIds()
@@ -2909,6 +2914,71 @@ namespace
 			PumpFrame(instance);
 			Check(value == "A", "SdTextInput handles backspace at the end of UTF-8 text");
 		}
+
+		{
+			SdInstance instance;
+			bool firstOpen = true;
+			bool secondOpen = true;
+			SdWindowOptions firstOptions = {};
+			firstOptions.position = { 40.0f, 40.0f };
+			firstOptions.size = { 180.0f, 120.0f };
+			SdWindowOptions secondOptions = {};
+			secondOptions.position = { 84.0f, 64.0f };
+			secondOptions.size = { 180.0f, 120.0f };
+			const auto declareWindows = [&]()
+			{
+				instance.ui.DeclareKeyed<SdWindow>("first-window", "First", firstOpen, firstOptions, [](SdUi& ui)
+				{
+					ui.Declare<SdText>("First body");
+				});
+				instance.ui.DeclareKeyed<SdWindow>("second-window", "Second", secondOpen, secondOptions, [](SdUi& ui)
+				{
+					ui.Declare<SdText>("Second body");
+				});
+			};
+			const auto findWidgetByKey = [&instance](const char* key)
+			{
+				for (const auto& [id, record] : instance.GetStateStorage().GetWidgetRecords())
+				{
+					(void)id;
+					if (record.debugKey == key)
+						return record.state.id;
+				}
+				return SdWidgetId{};
+			};
+			const auto findDrawIndex = [&instance](SdWidgetId widgetId)
+			{
+				const std::vector<SdLayerDrawRecord>& records = instance.GetLayerSystem().GetDrawRecords();
+				for (SdSize index = 0; index < records.size(); ++index)
+				{
+					if (records[index].widgetId == widgetId)
+						return index;
+				}
+				return SdInvalidIndex<SdSize>;
+			};
+
+			instance.BeginFrame({ 360.0f, 260.0f });
+			declareWindows();
+			PumpFrame(instance);
+			const SdWidgetId firstWindowId = findWidgetByKey("first-window");
+			const SdWidgetId secondWindowId = findWidgetByKey("second-window");
+			Check(findDrawIndex(secondWindowId) > findDrawIndex(firstWindowId), "window declaration order initially controls overlapping windows");
+
+			instance.GetInputSystem().PushEvent(SdInputEvent{
+				SdInputEventType::MouseMove,
+				SdInputDevice::Mouse,
+				SdMouseMoveEvent{ { 52.0f, 52.0f } }
+			});
+			instance.GetInputSystem().PushEvent(SdInputEvent{
+				SdInputEventType::MouseButton,
+				SdInputDevice::Mouse,
+				SdMouseButtonEvent{ SdMouseButton::Left, true }
+			});
+			instance.BeginFrame({ 360.0f, 260.0f });
+			declareWindows();
+			PumpFrame(instance);
+			Check(findDrawIndex(firstWindowId) > findDrawIndex(secondWindowId), "pressed window activation order raises it above later windows");
+		}
 	}
 
 	void TestAnimationSystemDirect()
@@ -3082,6 +3152,72 @@ namespace
 		layers.AddHitTestRecord({ 2, SdLayerPriority::Content, { 0.0f, 0.0f, 100.0f, 100.0f }, { 0.0f, 0.0f, 100.0f, 100.0f }, 4, true });
 		layers.AddHitTestRecord({ 3, SdLayerPriority::Overlay, { 0.0f, 0.0f, 100.0f, 100.0f }, { 0.0f, 0.0f, 100.0f, 100.0f }, 5, false });
 		Check(layers.HitTest({ 12.0f, 12.0f }) == 2, "layer direct paint order wins within layer and disabled records are ignored");
+
+		layers.BeginFrame();
+		SdHitTestRecord lowerZ = {};
+		lowerZ.widgetId = 1;
+		lowerZ.layerPriority = SdLayerPriority::Content;
+		lowerZ.rect = { 0.0f, 0.0f, 100.0f, 100.0f };
+		lowerZ.clipRect = { 0.0f, 0.0f, 100.0f, 100.0f };
+		lowerZ.paintOrder = 100;
+		lowerZ.key = SdMakeStackingKey(SdLayerPriority::Content, 0, 0, 100);
+		SdHitTestRecord higherZ = lowerZ;
+		higherZ.widgetId = 2;
+		higherZ.paintOrder = 0;
+		higherZ.key = SdMakeStackingKey(SdLayerPriority::Content, 20, 0, 0);
+		layers.AddHitTestRecord(lowerZ);
+		layers.AddHitTestRecord(higherZ);
+		Check(layers.HitTest({ 12.0f, 12.0f }) == 2, "layer direct z-index wins before paint order");
+
+		layers.BeginFrame();
+		SdHitTestRecord normalWindow = lowerZ;
+		normalWindow.widgetId = 4;
+		normalWindow.paintOrder = 100;
+		normalWindow.key = SdMakeStackingKey(SdLayerPriority::Floating, 0, 100, 100);
+		SdHitTestRecord activatedWindow = lowerZ;
+		activatedWindow.widgetId = 5;
+		activatedWindow.paintOrder = 0;
+		activatedWindow.key = SdMakeStackingKey(SdLayerPriority::Floating, 0, 0, 0);
+		activatedWindow.key.activationOrder = 1;
+		layers.AddHitTestRecord(normalWindow);
+		layers.AddHitTestRecord(activatedWindow);
+		Check(layers.HitTest({ 12.0f, 12.0f }) == 5, "layer direct activation order wins before tree order");
+
+		layers.BeginFrame();
+		layers.AddHitTestRecord(lowerZ);
+		SdHitTestRecord inputBlocker = {};
+		inputBlocker.widgetId = 3;
+		inputBlocker.layerPriority = SdLayerPriority::Popup;
+		inputBlocker.rect = { 200.0f, 200.0f, 240.0f, 240.0f };
+		inputBlocker.clipRect = { 0.0f, 0.0f, 640.0f, 480.0f };
+		inputBlocker.hitTestVisible = false;
+		inputBlocker.blocksLowerInput = true;
+		inputBlocker.key = SdMakeStackingKey(SdLayerPriority::Popup, 0, 0, 0);
+		layers.AddHitTestRecord(inputBlocker);
+		Check(layers.HitTest({ 12.0f, 12.0f }) == 0, "layer direct input blocker stops lower hit-test records");
+
+		layers.BeginFrame();
+		layers.AddDrawRecord({ 1, SdLayerPriority::Content, { 0.0f, 0.0f, 640.0f, 480.0f }, 0 });
+		layers.AddDrawRecord({ 2, SdLayerPriority::Popup, { 0.0f, 0.0f, 640.0f, 480.0f }, 1 });
+		layers.AddDrawRecord({ 3, SdLayerPriority::Content, { 0.0f, 0.0f, 640.0f, 480.0f }, 2 });
+		layers.AddDrawRecord({ 4, SdLayerPriority::Popup, { 0.0f, 0.0f, 640.0f, 480.0f }, 3 });
+		layers.Finalize();
+		const std::vector<SdLayerDrawRecord>& drawRecords = layers.GetDrawRecords();
+		const std::vector<SdLayerDrawChannel>& drawChannels = layers.GetDrawChannels();
+		Check(
+			drawRecords.size() == 4
+			&& drawRecords[0].widgetId == 1
+			&& drawRecords[1].widgetId == 3
+			&& drawRecords[2].widgetId == 2
+			&& drawRecords[3].widgetId == 4,
+			"layer direct draw records sort by unified stacking key");
+		Check(
+			drawChannels.size() == 2
+			&& drawChannels[0].rootLayer == SdRootLayer::Content
+			&& drawChannels[0].recordCount == 2
+			&& drawChannels[1].rootLayer == SdRootLayer::Popup
+			&& drawChannels[1].recordCount == 2,
+			"layer direct draw channels are built after sorting by root layer");
 	}
 
 	void TestRenderListBatchingDirect()

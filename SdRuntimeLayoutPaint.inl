@@ -117,6 +117,7 @@ namespace Sodium
 				const SdWidgetRecord& parentRecord = parentIt->second;
 				if (static_cast<SdUInt8>(record.state.layerPriority) < static_cast<SdUInt8>(parentRecord.state.layerPriority))
 					record.state.layerPriority = parentRecord.state.layerPriority;
+				record.state.computedStackingOrder = std::max(record.state.computedStackingOrder, parentRecord.state.computedStackingOrder);
 			}
 			record.state.computedClipRect = displayRect;
 			const SdStyleInteractionState styleInteraction = resolveStyleInteraction(id);
@@ -204,6 +205,7 @@ namespace Sodium
 					clipRect = intersectRect(clipRect, parentBox->contentBox);
 				if (static_cast<SdUInt8>(record.state.layerPriority) < static_cast<SdUInt8>(parentRecord.state.layerPriority))
 					record.state.layerPriority = parentRecord.state.layerPriority;
+				record.state.computedStackingOrder = std::max(record.state.computedStackingOrder, parentRecord.state.computedStackingOrder);
 			}
 			displayHiddenByWidgetId[id] = hiddenByDisplay;
 			if (hiddenByDisplay)
@@ -243,13 +245,43 @@ namespace Sodium
 		}
 
 		std::vector<SdWidgetId> paintIds = liveIds;
+		auto buildStackingKey = [&widgets](SdWidgetId id, SdUInt32 paintOrder)
+		{
+			const SdWidgetRecord& record = widgets[id];
+			return SdMakeStackingKey(
+				record.state.layerPriority,
+				record.styleCache.presentationStyle.zIndex,
+				record.order,
+				paintOrder,
+				0,
+				0,
+				record.state.computedStackingOrder);
+		};
 		std::sort(paintIds.begin(), paintIds.end(), [&widgets](SdWidgetId left, SdWidgetId right)
 		{
 			const SdWidgetRecord& leftRecord = widgets[left];
 			const SdWidgetRecord& rightRecord = widgets[right];
-			if (leftRecord.state.layerPriority != rightRecord.state.layerPriority)
-				return static_cast<SdUInt8>(leftRecord.state.layerPriority) < static_cast<SdUInt8>(rightRecord.state.layerPriority);
-			return leftRecord.order < rightRecord.order;
+			const SdStackingKey leftKey = SdMakeStackingKey(
+				leftRecord.state.layerPriority,
+				leftRecord.styleCache.presentationStyle.zIndex,
+				leftRecord.order,
+				leftRecord.order,
+				0,
+				0,
+				leftRecord.state.computedStackingOrder);
+			const SdStackingKey rightKey = SdMakeStackingKey(
+				rightRecord.state.layerPriority,
+				rightRecord.styleCache.presentationStyle.zIndex,
+				rightRecord.order,
+				rightRecord.order,
+				0,
+				0,
+				rightRecord.state.computedStackingOrder);
+			if (SdLessStackingKey(leftKey, rightKey))
+				return true;
+			if (SdLessStackingKey(rightKey, leftKey))
+				return false;
+			return left < right;
 		});
 
 		SdUInt32 paintOrder = 0;
@@ -259,21 +291,27 @@ namespace Sodium
 			const auto hiddenIt = displayHiddenByWidgetId.find(id);
 			if (hiddenIt != displayHiddenByWidgetId.end() && hiddenIt->second)
 				continue;
-			context.layerSystem.AddDrawRecord({
-				id,
-				record.state.layerPriority,
-				record.state.computedClipRect,
-				paintOrder
-			});
-			context.layerSystem.AddHitTestRecord({
-				id,
-				record.state.layerPriority,
-				hitTestRect(record),
-				record.state.computedClipRect,
-				paintOrder++,
-				record.state.inputEnabled && record.state.lifePhase != SdWidgetLifePhase::Leaving
-			});
+			const SdStackingKey stackingKey = buildStackingKey(id, paintOrder);
+			SdLayerDrawRecord drawRecord = {};
+			drawRecord.widgetId = id;
+			drawRecord.layerPriority = record.state.layerPriority;
+			drawRecord.clipRect = record.state.computedClipRect;
+			drawRecord.paintOrder = paintOrder;
+			drawRecord.key = stackingKey;
+			drawRecord.bounds = record.state.animatedRect;
+			context.layerSystem.AddDrawRecord(drawRecord);
+
+			SdHitTestRecord hitRecord = {};
+			hitRecord.widgetId = id;
+			hitRecord.layerPriority = record.state.layerPriority;
+			hitRecord.rect = hitTestRect(record);
+			hitRecord.clipRect = record.state.computedClipRect;
+			hitRecord.paintOrder = paintOrder++;
+			hitRecord.inputEnabled = record.state.inputEnabled && record.state.lifePhase != SdWidgetLifePhase::Leaving;
+			hitRecord.key = stackingKey;
+			context.layerSystem.AddHitTestRecord(hitRecord);
 		}
+		context.layerSystem.Finalize();
 		context.interactionSystem.Update(context.layerSystem, context.input.GetSnapshot());
 
 		for (SdWidgetId id : paintIds)

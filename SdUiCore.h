@@ -16,6 +16,40 @@ namespace Sodium
 		Debug
 	};
 
+	enum class SdRootLayer : SdUInt16
+	{
+		Background = 0,
+		Content = 100,
+		Floating = 200,
+		Popup = 300,
+		Tooltip = 400,
+		ModalBackdrop = 500,
+		Modal = 600,
+		DragPreview = 700,
+		DebugOverlay = 800
+	};
+
+	inline constexpr SdRootLayer SdRootLayerFromPriority(SdLayerPriority layerPriority) noexcept
+	{
+		switch (layerPriority)
+		{
+		case SdLayerPriority::Background:
+			return SdRootLayer::Background;
+		case SdLayerPriority::Content:
+			return SdRootLayer::Content;
+		case SdLayerPriority::Floating:
+			return SdRootLayer::Floating;
+		case SdLayerPriority::Popup:
+			return SdRootLayer::Popup;
+		case SdLayerPriority::Overlay:
+			return SdRootLayer::Tooltip;
+		case SdLayerPriority::Debug:
+			return SdRootLayer::DebugOverlay;
+		default:
+			return SdRootLayer::Content;
+		}
+	}
+
 	enum class SdLayoutAxis : SdUInt8
 	{
 		Horizontal,

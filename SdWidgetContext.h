@@ -54,6 +54,8 @@ namespace Sodium
 		SdVec2 measuredSize = {};
 		float layoutWeight = 0.0f;
 		float opacity = 0.0f;
+		SdUInt32 stackingOrder = 0;
+		SdUInt32 computedStackingOrder = 0;
 		SdFrameIndex lastSubmittedFrame = 0;
 	};
 

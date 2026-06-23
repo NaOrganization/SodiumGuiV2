@@ -177,6 +177,8 @@ namespace
 	{
 		bool optionEnabled = true;
 		bool mediaWindowOpen = true;
+		bool metricsWindowOpen = true;
+		bool toolsWindowOpen = true;
 		bool popupOpen = true;
 		bool contextMenuOpen = true;
 		bool tooltipVisible = true;
@@ -294,7 +296,9 @@ namespace
 				context.ui.DeclareKeyed<Sodium::SdCheckBox>("basic_checkbox", "SdCheckBox: option enabled", controls.optionEnabled);
 				context.ui.DeclareKeyed<Sodium::SdCheckBox>("theme_light", "Theme demo: light palette", controls.lightTheme);
 				context.ui.DeclareKeyed<Sodium::SdCheckBox>("theme_compact", "Theme demo: compact metrics", controls.compactTheme);
-				context.ui.DeclareKeyed<Sodium::SdCheckBox>("toggle_window", "Show SdWindow", controls.mediaWindowOpen);
+				context.ui.DeclareKeyed<Sodium::SdCheckBox>("toggle_media_window", "Show Media Window", controls.mediaWindowOpen);
+				context.ui.DeclareKeyed<Sodium::SdCheckBox>("toggle_metrics_window", "Show Metrics Window", controls.metricsWindowOpen);
+				context.ui.DeclareKeyed<Sodium::SdCheckBox>("toggle_tools_window", "Show Tools Window", controls.toolsWindowOpen);
 				context.ui.DeclareKeyed<Sodium::SdCheckBox>("toggle_popup", "Show SdPopup", controls.popupOpen);
 				context.ui.DeclareKeyed<Sodium::SdCheckBox>("toggle_menu", "Show SdContextMenu / SdTooltip", controls.contextMenuOpen);
 				controls.tooltipVisible = controls.contextMenuOpen;
@@ -320,9 +324,9 @@ namespace
 
 			void OnLayout(Sodium::SdLayoutContext& context)
 			{
-				context.SetDesiredSize({ 520.0f, 620.0f });
+				context.SetDesiredSize({ 520.0f, 660.0f });
 				context.widgetState.manualLayout = true;
-				context.widgetState.manualRect = { 48.0f, 42.0f, 568.0f, 662.0f };
+				context.widgetState.manualRect = { 48.0f, 42.0f, 568.0f, 702.0f };
 				context.widgetState.arrangeChildren = true;
 				context.widgetState.clipChildren = true;
 				context.widgetState.targetTypeId = Sodium::SdWidgetTargetIds::Panel;
@@ -362,16 +366,41 @@ namespace
 			}
 		};
 
-		void DeclareFloatingBuiltInWidgets()
+		void DeclareFloatingBuiltInWidgets(Sodium::SdTextureHandle fontAtlasTexture)
 		{
-			Sodium::SdWindowOptions windowOptions = {};
-			windowOptions.position = { 594.0f, 54.0f };
-			windowOptions.size = { 360.0f, 190.0f };
-			gui.ui.DeclareKeyed<Sodium::SdWindow>("sample_builtin_window", "SdWindow", demoControls.mediaWindowOpen, windowOptions, [](Sodium::SdUi& ui)
+			Sodium::SdWindowOptions mediaWindowOptions = {};
+			mediaWindowOptions.position = { 594.0f, 54.0f };
+			mediaWindowOptions.size = { 360.0f, 190.0f };
+			gui.ui.DeclareKeyed<Sodium::SdWindow>("sample_media_window", "Media Window", demoControls.mediaWindowOpen, mediaWindowOptions, [fontAtlasTexture](Sodium::SdUi& ui)
 			{
 				ui.Declare<Sodium::SdText>("Floating built-in window");
-				ui.Declare<Sodium::SdButton>("Window child button");
-				ui.Declare<Sodium::SdCheckBox>("Window checkbox");
+				ui.Declare<Sodium::SdButton>("Media action");
+				ui.Declare<Sodium::SdCheckBox>("Media option");
+				ui.Declare<Sodium::SdImageViewer>(fontAtlasTexture, Sodium::SdVec2{ 96.0f, 28.0f });
+			});
+
+			Sodium::SdWindowOptions metricsWindowOptions = {};
+			metricsWindowOptions.position = { 638.0f, 118.0f };
+			metricsWindowOptions.size = { 330.0f, 172.0f };
+			gui.ui.DeclareKeyed<Sodium::SdWindow>("sample_metrics_window", "Metrics Window", demoControls.metricsWindowOpen, metricsWindowOptions, [this](Sodium::SdUi& ui)
+			{
+				char frameLine[96] = {};
+				std::snprintf(frameLine, sizeof(frameLine), "Frame %llu", static_cast<unsigned long long>(frameCount));
+				char fpsLine[96] = {};
+				std::snprintf(fpsLine, sizeof(fpsLine), "Live FPS %.1f", std::max(0.0, liveFps));
+				ui.Declare<Sodium::SdText>(frameLine);
+				ui.Declare<Sodium::SdText>(fpsLine);
+				ui.Declare<Sodium::SdText>("This window overlaps the media window");
+			});
+
+			Sodium::SdWindowOptions toolsWindowOptions = {};
+			toolsWindowOptions.position = { 680.0f, 182.0f };
+			toolsWindowOptions.size = { 310.0f, 178.0f };
+			gui.ui.DeclareKeyed<Sodium::SdWindow>("sample_tools_window", "Tools Window", demoControls.toolsWindowOpen, toolsWindowOptions, [](Sodium::SdUi& ui)
+			{
+				ui.Declare<Sodium::SdText>("Independent SdWindow instance");
+				ui.Declare<Sodium::SdButton>("Tool button");
+				ui.Declare<Sodium::SdCheckBox>("Tool toggle");
 			});
 
 			gui.ui.DeclareKeyed<Sodium::SdPopup>("sample_builtin_popup", demoControls.popupOpen, Sodium::SdVec2{ 594.0f, 270.0f }, [](Sodium::SdUi& ui)
@@ -565,7 +594,7 @@ namespace
 					frameCount,
 					liveFps,
 					fontBackend.GetAtlasTexture());
-				DeclareFloatingBuiltInWidgets();
+				DeclareFloatingBuiltInWidgets(fontBackend.GetAtlasTexture());
 				gui.EndFrame();
 				gui.Render();
 				dx.Present();

@@ -119,6 +119,7 @@ namespace Sodium
 		ISdRendererBackend* renderer = nullptr;
 		ISdFontBackend* fontBackend = nullptr;
 		SdUInt32 nextOrder = 0;
+		SdUInt32 nextActivationOrder = 0;
 	};
 
 	class SdInstance final
@@ -225,6 +226,8 @@ namespace Sodium
 		void SetPlatformBackend(ISdPlatformBackend* platform) noexcept;
 		void SetRendererBackend(ISdRendererBackend* renderer) noexcept;
 		void SetFontBackend(ISdFontBackend* fontBackend) noexcept;
+		SdUInt32 AllocateActivationOrder() noexcept;
+		bool IsWidgetDescendantOf(SdWidgetId widgetId, SdWidgetId ancestorWidgetId) const noexcept;
 
 		SdInputSystem& GetInputSystem() noexcept { return context.input; }
 		const SdInputSnapshot& GetInput() const noexcept { return context.input.GetSnapshot(); }

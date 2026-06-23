@@ -1403,6 +1403,13 @@ namespace Sodium
 			const SdVec2 mouse = context.input.GetMousePosition();
 			const SdRect titleRect = TitleRect(state, style);
 			const bool inCloseButton = state.options.closable && CloseRect(titleRect).Contains(mouse);
+			const SdWidgetId pressedWidget = context.instance.GetInteractionSystem().GetState().pressedWidget;
+			if (pressedWidget != 0 && context.instance.IsWidgetDescendantOf(pressedWidget, context.id))
+			{
+				const SdUInt32 activationOrder = context.instance.AllocateActivationOrder();
+				context.widgetState.stackingOrder = activationOrder;
+				context.widgetState.computedStackingOrder = activationOrder;
+			}
 			if (state.options.draggable && context.WasPressed() && titleRect.Contains(mouse) && !inCloseButton)
 				state.dragging = true;
 

@@ -57,6 +57,9 @@ namespace Sodium
 		inline constexpr bool SdPropertyValueField<float> = true;
 
 		template<>
+		inline constexpr bool SdPropertyValueField<SdInt32> = true;
+
+		template<>
 		inline constexpr bool SdPropertyValueField<SdSpacing> = true;
 
 		template<>
@@ -78,6 +81,8 @@ namespace Sodium
 				return SdStyleValue::FromColor(value);
 			else if constexpr (std::is_same_v<T, float>)
 				return SdStyleValue::FromFloat(value);
+			else if constexpr (std::is_same_v<T, SdInt32>)
+				return SdStyleValue::FromFloat(static_cast<float>(value));
 			else if constexpr (std::is_same_v<T, SdSpacing>)
 				return SdStyleValue::FromSpacing(value);
 			else if constexpr (std::is_same_v<T, SdVec2>)
@@ -113,6 +118,13 @@ namespace Sodium
 				if (value.kind != SdStyleValueKind::Float)
 					return false;
 				destination = value.number;
+				return true;
+			}
+			else if constexpr (std::is_same_v<T, SdInt32>)
+			{
+				if (value.kind != SdStyleValueKind::Float)
+					return false;
+				destination = static_cast<SdInt32>(value.number);
 				return true;
 			}
 			else if constexpr (std::is_same_v<T, SdSpacing>)

@@ -208,6 +208,7 @@ namespace Sodium
 	{
 		SdDisplay display = SdDisplay::Block;
 		SdPosition position = SdPosition::Static;
+		SdInt32 zIndex = 0;
 		SdOverflow overflowX = SdOverflow::Visible;
 		SdOverflow overflowY = SdOverflow::Visible;
 		SdBoxSizing boxSizing = SdBoxSizing::ContentBox;

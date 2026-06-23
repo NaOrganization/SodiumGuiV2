@@ -8,6 +8,94 @@
 
 namespace Sodium
 {
+	struct SdStackingKey final
+	{
+		SdUInt16 rootLayer = static_cast<SdUInt16>(SdRootLayer::Content);
+		SdUInt16 stackingContextDepth = 0;
+		SdUInt32 stackingContextId = 0;
+		SdInt32 zIndex = 0;
+		SdUInt32 activationOrder = 0;
+		SdUInt32 treeOrder = 0;
+		SdUInt32 paintOrder = 0;
+
+		friend constexpr bool operator==(const SdStackingKey&, const SdStackingKey&) = default;
+	};
+
+	inline constexpr SdStackingKey SdMakeStackingKey(
+		SdRootLayer rootLayer,
+		SdInt32 zIndex = 0,
+		SdUInt32 treeOrder = 0,
+		SdUInt32 paintOrder = 0,
+		SdUInt32 stackingContextId = 0,
+		SdUInt16 stackingContextDepth = 0,
+		SdUInt32 activationOrder = 0) noexcept
+	{
+		return {
+			static_cast<SdUInt16>(rootLayer),
+			stackingContextDepth,
+			stackingContextId,
+			zIndex,
+			activationOrder,
+			treeOrder,
+			paintOrder
+		};
+	}
+
+	inline constexpr SdStackingKey SdMakeStackingKey(
+		SdLayerPriority layerPriority,
+		SdInt32 zIndex = 0,
+		SdUInt32 treeOrder = 0,
+		SdUInt32 paintOrder = 0,
+		SdUInt32 stackingContextId = 0,
+		SdUInt16 stackingContextDepth = 0,
+		SdUInt32 activationOrder = 0) noexcept
+	{
+		return SdMakeStackingKey(
+			SdRootLayerFromPriority(layerPriority),
+			zIndex,
+			treeOrder,
+			paintOrder,
+			stackingContextId,
+			stackingContextDepth,
+			activationOrder);
+	}
+
+	inline constexpr bool SdLessStackingKey(const SdStackingKey& left, const SdStackingKey& right) noexcept
+	{
+		if (left.rootLayer != right.rootLayer)
+			return left.rootLayer < right.rootLayer;
+
+		if (left.stackingContextDepth != right.stackingContextDepth)
+			return left.stackingContextDepth < right.stackingContextDepth;
+
+		if (left.stackingContextId != right.stackingContextId)
+			return left.stackingContextId < right.stackingContextId;
+
+		if (left.zIndex != right.zIndex)
+			return left.zIndex < right.zIndex;
+
+		if (left.activationOrder != right.activationOrder)
+			return left.activationOrder < right.activationOrder;
+
+		if (left.treeOrder != right.treeOrder)
+			return left.treeOrder < right.treeOrder;
+
+		return left.paintOrder < right.paintOrder;
+	}
+
+	struct SdLayerRecord final
+	{
+		SdWidgetId widgetId = 0;
+		SdStackingKey key = {};
+		SdRect bounds = {};
+		SdRect hitRect = {};
+		SdRect clipRect = {};
+		bool visible = true;
+		bool hitTestVisible = true;
+		bool blocksLowerInput = false;
+		bool escapesParentClip = false;
+	};
+
 	struct SdHitTestRecord final
 	{
 		SdWidgetId widgetId = 0;
@@ -16,6 +104,12 @@ namespace Sodium
 		SdRect clipRect = {};
 		SdUInt32 paintOrder = 0;
 		bool inputEnabled = true;
+		SdStackingKey key = {};
+		bool visible = true;
+		bool hitTestVisible = true;
+		bool pointerEventsNone = false;
+		bool blocksLowerInput = false;
+		bool modalBoundary = false;
 	};
 
 	struct SdLayerDrawRecord final
@@ -24,11 +118,16 @@ namespace Sodium
 		SdLayerPriority layerPriority = SdLayerPriority::Content;
 		SdRect clipRect = {};
 		SdUInt32 paintOrder = 0;
+		SdStackingKey key = {};
+		SdRect bounds = {};
+		bool visible = true;
+		bool escapesParentClip = false;
 	};
 
 	struct SdLayerDrawChannel final
 	{
 		SdLayerPriority layerPriority = SdLayerPriority::Content;
+		SdRootLayer rootLayer = SdRootLayer::Content;
 		SdUInt32 firstRecord = 0;
 		SdUInt32 recordCount = 0;
 	};
@@ -39,6 +138,56 @@ namespace Sodium
 		std::vector<SdLayerDrawRecord> drawRecords = {};
 		std::vector<SdLayerDrawChannel> drawChannels = {};
 		std::vector<SdHitTestRecord> hitTestRecords = {};
+		bool finalized = false;
+
+		static bool UsesDefaultStackingKey(const SdStackingKey& key) noexcept
+		{
+			return key == SdStackingKey{};
+		}
+
+		static SdLayerDrawRecord NormalizeDrawRecord(const SdLayerDrawRecord& record) noexcept
+		{
+			SdLayerDrawRecord result = record;
+			if (UsesDefaultStackingKey(result.key))
+				result.key = SdMakeStackingKey(result.layerPriority, 0, result.paintOrder, result.paintOrder);
+			result.paintOrder = result.key.paintOrder;
+			return result;
+		}
+
+		static SdHitTestRecord NormalizeHitTestRecord(const SdHitTestRecord& record) noexcept
+		{
+			SdHitTestRecord result = record;
+			if (UsesDefaultStackingKey(result.key))
+				result.key = SdMakeStackingKey(result.layerPriority, 0, result.paintOrder, result.paintOrder);
+			result.paintOrder = result.key.paintOrder;
+			if (result.pointerEventsNone)
+			{
+				result.hitTestVisible = false;
+				result.blocksLowerInput = false;
+			}
+			result.hitTestVisible = result.hitTestVisible && result.inputEnabled;
+			return result;
+		}
+
+		void BuildDrawChannels()
+		{
+			drawChannels.clear();
+			for (SdUInt32 index = 0; index < static_cast<SdUInt32>(drawRecords.size()); ++index)
+			{
+				const SdLayerDrawRecord& record = drawRecords[index];
+				const SdRootLayer rootLayer = static_cast<SdRootLayer>(record.key.rootLayer);
+				if (drawChannels.empty() || drawChannels.back().rootLayer != rootLayer)
+				{
+					drawChannels.push_back({
+						record.layerPriority,
+						rootLayer,
+						index,
+						0
+					});
+				}
+				++drawChannels.back().recordCount;
+			}
+		}
 
 		static SdRect IntersectRect(const SdRect& left, const SdRect& right)
 		{
@@ -59,50 +208,67 @@ namespace Sodium
 			drawRecords.clear();
 			drawChannels.clear();
 			hitTestRecords.clear();
+			finalized = false;
 		}
 
 		void AddDrawRecord(const SdLayerDrawRecord& record)
 		{
-			if (drawChannels.empty() || drawChannels.back().layerPriority != record.layerPriority)
-			{
-				drawChannels.push_back({
-					record.layerPriority,
-					static_cast<SdUInt32>(drawRecords.size()),
-					0
-				});
-			}
-			drawRecords.push_back(record);
-			++drawChannels.back().recordCount;
+			SdLayerDrawRecord normalized = NormalizeDrawRecord(record);
+			if (!normalized.visible)
+				return;
+			drawRecords.push_back(normalized);
+			finalized = false;
 		}
 
 		void AddHitTestRecord(const SdHitTestRecord& record)
 		{
-			if (record.inputEnabled)
-				hitTestRecords.push_back(record);
+			SdHitTestRecord normalized = NormalizeHitTestRecord(record);
+			if (!normalized.visible)
+				return;
+			if (!normalized.hitTestVisible && !normalized.blocksLowerInput)
+				return;
+			hitTestRecords.push_back(normalized);
+			finalized = false;
+		}
+
+		void Finalize()
+		{
+			std::stable_sort(drawRecords.begin(), drawRecords.end(), [](const SdLayerDrawRecord& left, const SdLayerDrawRecord& right)
+			{
+				return SdLessStackingKey(left.key, right.key);
+			});
+			std::stable_sort(hitTestRecords.begin(), hitTestRecords.end(), [](const SdHitTestRecord& left, const SdHitTestRecord& right)
+			{
+				return SdLessStackingKey(left.key, right.key);
+			});
+			BuildDrawChannels();
+			finalized = true;
 		}
 
 		SdWidgetId HitTest(const SdVec2& point) const
 		{
-			const SdHitTestRecord* best = nullptr;
+			const SdHitTestRecord* bestHit = nullptr;
+			const SdHitTestRecord* bestBlocker = nullptr;
 			for (const SdHitTestRecord& record : hitTestRecords)
 			{
+				if (!record.visible)
+					continue;
 				const SdRect clipped = IntersectRect(record.rect, record.clipRect);
-				if (!clipped.Contains(point))
-					continue;
-				if (!best)
+				const bool insideClip = record.clipRect.Contains(point);
+				const bool insideHit = clipped.Contains(point);
+				if (record.hitTestVisible && insideHit)
 				{
-					best = &record;
-					continue;
+					if (!bestHit || SdLessStackingKey(bestHit->key, record.key))
+						bestHit = &record;
 				}
-				if (static_cast<SdUInt8>(record.layerPriority) > static_cast<SdUInt8>(best->layerPriority))
-				{
-					best = &record;
+				if (!record.blocksLowerInput || !insideClip)
 					continue;
-				}
-				if (record.layerPriority == best->layerPriority && record.paintOrder > best->paintOrder)
-					best = &record;
+				if (!bestBlocker || SdLessStackingKey(bestBlocker->key, record.key))
+					bestBlocker = &record;
 			}
-			return best ? best->widgetId : 0;
+			if (bestBlocker && (!bestHit || SdLessStackingKey(bestHit->key, bestBlocker->key)))
+				return 0;
+			return bestHit ? bestHit->widgetId : 0;
 		}
 
 		const std::vector<SdHitTestRecord>& GetHitTestRecords() const noexcept

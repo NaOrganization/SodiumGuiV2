@@ -85,4 +85,31 @@ namespace Sodium
 		if (fontBackend)
 			fontBackend->ConfigureRenderSharedData(context.renderSharedData);
 	}
+
+	inline SdUInt32 SdInstance::AllocateActivationOrder() noexcept
+	{
+		++context.nextActivationOrder;
+		if (context.nextActivationOrder == 0)
+			context.nextActivationOrder = 1;
+		return context.nextActivationOrder;
+	}
+
+	inline bool SdInstance::IsWidgetDescendantOf(SdWidgetId widgetId, SdWidgetId ancestorWidgetId) const noexcept
+	{
+		if (widgetId == 0 || ancestorWidgetId == 0)
+			return false;
+
+		SdWidgetId currentId = widgetId;
+		for (SdUInt32 depth = 0; currentId != 0 && depth < 256; ++depth)
+		{
+			if (currentId == ancestorWidgetId)
+				return true;
+
+			const SdWidgetRecord* record = context.stateStorage.FindWidgetRecord(currentId);
+			if (!record)
+				return false;
+			currentId = record->parentId;
+		}
+		return false;
+	}
 }

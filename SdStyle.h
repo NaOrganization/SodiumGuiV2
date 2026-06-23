@@ -124,6 +124,9 @@ namespace Sodium
 		inline constexpr bool SdIsStyleValueField<float> = true;
 
 		template<>
+		inline constexpr bool SdIsStyleValueField<SdInt32> = true;
+
+		template<>
 		inline constexpr bool SdIsStyleValueField<SdSpacing> = true;
 
 		template<>
@@ -140,6 +143,11 @@ namespace Sodium
 		inline SdStyleValue MakeStyleValue(float value) noexcept
 		{
 			return SdStyleValue::FromFloat(value);
+		}
+
+		inline SdStyleValue MakeStyleValue(SdInt32 value) noexcept
+		{
+			return SdStyleValue::FromFloat(static_cast<float>(value));
 		}
 
 		inline SdStyleValue MakeStyleValue(SdSpacing value) noexcept
@@ -183,6 +191,19 @@ namespace Sodium
 				if (value.kind == SdStyleValueKind::MetricVariable)
 				{
 					outValue = theme.GetMetricVariable(value.variableId);
+					return true;
+				}
+			}
+			else if constexpr (std::is_same_v<TField, SdInt32>)
+			{
+				if (value.kind == SdStyleValueKind::Float)
+				{
+					outValue = static_cast<SdInt32>(value.number);
+					return true;
+				}
+				if (value.kind == SdStyleValueKind::MetricVariable)
+				{
+					outValue = static_cast<SdInt32>(theme.GetMetricVariable(value.variableId));
 					return true;
 				}
 			}
@@ -1108,6 +1129,8 @@ namespace Sodium
 			else
 			{
 				SdBoxStyle& boxStyle = style;
+				if (propertyId == Detail::SdStylePropertyId(&SdBoxStyle::zIndex))
+					return WriteIntegerDeclaration(boxStyle.zIndex, value, resolveValues);
 				if (propertyId == Detail::SdStylePropertyId(&SdBoxStyle::color))
 					return WriteColorDeclaration(boxStyle.color, boxStyle.colorVariable, value, resolveValues);
 				if (propertyId == Detail::SdStylePropertyId(&SdBoxStyle::backgroundColor))
@@ -1170,6 +1193,15 @@ namespace Sodium
 				return false;
 			metric = resolvedValue.number;
 			variableId = 0;
+			return true;
+		}
+
+		bool WriteIntegerDeclaration(SdInt32& target, const SdStyleValue& value, bool resolveValues) const
+		{
+			const SdStyleValue resolvedValue = resolveValues ? ResolveValue(value) : value;
+			if (resolvedValue.kind != SdStyleValueKind::Float)
+				return false;
+			target = static_cast<SdInt32>(resolvedValue.number);
 			return true;
 		}
 
@@ -1319,6 +1351,9 @@ namespace Sodium
 				SdStyleFieldImpact::Layout,
 				SdStyleInterpolation::None,
 				true);
+			propertyRegistry.Register<&SdBoxStyle::zIndex>(
+				SdStyleFieldImpact::Paint,
+				SdStyleInterpolation::None);
 			propertyRegistry.Register<&SdBoxStyle::width>(
 				SdStyleFieldImpact::Layout,
 				SdStyleInterpolation::Float,
