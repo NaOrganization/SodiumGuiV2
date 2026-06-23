@@ -4,6 +4,7 @@
 #include "SdUiCore.h"
 
 #include <algorithm>
+#include <cassert>
 #include <vector>
 
 namespace Sodium
@@ -138,7 +139,7 @@ namespace Sodium
 		std::vector<SdLayerDrawRecord> drawRecords = {};
 		std::vector<SdLayerDrawChannel> drawChannels = {};
 		std::vector<SdHitTestRecord> hitTestRecords = {};
-		bool finalized = false;
+		bool finalized = true;
 
 		static bool UsesDefaultStackingKey(const SdStackingKey& key) noexcept
 		{
@@ -247,6 +248,7 @@ namespace Sodium
 
 		SdWidgetId HitTest(const SdVec2& point) const
 		{
+			assert(finalized && "SdLayerSystem::HitTest called before Finalize().");
 			const SdHitTestRecord* bestHit = nullptr;
 			const SdHitTestRecord* bestBlocker = nullptr;
 			for (const SdHitTestRecord& record : hitTestRecords)

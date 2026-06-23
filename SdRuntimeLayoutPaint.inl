@@ -312,7 +312,6 @@ namespace Sodium
 			context.layerSystem.AddHitTestRecord(hitRecord);
 		}
 		context.layerSystem.Finalize();
-		context.interactionSystem.Update(context.layerSystem, context.input.GetSnapshot());
 
 		for (SdWidgetId id : paintIds)
 		{

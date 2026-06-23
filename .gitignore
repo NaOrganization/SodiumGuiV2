@@ -7,3 +7,4 @@
 /tests/bin
 /tests/obj
 /*.obj
+examples/desktop/win32_directx11/SodiumGUI_Performance.txt

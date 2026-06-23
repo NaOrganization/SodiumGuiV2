@@ -1,4 +1,4 @@
-#include <Windows.h>
+﻿#include <Windows.h>
 #include <d3d11.h>
 #include <dxgi.h>
 #include <wrl/client.h>
@@ -419,7 +419,7 @@ namespace
 			gui.ui.DeclareKeyed<Sodium::SdTooltip>(
 				"sample_builtin_tooltip",
 				demoControls.tooltipVisible,
-				Sodium::SdVec2{ 594.0f, 456.0f },
+				gui.GetInput().GetMousePosition(),
 				"SdTooltip follows the overlay layer");
 		}
 

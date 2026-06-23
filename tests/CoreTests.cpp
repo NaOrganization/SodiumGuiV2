@@ -3145,12 +3145,14 @@ namespace
 		layers.BeginFrame();
 		layers.AddHitTestRecord({ 1, SdLayerPriority::Content, { 0.0f, 0.0f, 100.0f, 100.0f }, { 0.0f, 0.0f, 100.0f, 100.0f }, 0, true });
 		layers.AddHitTestRecord({ 2, SdLayerPriority::Popup, { 0.0f, 0.0f, 100.0f, 100.0f }, { 0.0f, 0.0f, 100.0f, 100.0f }, 0, true });
+		layers.Finalize();
 		Check(layers.HitTest({ 12.0f, 12.0f }) == 2, "layer direct higher priority wins hit-test");
 
 		layers.BeginFrame();
 		layers.AddHitTestRecord({ 1, SdLayerPriority::Content, { 0.0f, 0.0f, 100.0f, 100.0f }, { 0.0f, 0.0f, 100.0f, 100.0f }, 0, true });
 		layers.AddHitTestRecord({ 2, SdLayerPriority::Content, { 0.0f, 0.0f, 100.0f, 100.0f }, { 0.0f, 0.0f, 100.0f, 100.0f }, 4, true });
 		layers.AddHitTestRecord({ 3, SdLayerPriority::Overlay, { 0.0f, 0.0f, 100.0f, 100.0f }, { 0.0f, 0.0f, 100.0f, 100.0f }, 5, false });
+		layers.Finalize();
 		Check(layers.HitTest({ 12.0f, 12.0f }) == 2, "layer direct paint order wins within layer and disabled records are ignored");
 
 		layers.BeginFrame();
@@ -3167,6 +3169,7 @@ namespace
 		higherZ.key = SdMakeStackingKey(SdLayerPriority::Content, 20, 0, 0);
 		layers.AddHitTestRecord(lowerZ);
 		layers.AddHitTestRecord(higherZ);
+		layers.Finalize();
 		Check(layers.HitTest({ 12.0f, 12.0f }) == 2, "layer direct z-index wins before paint order");
 
 		layers.BeginFrame();
@@ -3181,6 +3184,7 @@ namespace
 		activatedWindow.key.activationOrder = 1;
 		layers.AddHitTestRecord(normalWindow);
 		layers.AddHitTestRecord(activatedWindow);
+		layers.Finalize();
 		Check(layers.HitTest({ 12.0f, 12.0f }) == 5, "layer direct activation order wins before tree order");
 
 		layers.BeginFrame();
@@ -3194,6 +3198,7 @@ namespace
 		inputBlocker.blocksLowerInput = true;
 		inputBlocker.key = SdMakeStackingKey(SdLayerPriority::Popup, 0, 0, 0);
 		layers.AddHitTestRecord(inputBlocker);
+		layers.Finalize();
 		Check(layers.HitTest({ 12.0f, 12.0f }) == 0, "layer direct input blocker stops lower hit-test records");
 
 		layers.BeginFrame();
