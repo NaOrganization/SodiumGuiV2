@@ -35,7 +35,6 @@ namespace Sodium
 	{
 		SdWidgetId id = 0;
 		SdWidgetLifePhase lifePhase = SdWidgetLifePhase::Entering;
-		SdLayerPriority layerPriority = SdLayerPriority::Content;
 		SdRootLayer rootLayer = SdRootLayer::Content;
 		SdStyleId targetTypeId = SdWidgetTargetIds::Default;
 		bool submittedThisFrame = false;
@@ -106,6 +105,15 @@ namespace Sodium
 		bool WasPressed() const noexcept;
 		bool WasReleased() const noexcept;
 		bool WasClicked() const noexcept;
+		bool WasClicked(SdMouseButton button) const noexcept;
+		bool WasDoubleClicked(SdMouseButton button = SdMouseButton::Left) const noexcept;
+		bool WasLongPressed(SdMouseButton button = SdMouseButton::Left) const noexcept;
+		bool WasOutsideClicked() const noexcept;
+		bool IsWheelTarget() const noexcept;
+		bool IsKeyboardTarget() const noexcept;
+		bool IsDragSource() const noexcept;
+		bool IsDragTarget() const noexcept;
+		bool IsDropTarget() const noexcept;
 		bool IsCaptured() const noexcept;
 		bool IsFocused() const noexcept;
 	};

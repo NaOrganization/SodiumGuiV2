@@ -155,7 +155,7 @@ namespace Sodium
 		record.state.styleDirty = true;
 	}
 
-	inline void SdInstance::ResolveWidgetStyle(SdWidgetRecord& record, SdStyleInteractionState interactionState, SdLayerPriority layerPriority)
+	inline void SdInstance::ResolveWidgetStyle(SdWidgetRecord& record, SdStyleInteractionState interactionState, SdRootLayer rootLayer)
 	{
 		SdFrameDiagnostics& diagnostics = context.frame.diagnostics;
 		++diagnostics.styleResolveCount;
@@ -165,7 +165,7 @@ namespace Sodium
 			&& record.styleCache.valid
 			&& record.styleCache.targetTypeId == record.state.targetTypeId
 			&& record.styleCache.interactionState == interactionState
-			&& record.styleCache.layerPriority == layerPriority
+			&& record.styleCache.rootLayer == rootLayer
 			&& record.styleCache.styleIdentityRevision == record.styleIdentityRevision
 			&& record.styleCache.inlineStyleRevision == inlineRootStyleRevision
 			&& record.styleCache.styleRevision == context.styling.GetRevision())
@@ -173,7 +173,7 @@ namespace Sodium
 			++diagnostics.styleResolveCacheHitCount;
 			ApplyWidgetStyleAnimation(record);
 			if (record.styleCallback)
-				record.styleCallback(*this, record, interactionState, layerPriority);
+				record.styleCallback(*this, record, interactionState, rootLayer);
 			return;
 		}
 
@@ -182,7 +182,7 @@ namespace Sodium
 		const SdStyleResolveResult rootResult = context.styling.ResolveRootNode(
 			record.state.targetTypeId,
 			interactionState,
-			layerPriority,
+			rootLayer,
 			record.styleClasses,
 			record.styleScope,
 			inlineRootStyle);
@@ -210,7 +210,7 @@ namespace Sodium
 				partNode->part,
 				resolvedStyle,
 				interactionState,
-				layerPriority,
+				rootLayer,
 				record.styleClasses,
 				record.styleScope);
 			partNode->widgetId = record.state.id;
@@ -218,22 +218,22 @@ namespace Sodium
 			partNode->scopeId = record.styleScope;
 			partNode->pseudoState = SdPseudoState::FromInteraction(interactionState);
 			SdStyleResolver::WriteNode(*partNode, partResult);
-			SetBoxStyleAnimationTarget(record, *partNode, partNode->resolvedStyle, interactionState, layerPriority, firstStyle);
+			SetBoxStyleAnimationTarget(record, *partNode, partNode->resolvedStyle, interactionState, rootLayer, firstStyle);
 			ApplyBoxStyleAnimation(*partNode);
 			++diagnostics.styleResolvedNodeCount;
 		}
 		record.styleCache.targetTypeId = record.state.targetTypeId;
 		record.styleCache.interactionState = interactionState;
-		record.styleCache.layerPriority = layerPriority;
+		record.styleCache.rootLayer = rootLayer;
 		record.styleCache.styleIdentityRevision = record.styleIdentityRevision;
 		record.styleCache.inlineStyleRevision = inlineRootStyleRevision;
 		record.styleCache.styleRevision = context.styling.GetRevision();
 		record.styleCache.valid = true;
 		record.state.styleDirty = false;
-		SetWidgetStyleAnimationTarget(record, record.styleCache.resolvedStyle, interactionState, layerPriority, firstStyle);
+		SetWidgetStyleAnimationTarget(record, record.styleCache.resolvedStyle, interactionState, rootLayer, firstStyle);
 		ApplyWidgetStyleAnimation(record);
 		if (record.styleCallback)
-			record.styleCallback(*this, record, interactionState, layerPriority);
+			record.styleCallback(*this, record, interactionState, rootLayer);
 	}
 
 	inline void SdInstance::SetBoxStyleAnimationTarget(
@@ -241,7 +241,7 @@ namespace Sodium
 		SdStyleNode& node,
 		const SdBoxStyle& style,
 		SdStyleInteractionState interactionState,
-		SdLayerPriority layerPriority,
+		SdRootLayer rootLayer,
 		bool immediate)
 	{
 		const SdPropertyId colorPropertyId = Detail::SdStylePropertyId(&SdBoxStyle::color);
@@ -250,7 +250,7 @@ namespace Sodium
 		const SdPropertyId opacityPropertyId = Detail::SdStylePropertyId(&SdBoxStyle::opacity);
 
 		const SdTransition defaultTransition = GetDefaultTransition();
-		const auto resolveTransition = [this, &record, &node, interactionState, layerPriority, defaultTransition](SdPropertyId propertyId)
+		const auto resolveTransition = [this, &record, &node, interactionState, rootLayer, defaultTransition](SdPropertyId propertyId)
 		{
 			SdTransition transition = defaultTransition;
 			if (node.kind == SdStyleNodeKind::Part)
@@ -260,7 +260,7 @@ namespace Sodium
 					node.part,
 					propertyId,
 					interactionState,
-					layerPriority,
+					rootLayer,
 					record.styleClasses,
 					record.styleScope,
 					transition);
@@ -271,7 +271,7 @@ namespace Sodium
 					record.state.targetTypeId,
 					propertyId,
 					interactionState,
-					layerPriority,
+					rootLayer,
 					record.styleClasses,
 					record.styleScope,
 					transition);
@@ -362,11 +362,11 @@ namespace Sodium
 		SdWidgetRecord& record,
 		const SdWidgetRootStyle& style,
 		SdStyleInteractionState interactionState,
-		SdLayerPriority layerPriority,
+		SdRootLayer rootLayer,
 		bool immediate)
 	{
 		if (SdStyleNode* rootNode = context.stateStorage.FindStyleNodeById(record.rootStyleNodeId))
-			SetBoxStyleAnimationTarget(record, *rootNode, style, interactionState, layerPriority, immediate);
+			SetBoxStyleAnimationTarget(record, *rootNode, style, interactionState, rootLayer, immediate);
 	}
 
 	inline void SdInstance::ApplyWidgetStyleAnimation(SdWidgetRecord& record)
@@ -388,7 +388,7 @@ namespace Sodium
 	}
 
 	template<class TWidget>
-	void SdInstance::ResolveTypedWidgetStyle(SdWidgetRecord& record, SdStyleInteractionState interactionState, SdLayerPriority layerPriority)
+	void SdInstance::ResolveTypedWidgetStyle(SdWidgetRecord& record, SdStyleInteractionState interactionState, SdRootLayer rootLayer)
 	{
 		if constexpr (requires { typename TWidget::Style; })
 		{
@@ -397,7 +397,7 @@ namespace Sodium
 			if (styleRecord.valid
 				&& styleRecord.targetTypeId == record.state.targetTypeId
 				&& styleRecord.interactionState == interactionState
-				&& styleRecord.layerPriority == layerPriority
+				&& styleRecord.rootLayer == rootLayer
 				&& styleRecord.styleIdentityRevision == record.styleIdentityRevision
 				&& styleRecord.resolvedInlineStyleRevision == styleRecord.inlineStyleRevision
 				&& styleRecord.styleRevision == context.styling.GetRevision())
@@ -408,7 +408,7 @@ namespace Sodium
 			const Style* inlineStyle = context.stateStorage.FindInlineStyle<Style>(styleRecord);
 			const Style resolvedStyleValue = context.styling.ResolveTypedStyle<TWidget>(
 				interactionState,
-				layerPriority,
+				rootLayer,
 				record.styleClasses,
 				record.styleScope,
 				inlineStyle);
@@ -421,7 +421,7 @@ namespace Sodium
 				presentationStyle = resolvedStyleValue;
 				styleRecord.targetTypeId = record.state.targetTypeId;
 				styleRecord.interactionState = interactionState;
-				styleRecord.layerPriority = layerPriority;
+				styleRecord.rootLayer = rootLayer;
 				styleRecord.styleIdentityRevision = record.styleIdentityRevision;
 				styleRecord.resolvedInlineStyleRevision = styleRecord.inlineStyleRevision;
 				styleRecord.styleRevision = context.styling.GetRevision();
@@ -449,7 +449,7 @@ namespace Sodium
 					const bool hasTransition = context.styling.TryResolveTransition<TWidget>(
 						field.fieldId,
 						interactionState,
-						layerPriority,
+						rootLayer,
 						record.styleClasses,
 						record.styleScope,
 						transition);
@@ -497,7 +497,7 @@ namespace Sodium
 			}
 			styleRecord.targetTypeId = record.state.targetTypeId;
 			styleRecord.interactionState = interactionState;
-			styleRecord.layerPriority = layerPriority;
+			styleRecord.rootLayer = rootLayer;
 			styleRecord.styleIdentityRevision = record.styleIdentityRevision;
 			styleRecord.resolvedInlineStyleRevision = styleRecord.inlineStyleRevision;
 			styleRecord.styleRevision = context.styling.GetRevision();

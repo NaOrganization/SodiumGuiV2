@@ -10,7 +10,7 @@ namespace Sodium
 			SdStyleSheet& sheet,
 			SdStyleId targetTag,
 			SdStyleInteractionState interactionState,
-			SdLayerPriority layerPriority,
+			SdRootLayer rootLayer,
 			const char* backgroundVariable,
 			bool matchLayer = false)
 		{
@@ -19,7 +19,7 @@ namespace Sodium
 				.Pseudo(interactionState)
 				.Set(&SdBoxStyle::backgroundColor, ThemeColor(backgroundVariable));
 			if (matchLayer)
-				rule.Layer(layerPriority);
+				rule.Layer(rootLayer);
 		}
 	}
 
@@ -192,12 +192,12 @@ namespace Sodium
 			.Set(&SdBoxStyle::fontSize, ThemeMetric("font.button"))
 			.Set(&SdBoxStyle::lineHeight, 0.0f);
 
-		Detail::SdAddDefaultUserAgentRootBackgroundRule(sheet, SdWidgetTargetIds::Default, SdStyleInteractionState::Normal, SdLayerPriority::Content, "background");
-		Detail::SdAddDefaultUserAgentRootBackgroundRule(sheet, SdWidgetTargetIds::Panel, SdStyleInteractionState::Normal, SdLayerPriority::Content, "panel.bg");
-		Detail::SdAddDefaultUserAgentRootBackgroundRule(sheet, SdWidgetTargetIds::ImageViewer, SdStyleInteractionState::Normal, SdLayerPriority::Content, "panel.bg");
-		Detail::SdAddDefaultUserAgentRootBackgroundRule(sheet, SdWidgetTargetIds::Popup, SdStyleInteractionState::Normal, SdLayerPriority::Popup, "window.bg", true);
-		Detail::SdAddDefaultUserAgentRootBackgroundRule(sheet, SdWidgetTargetIds::ContextMenu, SdStyleInteractionState::Normal, SdLayerPriority::Popup, "window.bg", true);
-		Detail::SdAddDefaultUserAgentRootBackgroundRule(sheet, SdWidgetTargetIds::Tooltip, SdStyleInteractionState::Normal, SdLayerPriority::Overlay, "panel.bg", true);
+		Detail::SdAddDefaultUserAgentRootBackgroundRule(sheet, SdWidgetTargetIds::Default, SdStyleInteractionState::Normal, SdRootLayer::Content, "background");
+		Detail::SdAddDefaultUserAgentRootBackgroundRule(sheet, SdWidgetTargetIds::Panel, SdStyleInteractionState::Normal, SdRootLayer::Content, "panel.bg");
+		Detail::SdAddDefaultUserAgentRootBackgroundRule(sheet, SdWidgetTargetIds::ImageViewer, SdStyleInteractionState::Normal, SdRootLayer::Content, "panel.bg");
+		Detail::SdAddDefaultUserAgentRootBackgroundRule(sheet, SdWidgetTargetIds::Popup, SdStyleInteractionState::Normal, SdRootLayer::Popup, "window.bg", true);
+		Detail::SdAddDefaultUserAgentRootBackgroundRule(sheet, SdWidgetTargetIds::ContextMenu, SdStyleInteractionState::Normal, SdRootLayer::Popup, "window.bg", true);
+		Detail::SdAddDefaultUserAgentRootBackgroundRule(sheet, SdWidgetTargetIds::Tooltip, SdStyleInteractionState::Normal, SdRootLayer::Tooltip, "panel.bg", true);
 
 		return sheet;
 	}

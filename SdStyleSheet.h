@@ -37,7 +37,7 @@ namespace Sodium
 		SdStyleId targetTag = SdWidgetTargetIds::Global;
 		SdStylePart part = SdStylePart::Root();
 		SdPseudoState pseudoState = {};
-		SdLayerPriority layerPriority = SdLayerPriority::Content;
+		SdRootLayer rootLayer = SdRootLayer::Content;
 		SdStyleClassId classId = 0;
 		SdStyleScopeId scopeId = 0;
 		bool matchPart = false;
@@ -235,9 +235,9 @@ namespace Sodium
 			return *this;
 		}
 
-		SdStyleSheetRuleBuilder& Layer(SdLayerPriority layerPriority) noexcept
+		SdStyleSheetRuleBuilder& Layer(SdRootLayer rootLayer) noexcept
 		{
-			rule.selector.layerPriority = layerPriority;
+			rule.selector.rootLayer = rootLayer;
 			rule.selector.matchLayer = true;
 			return *this;
 		}

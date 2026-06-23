@@ -325,7 +325,7 @@ namespace SodiumDynamicExample
 				context.SetDesiredSize({ 500.0f, 540.0f });
 				context.widgetState.manualLayout = true;
 				context.widgetState.manualRect = { 42.0f, 42.0f, 542.0f, 582.0f };
-				context.widgetState.layerPriority = Sodium::SdLayerPriority::Overlay;
+				context.widgetState.rootLayer = Sodium::SdRootLayer::Tooltip;
 				context.widgetState.arrangeChildren = true;
 				context.widgetState.clipChildren = true;
 				context.widgetState.targetTypeId = Sodium::SdWidgetTargetIds::Panel;
@@ -507,8 +507,8 @@ namespace SodiumDynamicExample
 			if (!fontBackend.Initialize())
 				return false;
 
-			gui.SetRendererBackend(&renderer);
-			gui.SetFontBackend(&fontBackend);
+			if (!gui.Initialize(platform, renderer, fontBackend))
+				return false;
 			const Sodium::SdFontRequest fontRequests[] =
 			{
 				{ L"C:\\Windows\\Fonts\\segoeui.ttf", "Segoe UI" },

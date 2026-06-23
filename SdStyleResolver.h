@@ -9,7 +9,7 @@ namespace Sodium
 		SdStyleId targetTag = SdWidgetTargetIds::Default;
 		SdStylePart part = SdStylePart::Root();
 		SdPseudoState pseudoState = {};
-		SdLayerPriority layerPriority = SdLayerPriority::Content;
+		SdRootLayer rootLayer = SdRootLayer::Content;
 		SdSpan<const SdStyleClassId> classes = {};
 		SdStyleScopeId scope = 0;
 	};
@@ -34,7 +34,7 @@ namespace Sodium
 				return false;
 			if (selector.matchPseudo && (request.pseudoState.bits & selector.pseudoState.bits) != selector.pseudoState.bits)
 				return false;
-			if (selector.matchLayer && selector.layerPriority != request.layerPriority)
+			if (selector.matchLayer && selector.rootLayer != request.rootLayer)
 				return false;
 			if (selector.matchClass)
 			{

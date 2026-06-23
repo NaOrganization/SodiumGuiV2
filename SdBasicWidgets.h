@@ -1373,7 +1373,7 @@ namespace Sodium
 			state.options = options;
 			state.open = open;
 			context.widgetState.targetTypeId = TargetTypeId;
-			context.widgetState.layerPriority = SdLayerPriority::Floating;
+			context.widgetState.rootLayer = SdRootLayer::Floating;
 			context.widgetState.inputEnabled = open;
 			context.widgetState.layoutWeight = open ? 1.0f : 0.0f;
 			context.EnsurePart(Parts::Titlebar);
@@ -1388,7 +1388,7 @@ namespace Sodium
 			}
 
 			const Style& style = context.instance.GetResolvedStyle<SdWindow>(context.id);
-			const SdWidgetRootStyle rootStyle = context.instance.ResolveRootStyleForWidget(context.id, SdStyleInteractionState::Normal, SdLayerPriority::Floating);
+			const SdWidgetRootStyle rootStyle = context.instance.ResolveRootStyleForWidget(context.id, SdStyleInteractionState::Normal, SdRootLayer::Floating);
 			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(rootStyle, context.widgetState.targetRect.Size(), { 420.0f, 260.0f });
 			if (!state.initialized)
 			{
@@ -1688,7 +1688,7 @@ namespace Sodium
 		static void Configure(SdUpdateContext& context, bool open)
 		{
 			context.widgetState.targetTypeId = TargetTypeId;
-			context.widgetState.layerPriority = SdLayerPriority::Popup;
+			context.widgetState.rootLayer = SdRootLayer::Popup;
 			context.widgetState.rootLayer = SdRootLayer::Popup;
 			context.widgetState.portalRoot = SdPortalRoot::Popup;
 			context.widgetState.portalOwnerWidgetId = context.id;
@@ -1719,7 +1719,7 @@ namespace Sodium
 			state.open = open;
 			state.position = position;
 			context.widgetState.targetTypeId = TargetTypeId;
-			context.widgetState.layerPriority = SdLayerPriority::Popup;
+			context.widgetState.rootLayer = SdRootLayer::Popup;
 			context.widgetState.rootLayer = SdRootLayer::Popup;
 			context.widgetState.portalRoot = SdPortalRoot::Popup;
 			context.widgetState.portalOwnerWidgetId = context.id;
@@ -1786,7 +1786,7 @@ namespace Sodium
 			state.position = position;
 			state.text.assign(text.data(), text.size());
 			context.widgetState.targetTypeId = TargetTypeId;
-			context.widgetState.layerPriority = SdLayerPriority::Overlay;
+			context.widgetState.rootLayer = SdRootLayer::Tooltip;
 			context.widgetState.rootLayer = SdRootLayer::Tooltip;
 			context.widgetState.portalRoot = SdPortalRoot::Tooltip;
 			context.widgetState.portalOwnerWidgetId = context.id;

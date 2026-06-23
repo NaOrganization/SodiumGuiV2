@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "SdAnimation.h"
 #include "SdInput.h"
@@ -140,20 +140,20 @@ namespace Sodium
 		SdTransition GetDefaultTransition() const noexcept;
 		void UpdateWidgetAnimation(SdWidgetRecord& record);
 		void SetWidgetStyleIdentity(SdWidgetRecord& record, SdSpan<const SdStyleClassId> styleClasses, SdStyleScopeId styleScope);
-		void ResolveWidgetStyle(SdWidgetRecord& record, SdStyleInteractionState interactionState, SdLayerPriority layerPriority);
+		void ResolveWidgetStyle(SdWidgetRecord& record, SdStyleInteractionState interactionState, SdRootLayer rootLayer);
 		void SetBoxStyleAnimationTarget(
 			SdWidgetRecord& record,
 			SdStyleNode& node,
 			const SdBoxStyle& style,
 			SdStyleInteractionState interactionState,
-			SdLayerPriority layerPriority,
+			SdRootLayer rootLayer,
 			bool immediate);
 		void ApplyBoxStyleAnimation(SdStyleNode& node);
 		void SetWidgetStyleAnimationTarget(
 			SdWidgetRecord& record,
 			const SdWidgetRootStyle& style,
 			SdStyleInteractionState interactionState,
-			SdLayerPriority layerPriority,
+			SdRootLayer rootLayer,
 			bool immediate);
 		void ApplyWidgetStyleAnimation(SdWidgetRecord& record);
 		void SolveLayoutAndPaint();
@@ -161,12 +161,12 @@ namespace Sodium
 		void RefreshDiagnostics();
 
 		template<class T>
-		static void StyleThunk(SdInstance& instance, SdWidgetRecord& record, SdStyleInteractionState interactionState, SdLayerPriority layerPriority)
+		static void StyleThunk(SdInstance& instance, SdWidgetRecord& record, SdStyleInteractionState interactionState, SdRootLayer rootLayer)
 		{
 			if constexpr (requires { typename T::Style; })
 			{
 				if constexpr (!std::same_as<typename T::Style, SdWidgetRootStyle>)
-					instance.ResolveTypedWidgetStyle<T>(record, interactionState, layerPriority);
+					instance.ResolveTypedWidgetStyle<T>(record, interactionState, rootLayer);
 			}
 		}
 
@@ -208,24 +208,22 @@ namespace Sodium
 
 		SdInstance();
 
-		void BeginFrame(SdVec2 newDisplaySize = {});
-
-		template<class TPlatform>
-		void BeginFrame(TPlatform& platform, SdVec2 newDisplaySize = {})
+		bool Initialize(ISdPlatformBackend* platform, ISdRendererBackend* renderer, ISdFontBackend* fontBackend) noexcept;
+		bool Initialize(ISdPlatformBackend& platform, ISdRendererBackend& renderer, ISdFontBackend& fontBackend) noexcept
 		{
-			if constexpr (std::derived_from<TPlatform, ISdPlatformBackend>)
-				SetPlatformBackend(&platform);
+			return Initialize(&platform, &renderer, &fontBackend);
+		}
+
+		void BeginFrame()
+		{
 			BeginInputFrame();
-			platform.StartFrame(context.input);
-			FinishInputAndBeginUiFrame(newDisplaySize);
+			context.platform->StartFrame(context.input);
+			FinishInputAndBeginUiFrame();
 		}
 
 		void EndFrame();
 		void Render();
 		void Shutdown();
-		void SetPlatformBackend(ISdPlatformBackend* platform) noexcept;
-		void SetRendererBackend(ISdRendererBackend* renderer) noexcept;
-		void SetFontBackend(ISdFontBackend* fontBackend) noexcept;
 		SdUInt32 AllocateActivationOrder() noexcept;
 		bool IsWidgetDescendantOf(SdWidgetId widgetId, SdWidgetId ancestorWidgetId) const noexcept;
 
@@ -263,7 +261,7 @@ namespace Sodium
 		T& GetOrCreateModel(SdResolvedKey resolvedKey);
 
 		template<class TWidget>
-		void ResolveTypedWidgetStyle(SdWidgetRecord& record, SdStyleInteractionState interactionState, SdLayerPriority layerPriority);
+		void ResolveTypedWidgetStyle(SdWidgetRecord& record, SdStyleInteractionState interactionState, SdRootLayer rootLayer);
 
 		template<class TWidget>
 		void AdvanceTypedWidgetStyleAnimations(SdWidgetRecord& record, SdDuration deltaTime);
@@ -277,7 +275,7 @@ namespace Sodium
 		SdWidgetRootStyle ResolveRootStyleForWidget(
 			SdWidgetId widgetId,
 			SdStyleInteractionState interactionState,
-			SdLayerPriority layerPriority) const;
+			SdRootLayer rootLayer) const;
 		const SdStyleNode& GetRootStyleNode(SdWidgetId widgetId) const;
 		const SdStyleNode& GetStylePart(SdWidgetId widgetId, SdStylePart part) const;
 		SdStyleNode& EnsureStylePart(SdWidgetId widgetId, SdStylePart part);
@@ -286,7 +284,11 @@ namespace Sodium
 		void SetPartBorderBox(SdWidgetId widgetId, SdStylePart part, SdRect borderBox);
 
 	private:
+		void SetPlatformBackend(ISdPlatformBackend* platform) noexcept;
+		void SetRendererBackend(ISdRendererBackend* renderer) noexcept;
+		void SetFontBackend(ISdFontBackend* fontBackend) noexcept;
+
 		void BeginInputFrame();
-		void FinishInputAndBeginUiFrame(SdVec2 newDisplaySize);
+		void FinishInputAndBeginUiFrame();
 	};
 }

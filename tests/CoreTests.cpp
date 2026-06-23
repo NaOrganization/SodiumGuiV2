@@ -308,6 +308,12 @@ namespace
 		SdUInt32 renderCount = 0;
 		SdUInt32 lastCommandCount = 0;
 		SdVec2 lastDisplaySize = {};
+		bool initialized = true;
+
+		bool IsInitialized() const noexcept override
+		{
+			return initialized;
+		}
 
 		void Render(const SdRendererFrameInfo& frameInfo, const SdDrawPacket& packet) override
 		{
@@ -328,6 +334,23 @@ namespace
 		}
 	};
 
+	struct RecordingPlatformBackend final : ISdPlatformBackend
+	{
+		bool initialized = true;
+		bool startedFrame = false;
+
+		bool IsInitialized() const noexcept override
+		{
+			return initialized;
+		}
+
+		void StartFrame(SdInputSystem& input) override
+		{
+			(void)input;
+			startedFrame = true;
+		}
+	};
+
 	struct RecordingFontBackend final : ISdFontBackend
 	{
 		SdUtf8String lastMeasuredText = {};
@@ -337,6 +360,12 @@ namespace
 		SdRect glyphBoundsOverride = {};
 		bool hasMeasuredSizeOverride = false;
 		bool hasGlyphBoundsOverride = false;
+		bool initialized = true;
+
+		bool IsInitialized() const noexcept override
+		{
+			return initialized;
+		}
 
 		SdFontHandle GetFallbackFont() const noexcept override
 		{
@@ -940,7 +969,7 @@ namespace
 			.Set(&StyleNodeApiWidget::Style::width, ThemeMetric("tests.width"));
 		const StyleNodeApiWidget::Style systemResolved = styleSystem.ResolveTypedStyle<StyleNodeApiWidget>(
 			SdStyleInteractionState::Normal,
-			SdLayerPriority::Content,
+			SdRootLayer::Content,
 			SdSpan<const SdStyleClassId>(classes, 1),
 			0);
 		Check(systemResolved.width == 72.0f, "style system resolves typed theme metric variable");
@@ -970,7 +999,7 @@ namespace
 			SdButton::Parts::Label,
 			Detail::SdStylePropertyId(&SdWidgetPartStyle::opacity),
 			SdStyleInteractionState::Normal,
-			SdLayerPriority::Content,
+			SdRootLayer::Content,
 			{},
 			0,
 			partTransition);
@@ -978,7 +1007,7 @@ namespace
 			SdButton::TargetTypeId,
 			Detail::SdStylePropertyId(&SdWidgetRootStyle::opacity),
 			SdStyleInteractionState::Normal,
-			SdLayerPriority::Content,
+			SdRootLayer::Content,
 			{},
 			0,
 			delayedRootTransition);
@@ -986,7 +1015,7 @@ namespace
 			SdText::TargetTypeId,
 			Detail::SdStylePropertyId(&SdWidgetRootStyle::display),
 			SdStyleInteractionState::Normal,
-			SdLayerPriority::Content,
+			SdRootLayer::Content,
 			{},
 			0,
 			discreteRootTransition);
@@ -1017,18 +1046,18 @@ namespace
 		const SdWidgetRootStyle textScoped = styleSystem.ResolveRootStyle(
 			SdText::TargetTypeId,
 			SdStyleInteractionState::Normal,
-			SdLayerPriority::Content,
+			SdRootLayer::Content,
 			SdSpan<const SdStyleClassId>(textClasses, 1),
 			textScope);
 		Check(textScoped.padding.left.value == 1.0f && textScoped.padding.bottom.value == 4.0f, "text scoped padding resolves through root style");
 
-		const SdWidgetRootStyle windowDefault = styleSystem.ResolveRootStyle(SdWindow::TargetTypeId, SdStyleInteractionState::Normal, SdLayerPriority::Floating);
+		const SdWidgetRootStyle windowDefault = styleSystem.ResolveRootStyle(SdWindow::TargetTypeId, SdStyleInteractionState::Normal, SdRootLayer::Floating);
 		Check(windowDefault.width.unit == SdLengthUnit::Pixels && windowDefault.width.value == 420.0f, "window default width resolves through root style");
 		Check(windowDefault.height.unit == SdLengthUnit::Pixels && windowDefault.height.value == 260.0f, "window default height resolves through root style");
 		Check(windowDefault.padding.top.value == 40.0f, "window default title padding resolves through root style");
 		Check(SdResolveLength(windowDefault.gap, 0.0f) == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableLiteral("spacing.small")), "window default gap resolves through root gap");
-		const SdWidgetPartStyle windowContentDefault = styleSystem.ResolvePartStyle(SdWindow::TargetTypeId, SdWindow::Parts::Content, windowDefault, SdStyleInteractionState::Normal, SdLayerPriority::Floating);
-		const SdWidgetPartStyle windowTitlebarDefault = styleSystem.ResolvePartStyle(SdWindow::TargetTypeId, SdWindow::Parts::Titlebar, windowDefault, SdStyleInteractionState::Normal, SdLayerPriority::Floating);
+		const SdWidgetPartStyle windowContentDefault = styleSystem.ResolvePartStyle(SdWindow::TargetTypeId, SdWindow::Parts::Content, windowDefault, SdStyleInteractionState::Normal, SdRootLayer::Floating);
+		const SdWidgetPartStyle windowTitlebarDefault = styleSystem.ResolvePartStyle(SdWindow::TargetTypeId, SdWindow::Parts::Titlebar, windowDefault, SdStyleInteractionState::Normal, SdRootLayer::Floating);
 		Check(windowContentDefault.backgroundColor == styleSystem.GetTheme().GetColorVariable(SdThemeVariableLiteral("window.bg")), "window content default background resolves through part style");
 		Check(windowTitlebarDefault.backgroundColor == styleSystem.GetTheme().GetColorVariable(SdThemeVariableLiteral("button.bg")), "window titlebar default background resolves through part style");
 
@@ -1088,14 +1117,14 @@ namespace
 		Check(scrollViewScrollbarDefault.backgroundColor == styleSystem.GetTheme().GetColorVariable(SdThemeVariableLiteral("panel.bg")), "scroll view scrollbar default background resolves through part style");
 		Check(scrollViewThumbDefault.backgroundColor == styleSystem.GetTheme().GetColorVariable(SdThemeVariableLiteral("accent")), "scroll view thumb default background resolves through part style");
 
-		const SdWidgetRootStyle popupDefault = styleSystem.ResolveRootStyle(SdPopup::TargetTypeId, SdStyleInteractionState::Normal, SdLayerPriority::Popup);
-		const SdWidgetRootStyle contextMenuDefault = styleSystem.ResolveRootStyle(SdContextMenu::TargetTypeId, SdStyleInteractionState::Normal, SdLayerPriority::Popup);
+		const SdWidgetRootStyle popupDefault = styleSystem.ResolveRootStyle(SdPopup::TargetTypeId, SdStyleInteractionState::Normal, SdRootLayer::Popup);
+		const SdWidgetRootStyle contextMenuDefault = styleSystem.ResolveRootStyle(SdContextMenu::TargetTypeId, SdStyleInteractionState::Normal, SdRootLayer::Popup);
 		Check(popupDefault.width.unit == SdLengthUnit::Pixels && popupDefault.width.value == 220.0f, "popup default width resolves through root style");
 		Check(contextMenuDefault.height.unit == SdLengthUnit::Pixels && contextMenuDefault.height.value == 140.0f, "context menu default height resolves through root style");
 		Check(SdResolveLength(popupDefault.gap, 0.0f) == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableLiteral("spacing.small")), "popup default gap resolves through root gap");
 		Check(SdResolveLength(contextMenuDefault.gap, 0.0f) == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableLiteral("spacing.small")), "context menu default gap resolves through root gap");
 
-		const SdWidgetRootStyle tooltipDefault = styleSystem.ResolveRootStyle(SdTooltip::TargetTypeId, SdStyleInteractionState::Normal, SdLayerPriority::Overlay);
+		const SdWidgetRootStyle tooltipDefault = styleSystem.ResolveRootStyle(SdTooltip::TargetTypeId, SdStyleInteractionState::Normal, SdRootLayer::Tooltip);
 		Check(tooltipDefault.padding.left.value == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableLiteral("spacing.small")), "tooltip default padding resolves through root style");
 		Check(tooltipDefault.fontSize == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableLiteral("font.button")), "tooltip font size resolves through root style");
 
@@ -1111,7 +1140,7 @@ namespace
 		const SdWidgetRootStyle panelScoped = styleSystem.ResolveRootStyle(
 			SdPanel::TargetTypeId,
 			SdStyleInteractionState::Normal,
-			SdLayerPriority::Content,
+			SdRootLayer::Content,
 			SdSpan<const SdStyleClassId>(panelClasses, 1),
 			panelScope);
 		Check(panelScoped.width.unit == SdLengthUnit::Percent && panelScoped.width.value == 50.0f, "panel scoped root width preserves percentage length");
@@ -2447,17 +2476,17 @@ namespace
 
 		SdStyleSystem styleSystem;
 		styleSystem.RootRule(SdWidgetTargetIds::Default)
-			.Layer(SdLayerPriority::Overlay)
+			.Layer(SdRootLayer::Tooltip)
 			.Set(&SdBoxStyle::backgroundColor, ThemeColor("accent"));
 
-		const SdWidgetRootStyle content = styleSystem.ResolveRootStyle(SdWidgetTargetIds::Default, SdStyleInteractionState::Normal, SdLayerPriority::Content);
-		const SdWidgetRootStyle overlay = styleSystem.ResolveRootStyle(SdWidgetTargetIds::Default, SdStyleInteractionState::Normal, SdLayerPriority::Overlay);
+		const SdWidgetRootStyle content = styleSystem.ResolveRootStyle(SdWidgetTargetIds::Default, SdStyleInteractionState::Normal, SdRootLayer::Content);
+		const SdWidgetRootStyle overlay = styleSystem.ResolveRootStyle(SdWidgetTargetIds::Default, SdStyleInteractionState::Normal, SdRootLayer::Tooltip);
 		Check(content.backgroundColor != overlay.backgroundColor, "style layer selector changes overlay background");
 		Check(overlay.backgroundColor == styleSystem.GetTheme().GetColorVariable(SdThemeVariableLiteral("accent")), "style layer selector applies matching rule");
 		styleSystem.RootRule(SdWidgetTargetIds::Default)
-			.Layer(SdLayerPriority::Overlay)
+			.Layer(SdRootLayer::Tooltip)
 			.Set(&SdBoxStyle::zIndex, SdInt32{ 17 });
-		const SdWidgetRootStyle overlayWithZIndex = styleSystem.ResolveRootStyle(SdWidgetTargetIds::Default, SdStyleInteractionState::Normal, SdLayerPriority::Overlay);
+		const SdWidgetRootStyle overlayWithZIndex = styleSystem.ResolveRootStyle(SdWidgetTargetIds::Default, SdStyleInteractionState::Normal, SdRootLayer::Tooltip);
 		Check(overlayWithZIndex.zIndex == 17, "style layer selector resolves z-index");
 	}
 
@@ -2502,13 +2531,13 @@ namespace
 			.Set(&TypedStyleWidget::Style::color, scopedColor);
 		const TypedStyleWidget::Style classResolved = styleSystem.ResolveTypedStyle<TypedStyleWidget>(
 			SdStyleInteractionState::Normal,
-			SdLayerPriority::Content,
+			SdRootLayer::Content,
 			SdSpan<const SdStyleClassId>(classList, 1),
 			0);
 		Check(classResolved.width == 91.0f, "typed style class selector matches class id");
 		const TypedStyleWidget::Style scopeResolved = styleSystem.ResolveTypedStyle<TypedStyleWidget>(
 			SdStyleInteractionState::Normal,
-			SdLayerPriority::Content,
+			SdRootLayer::Content,
 			{},
 			dialogScope);
 		Check(scopeResolved.color == scopedColor, "typed style scope selector matches scope id");
@@ -2518,7 +2547,7 @@ namespace
 		inlineStyle.color = { 3, 4, 5, 255 };
 		const TypedStyleWidget::Style inlineResolved = styleSystem.ResolveTypedStyle<TypedStyleWidget>(
 			SdStyleInteractionState::Normal,
-			SdLayerPriority::Content,
+			SdRootLayer::Content,
 			SdSpan<const SdStyleClassId>(classList, 1),
 			dialogScope,
 			&inlineStyle);
@@ -2576,7 +2605,7 @@ namespace
 		const bool compiledTransitionResolved = transitionInstance.GetStyleSystem().TryResolveTransition<TypedStyleWidget>(
 			Detail::SdStyleFieldId(&TypedStyleWidget::Style::color),
 			SdStyleInteractionState::Normal,
-			SdLayerPriority::Content,
+			SdRootLayer::Content,
 			{},
 			0,
 			compiledTransition);
@@ -2628,14 +2657,14 @@ namespace
 		const bool plainTransitionResolved = classTransitionInstance.GetStyleSystem().TryResolveTransition<TypedStyleWidget>(
 			Detail::SdStyleFieldId(&TypedStyleWidget::Style::color),
 			SdStyleInteractionState::Normal,
-			SdLayerPriority::Content,
+			SdRootLayer::Content,
 			{},
 			0,
 			classTransition);
 		const bool classScopedTransitionResolved = classTransitionInstance.GetStyleSystem().TryResolveTransition<TypedStyleWidget>(
 			Detail::SdStyleFieldId(&TypedStyleWidget::Style::color),
 			SdStyleInteractionState::Normal,
-			SdLayerPriority::Content,
+			SdRootLayer::Content,
 			SdSpan<const SdStyleClassId>(classList, 1),
 			0,
 			classTransition);
@@ -2644,6 +2673,19 @@ namespace
 
 	void TestContextOwnershipAndRenderSubmission()
 	{
+		RecordingPlatformBackend platform;
+		CountingRenderer initRenderer;
+		RecordingFontBackend initFontBackend;
+		SdInstance initInstance;
+		Check(initInstance.Initialize(platform, initRenderer, initFontBackend), "instance initialize binds initialized backend interfaces");
+		Check(initInstance.GetPlatformBackend() == &platform, "instance initialize stores platform backend");
+		Check(initInstance.GetRendererBackend() == &initRenderer, "instance initialize stores renderer backend");
+		Check(initInstance.GetFontBackend() == &initFontBackend, "instance initialize stores font backend");
+
+		initFontBackend.initialized = false;
+		SdInstance failedInitInstance;
+		Check(!failedInitInstance.Initialize(platform, initRenderer, initFontBackend), "instance initialize fails when a backend reports uninitialized");
+
 		SdInstance instance;
 		const SdContext& context = instance.GetContext();
 		Check(static_cast<const void*>(&context.stateStorage) == static_cast<const void*>(&instance.GetStateStorage()), "context owns state storage");
@@ -3143,30 +3185,30 @@ namespace
 	{
 		SdLayerSystem layers;
 		layers.BeginFrame();
-		layers.AddHitTestRecord({ 1, SdLayerPriority::Content, { 0.0f, 0.0f, 100.0f, 100.0f }, { 0.0f, 0.0f, 100.0f, 100.0f }, 0, true });
-		layers.AddHitTestRecord({ 2, SdLayerPriority::Popup, { 0.0f, 0.0f, 100.0f, 100.0f }, { 0.0f, 0.0f, 100.0f, 100.0f }, 0, true });
+		layers.AddHitTestRecord({ 1, SdRootLayer::Content, { 0.0f, 0.0f, 100.0f, 100.0f }, { 0.0f, 0.0f, 100.0f, 100.0f }, 0, true });
+		layers.AddHitTestRecord({ 2, SdRootLayer::Popup, { 0.0f, 0.0f, 100.0f, 100.0f }, { 0.0f, 0.0f, 100.0f, 100.0f }, 0, true });
 		layers.Finalize();
 		Check(layers.HitTest({ 12.0f, 12.0f }) == 2, "layer direct higher priority wins hit-test");
 
 		layers.BeginFrame();
-		layers.AddHitTestRecord({ 1, SdLayerPriority::Content, { 0.0f, 0.0f, 100.0f, 100.0f }, { 0.0f, 0.0f, 100.0f, 100.0f }, 0, true });
-		layers.AddHitTestRecord({ 2, SdLayerPriority::Content, { 0.0f, 0.0f, 100.0f, 100.0f }, { 0.0f, 0.0f, 100.0f, 100.0f }, 4, true });
-		layers.AddHitTestRecord({ 3, SdLayerPriority::Overlay, { 0.0f, 0.0f, 100.0f, 100.0f }, { 0.0f, 0.0f, 100.0f, 100.0f }, 5, false });
+		layers.AddHitTestRecord({ 1, SdRootLayer::Content, { 0.0f, 0.0f, 100.0f, 100.0f }, { 0.0f, 0.0f, 100.0f, 100.0f }, 0, true });
+		layers.AddHitTestRecord({ 2, SdRootLayer::Content, { 0.0f, 0.0f, 100.0f, 100.0f }, { 0.0f, 0.0f, 100.0f, 100.0f }, 4, true });
+		layers.AddHitTestRecord({ 3, SdRootLayer::Tooltip, { 0.0f, 0.0f, 100.0f, 100.0f }, { 0.0f, 0.0f, 100.0f, 100.0f }, 5, false });
 		layers.Finalize();
 		Check(layers.HitTest({ 12.0f, 12.0f }) == 2, "layer direct paint order wins within layer and disabled records are ignored");
 
 		layers.BeginFrame();
 		SdHitTestRecord lowerZ = {};
 		lowerZ.widgetId = 1;
-		lowerZ.layerPriority = SdLayerPriority::Content;
+		lowerZ.rootLayer = SdRootLayer::Content;
 		lowerZ.rect = { 0.0f, 0.0f, 100.0f, 100.0f };
 		lowerZ.clipRect = { 0.0f, 0.0f, 100.0f, 100.0f };
 		lowerZ.paintOrder = 100;
-		lowerZ.key = SdMakeStackingKey(SdLayerPriority::Content, 0, 0, 100);
+		lowerZ.key = SdMakeStackingKey(SdRootLayer::Content, 0, 0, 100);
 		SdHitTestRecord higherZ = lowerZ;
 		higherZ.widgetId = 2;
 		higherZ.paintOrder = 0;
-		higherZ.key = SdMakeStackingKey(SdLayerPriority::Content, 20, 0, 0);
+		higherZ.key = SdMakeStackingKey(SdRootLayer::Content, 20, 0, 0);
 		layers.AddHitTestRecord(lowerZ);
 		layers.AddHitTestRecord(higherZ);
 		layers.Finalize();
@@ -3176,11 +3218,11 @@ namespace
 		SdHitTestRecord normalWindow = lowerZ;
 		normalWindow.widgetId = 4;
 		normalWindow.paintOrder = 100;
-		normalWindow.key = SdMakeStackingKey(SdLayerPriority::Floating, 0, 100, 100);
+		normalWindow.key = SdMakeStackingKey(SdRootLayer::Floating, 0, 100, 100);
 		SdHitTestRecord activatedWindow = lowerZ;
 		activatedWindow.widgetId = 5;
 		activatedWindow.paintOrder = 0;
-		activatedWindow.key = SdMakeStackingKey(SdLayerPriority::Floating, 0, 0, 0);
+		activatedWindow.key = SdMakeStackingKey(SdRootLayer::Floating, 0, 0, 0);
 		activatedWindow.key.activationOrder = 1;
 		layers.AddHitTestRecord(normalWindow);
 		layers.AddHitTestRecord(activatedWindow);
@@ -3191,21 +3233,21 @@ namespace
 		layers.AddHitTestRecord(lowerZ);
 		SdHitTestRecord inputBlocker = {};
 		inputBlocker.widgetId = 3;
-		inputBlocker.layerPriority = SdLayerPriority::Popup;
+		inputBlocker.rootLayer = SdRootLayer::Popup;
 		inputBlocker.rect = { 200.0f, 200.0f, 240.0f, 240.0f };
 		inputBlocker.clipRect = { 0.0f, 0.0f, 640.0f, 480.0f };
 		inputBlocker.hitTestVisible = false;
 		inputBlocker.blocksLowerInput = true;
-		inputBlocker.key = SdMakeStackingKey(SdLayerPriority::Popup, 0, 0, 0);
+		inputBlocker.key = SdMakeStackingKey(SdRootLayer::Popup, 0, 0, 0);
 		layers.AddHitTestRecord(inputBlocker);
 		layers.Finalize();
 		Check(layers.HitTest({ 12.0f, 12.0f }) == 0, "layer direct input blocker stops lower hit-test records");
 
 		layers.BeginFrame();
-		layers.AddDrawRecord({ 1, SdLayerPriority::Content, { 0.0f, 0.0f, 640.0f, 480.0f }, 0 });
-		layers.AddDrawRecord({ 2, SdLayerPriority::Popup, { 0.0f, 0.0f, 640.0f, 480.0f }, 1 });
-		layers.AddDrawRecord({ 3, SdLayerPriority::Content, { 0.0f, 0.0f, 640.0f, 480.0f }, 2 });
-		layers.AddDrawRecord({ 4, SdLayerPriority::Popup, { 0.0f, 0.0f, 640.0f, 480.0f }, 3 });
+		layers.AddDrawRecord({ 1, SdRootLayer::Content, { 0.0f, 0.0f, 640.0f, 480.0f }, 0 });
+		layers.AddDrawRecord({ 2, SdRootLayer::Popup, { 0.0f, 0.0f, 640.0f, 480.0f }, 1 });
+		layers.AddDrawRecord({ 3, SdRootLayer::Content, { 0.0f, 0.0f, 640.0f, 480.0f }, 2 });
+		layers.AddDrawRecord({ 4, SdRootLayer::Popup, { 0.0f, 0.0f, 640.0f, 480.0f }, 3 });
 		layers.Finalize();
 		const std::vector<SdLayerDrawRecord>& drawRecords = layers.GetDrawRecords();
 		const std::vector<SdLayerDrawChannel>& drawChannels = layers.GetDrawChannels();
@@ -3327,6 +3369,86 @@ namespace
 		Check(popupEscapesClip && popupChildEscapesClip, "popup portal root escapes parent clipping");
 	}
 
+	void TestInteractionSystemAdvancedEvents()
+	{
+		SdLayerSystem layers;
+		layers.BeginFrame();
+		layers.AddHitTestRecord({ 10, SdRootLayer::Content, { 0.0f, 0.0f, 80.0f, 80.0f }, { 0.0f, 0.0f, 200.0f, 200.0f }, 0, true });
+		layers.AddHitTestRecord({ 20, SdRootLayer::Popup, { 100.0f, 0.0f, 180.0f, 80.0f }, { 0.0f, 0.0f, 200.0f, 200.0f }, 1, true });
+		layers.Finalize();
+
+		SdInteractionSystem interaction;
+		SdInputSnapshot input = {};
+		input.mouse.position = { 20.0f, 20.0f };
+		input.mouse.buttons[static_cast<SdSize>(SdMouseButton::Left)].isDown = true;
+		input.mouse.buttons[static_cast<SdSize>(SdMouseButton::Left)].wentDown = true;
+		input.mouse.buttons[static_cast<SdSize>(SdMouseButton::Right)].isDown = true;
+		input.mouse.buttons[static_cast<SdSize>(SdMouseButton::Right)].wentDown = true;
+		interaction.Update(layers, input, 1);
+		Check(interaction.IsPressed(10), "interaction press captures left pointer target");
+		Check(interaction.IsPressed(10, SdMouseButton::Right), "interaction tracks independent right button press");
+		Check(interaction.GetPointerRoute().size() == 3, "interaction builds tunnel target bubble route");
+
+		input.mouse.buttons[static_cast<SdSize>(SdMouseButton::Left)].wentDown = false;
+		input.mouse.buttons[static_cast<SdSize>(SdMouseButton::Right)].wentDown = false;
+		input.mouse.position = { 40.0f, 20.0f };
+		interaction.Update(layers, input, 2);
+		Check(interaction.IsDragSource(10), "interaction starts drag after pointer moves past threshold");
+
+		input.mouse.buttons[static_cast<SdSize>(SdMouseButton::Left)].isDown = false;
+		input.mouse.buttons[static_cast<SdSize>(SdMouseButton::Left)].wentUp = true;
+		input.mouse.position = { 120.0f, 20.0f };
+		interaction.Update(layers, input, 3);
+		Check(interaction.IsDropTarget(20), "interaction routes drop to hit widget under release");
+		Check(interaction.WasOutsideClicked(10), "interaction detects outside release for active widget");
+
+		input = {};
+		input.mouse.position = { 20.0f, 20.0f };
+		input.mouse.wheelDelta = { 0.0f, -1.0f };
+		input.keyboard.keys[static_cast<SdSize>(SdKeyCode::Tab)].wentDown = true;
+		interaction.Update(layers, input, 4);
+		Check(interaction.IsWheelTarget(10), "interaction routes scroll wheel to hovered hit widget");
+		Check(interaction.GetState().keyboardWidget == interaction.GetState().focusedWidget, "interaction keeps keyboard routing on focused widget");
+
+		input = {};
+		input.mouse.position = { 20.0f, 20.0f };
+		input.mouse.buttons[static_cast<SdSize>(SdMouseButton::Left)].isDown = true;
+		input.mouse.buttons[static_cast<SdSize>(SdMouseButton::Left)].wentDown = true;
+		interaction.Update(layers, input, 5);
+		input.mouse.buttons[static_cast<SdSize>(SdMouseButton::Left)].wentDown = false;
+		interaction.Update(layers, input, 36);
+		Check(interaction.WasLongPressed(10), "interaction detects long press");
+		input.mouse.buttons[static_cast<SdSize>(SdMouseButton::Left)].isDown = false;
+		input.mouse.buttons[static_cast<SdSize>(SdMouseButton::Left)].wentUp = true;
+		interaction.Update(layers, input, 37);
+
+		input = {};
+		input.mouse.position = { 20.0f, 20.0f };
+		input.mouse.buttons[static_cast<SdSize>(SdMouseButton::Left)].isDown = true;
+		input.mouse.buttons[static_cast<SdSize>(SdMouseButton::Left)].wentDown = true;
+		interaction.Update(layers, input, 38);
+		input.mouse.buttons[static_cast<SdSize>(SdMouseButton::Left)].isDown = false;
+		input.mouse.buttons[static_cast<SdSize>(SdMouseButton::Left)].wentDown = false;
+		input.mouse.buttons[static_cast<SdSize>(SdMouseButton::Left)].wentUp = true;
+		interaction.Update(layers, input, 39);
+		input.mouse.buttons[static_cast<SdSize>(SdMouseButton::Left)].isDown = true;
+		input.mouse.buttons[static_cast<SdSize>(SdMouseButton::Left)].wentDown = true;
+		input.mouse.buttons[static_cast<SdSize>(SdMouseButton::Left)].wentUp = false;
+		interaction.Update(layers, input, 40);
+		input.mouse.buttons[static_cast<SdSize>(SdMouseButton::Left)].isDown = false;
+		input.mouse.buttons[static_cast<SdSize>(SdMouseButton::Left)].wentDown = false;
+		input.mouse.buttons[static_cast<SdSize>(SdMouseButton::Left)].wentUp = true;
+		interaction.Update(layers, input, 41);
+		Check(interaction.WasDoubleClicked(10), "interaction detects double click");
+
+		interaction.SetFocusScope(10);
+		interaction.SetModalScope(20);
+		Check(interaction.GetState().focusScopeRootWidget == 10, "interaction stores focus scope root");
+		Check(interaction.GetState().modalScopeRootWidget == 20, "interaction stores modal scope root");
+		interaction.ClearModalScope(20);
+		Check(interaction.GetState().modalScopeRootWidget == 0, "interaction clears modal scope root");
+	}
+
 	void TestRenderListBatchingDirect()
 	{
 		SdRenderStats stats = {};
@@ -3369,6 +3491,7 @@ int main()
 	TestAnimationSystemDirect();
 	TestLayerSystemDirect();
 	TestStackingContextAndPortalRoot();
+	TestInteractionSystemAdvancedEvents();
 	TestRenderListBatchingDirect();
 
 	if (gFailedChecks != 0)

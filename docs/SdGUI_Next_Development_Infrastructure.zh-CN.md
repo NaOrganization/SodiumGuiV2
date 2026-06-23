@@ -408,7 +408,7 @@ SdStyleSystem
 Selector
 - widget type id
 - interaction state
-- layer priority
+- root layer
 ```
 
 任务：
@@ -457,7 +457,7 @@ SdLayerSystem
 
 SdHitTestRecord
 - widget id
-- layer priority
+- root layer
 - rect
 - clip rect
 - input enabled

@@ -13,6 +13,8 @@ namespace Sodium
 	public:
 		virtual ~ISdPlatformBackend() = default;
 
+		virtual bool IsInitialized() const noexcept = 0;
+
 		// StartFrame transfers host/platform events into SdInputSystem.
 		// It must not render, present, or mutate renderer state.
 		virtual void StartFrame(SdInputSystem& input) = 0;
@@ -22,6 +24,8 @@ namespace Sodium
 	{
 	public:
 		virtual ~ISdRendererBackend() = default;
+
+		virtual bool IsInitialized() const noexcept = 0;
 
 		// Render submits one complete UI frame.
 		//

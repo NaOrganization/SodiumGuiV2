@@ -35,6 +35,16 @@ namespace Sodium
 	{
 	}
 
+	inline bool SdInstance::Initialize(ISdPlatformBackend* platform, ISdRendererBackend* renderer, ISdFontBackend* fontBackend) noexcept
+	{
+		SetPlatformBackend(platform);
+		SetRendererBackend(renderer);
+		SetFontBackend(fontBackend);
+		return context.platform && context.platform->IsInitialized()
+			&& context.renderer && context.renderer->IsInitialized()
+			&& context.fontBackend && context.fontBackend->IsInitialized();
+	}
+
 	inline void SdInstance::BeginInputFrame()
 	{
 		++context.frame.frameIndex;
@@ -45,11 +55,11 @@ namespace Sodium
 		context.input.BeginFrame(context.frame.frameIndex);
 	}
 
-	inline void SdInstance::FinishInputAndBeginUiFrame(SdVec2 newDisplaySize)
+	inline void SdInstance::FinishInputAndBeginUiFrame()
 	{
-		if (newDisplaySize.x > 0.0f && newDisplaySize.y > 0.0f)
-			context.frame.displaySize = newDisplaySize;
+		context.frame.displaySize = GetInput().display.size;
 		context.input.FinalizeFrame();
+		context.interactionSystem.Update(context.layerSystem, context.input.GetSnapshot(), context.frame.frameIndex);
 		renderList.SetSharedData(&context.renderSharedData);
 		renderList.SetStats(&context.renderStats);
 		renderList.Reset();
@@ -60,12 +70,6 @@ namespace Sodium
 		context.presentationChannels.ResetFrameStats();
 		context.frame.diagnostics.ResetFrameTransient();
 		uiObject.BeginDeclarationFrame();
-	}
-
-	inline void SdInstance::BeginFrame(SdVec2 newDisplaySize)
-	{
-		BeginInputFrame();
-		FinishInputAndBeginUiFrame(newDisplaySize);
 	}
 
 	inline void SdInstance::EndFrame()

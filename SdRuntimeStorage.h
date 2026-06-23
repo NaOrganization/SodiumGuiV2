@@ -260,7 +260,7 @@ namespace Sodium
 		SdStyleNodeId rootStyleNodeId = SdInvalidStyleNodeId;
 		SdStyleId targetTypeId = SdWidgetTargetIds::Default;
 		SdStyleInteractionState interactionState = SdStyleInteractionState::Normal;
-		SdLayerPriority layerPriority = SdLayerPriority::Content;
+		SdRootLayer rootLayer = SdRootLayer::Content;
 		SdUInt64 styleIdentityRevision = 0;
 		SdUInt64 inlineStyleRevision = 0;
 		SdUInt64 styleRevision = 0;
@@ -275,7 +275,7 @@ namespace Sodium
 		std::type_index styleType = std::type_index(typeid(void));
 		SdStyleId targetTypeId = SdWidgetTargetIds::Default;
 		SdStyleInteractionState interactionState = SdStyleInteractionState::Normal;
-		SdLayerPriority layerPriority = SdLayerPriority::Content;
+		SdRootLayer rootLayer = SdRootLayer::Content;
 		SdUInt64 styleIdentityRevision = 0;
 		SdUInt64 inlineStyleRevision = 0;
 		SdUInt64 resolvedInlineStyleRevision = 0;
@@ -303,7 +303,7 @@ namespace Sodium
 		SdUInt32 order = 0;
 		SdResolvedKey resolvedKey = 0;
 		SdUtf8String debugKey = {};
-		void(*styleCallback)(SdInstance&, SdWidgetRecord&, SdStyleInteractionState, SdLayerPriority) = nullptr;
+		void(*styleCallback)(SdInstance&, SdWidgetRecord&, SdStyleInteractionState, SdRootLayer) = nullptr;
 		void(*typedStyleAnimationCallback)(SdInstance&, SdWidgetRecord&, SdDuration) = nullptr;
 		void(*layoutCallback)(void*, SdLayoutContext&) = nullptr;
 		void(*arrangeCallback)(void*, SdArrangeContext&) = nullptr;

@@ -1110,14 +1110,17 @@ Style 和 layout 的实现必须优先避免 CPU 热路径开销：
 Layer 设计被保留，并且独立于旧的 Element 架构。
 
 ```cpp
-enum class LayerPriority
+enum class SdRootLayer
 {
     Background,
     Content,
     Floating,
     Popup,
-    Overlay,
-    Debug
+    Tooltip,
+    ModalBackdrop,
+    Modal,
+    DragPreview,
+    DebugOverlay
 };
 ```
 
@@ -1139,7 +1142,7 @@ class ContextMenu final : public Sodium::SdWidgetTag
 public:
     void OnCreate(Sodium::SdCreateContext& context)
     {
-        context.widgetState.layerPriority = Sodium::SdLayerPriority::Popup;
+        context.widgetState.rootLayer = Sodium::SdRootLayer::Popup;
     }
 
     void OnUpdate(Sodium::SdUpdateContext& context)

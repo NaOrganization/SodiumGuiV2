@@ -142,6 +142,7 @@ namespace Sodium::Backends
 
 		bool Initialize(const Config& backendConfig = {});
 		void Shutdown();
+		bool IsInitialized() const noexcept override { return library && fallbackFont.IsValid(); }
 		SdTextureHandle GetAtlasTexture() const noexcept { return atlas.texture; }
 		void ConfigureRenderSharedData(SdRenderSharedData& sharedData) const override;
 

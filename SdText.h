@@ -106,6 +106,8 @@ namespace Sodium
 	public:
 		virtual ~ISdFontBackend() = default;
 
+		virtual bool IsInitialized() const noexcept = 0;
+
 		// Returns the font used when a text style does not resolve a face.
 		virtual SdFontHandle GetFallbackFont() const noexcept = 0;
 

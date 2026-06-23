@@ -537,9 +537,9 @@ namespace Sodium
 				return *this;
 			}
 
-			SdStyleSystemSheetRuleBuilder& Layer(SdLayerPriority layerPriority) noexcept
+			SdStyleSystemSheetRuleBuilder& Layer(SdRootLayer rootLayer) noexcept
 			{
-				builder.Layer(layerPriority);
+				builder.Layer(rootLayer);
 				TouchCompiledSheet();
 				return *this;
 			}
@@ -754,7 +754,7 @@ namespace Sodium
 		SdWidgetRootStyle ResolveRootStyle(
 			SdStyleId targetTypeId,
 			SdStyleInteractionState interactionState,
-			SdLayerPriority layerPriority = SdLayerPriority::Content,
+			SdRootLayer rootLayer = SdRootLayer::Content,
 			SdSpan<const SdStyleClassId> styleClasses = {},
 			SdStyleScopeId styleScope = 0,
 			const SdWidgetRootStyle* inlineStyle = nullptr) const
@@ -762,7 +762,7 @@ namespace Sodium
 			const SdStyleResolveResult result = ResolveRootNode(
 				targetTypeId,
 				interactionState,
-				layerPriority,
+				rootLayer,
 				styleClasses,
 				styleScope,
 				inlineStyle);
@@ -772,7 +772,7 @@ namespace Sodium
 		SdStyleResolveResult ResolveRootNode(
 			SdStyleId targetTypeId,
 			SdStyleInteractionState interactionState,
-			SdLayerPriority layerPriority = SdLayerPriority::Content,
+			SdRootLayer rootLayer = SdRootLayer::Content,
 			SdSpan<const SdStyleClassId> styleClasses = {},
 			SdStyleScopeId styleScope = 0,
 			const SdWidgetRootStyle* inlineStyle = nullptr) const
@@ -782,7 +782,7 @@ namespace Sodium
 				targetTypeId,
 				SdStylePart::Root(),
 				interactionState,
-				layerPriority,
+				rootLayer,
 				styleClasses,
 				styleScope,
 				false);
@@ -791,7 +791,7 @@ namespace Sodium
 				targetTypeId,
 				SdStylePart::Root(),
 				interactionState,
-				layerPriority,
+				rootLayer,
 				styleClasses,
 				styleScope,
 				true);
@@ -813,7 +813,7 @@ namespace Sodium
 			SdStylePart part,
 			const SdWidgetRootStyle& rootStyle,
 			SdStyleInteractionState interactionState,
-			SdLayerPriority layerPriority = SdLayerPriority::Content,
+			SdRootLayer rootLayer = SdRootLayer::Content,
 			SdSpan<const SdStyleClassId> styleClasses = {},
 			SdStyleScopeId styleScope = 0) const
 		{
@@ -822,7 +822,7 @@ namespace Sodium
 				part,
 				rootStyle,
 				interactionState,
-				layerPriority,
+				rootLayer,
 				styleClasses,
 				styleScope);
 			return ToPartStyle(result.resolvedStyle);
@@ -833,7 +833,7 @@ namespace Sodium
 			SdStylePart part,
 			const SdWidgetRootStyle& rootStyle,
 			SdStyleInteractionState interactionState,
-			SdLayerPriority layerPriority = SdLayerPriority::Content,
+			SdRootLayer rootLayer = SdRootLayer::Content,
 			SdSpan<const SdStyleClassId> styleClasses = {},
 			SdStyleScopeId styleScope = 0) const
 		{
@@ -842,7 +842,7 @@ namespace Sodium
 				targetTypeId,
 				part,
 				interactionState,
-				layerPriority,
+				rootLayer,
 				styleClasses,
 				styleScope,
 				false);
@@ -860,7 +860,7 @@ namespace Sodium
 				targetTypeId,
 				part,
 				interactionState,
-				layerPriority,
+				rootLayer,
 				styleClasses,
 				styleScope,
 				true);
@@ -875,13 +875,13 @@ namespace Sodium
 		template<class TWidget>
 		typename TWidget::Style ResolveTypedStyle(
 			SdStyleInteractionState interactionState,
-			SdLayerPriority layerPriority = SdLayerPriority::Content,
+			SdRootLayer rootLayer = SdRootLayer::Content,
 			const typename TWidget::Style* inlineStyle = nullptr) const;
 
 		template<class TWidget>
 		typename TWidget::Style ResolveTypedStyle(
 			SdStyleInteractionState interactionState,
-			SdLayerPriority layerPriority,
+			SdRootLayer rootLayer,
 			SdSpan<const SdStyleClassId> styleClasses,
 			SdStyleScopeId styleScope,
 			const typename TWidget::Style* inlineStyle = nullptr) const;
@@ -890,7 +890,7 @@ namespace Sodium
 		bool TryResolveTransition(
 			SdUInt64 fieldId,
 			SdStyleInteractionState interactionState,
-			SdLayerPriority layerPriority,
+			SdRootLayer rootLayer,
 			SdSpan<const SdStyleClassId> styleClasses,
 			SdStyleScopeId styleScope,
 			SdTransition& transition) const;
@@ -899,7 +899,7 @@ namespace Sodium
 			SdStyleId targetTypeId,
 			SdPropertyId propertyId,
 			SdStyleInteractionState interactionState,
-			SdLayerPriority layerPriority,
+			SdRootLayer rootLayer,
 			SdSpan<const SdStyleClassId> styleClasses,
 			SdStyleScopeId styleScope,
 			SdTransition& transition) const
@@ -910,7 +910,7 @@ namespace Sodium
 				SdStylePart::Root(),
 				propertyId,
 				interactionState,
-				layerPriority,
+				rootLayer,
 				styleClasses,
 				styleScope,
 				transition);
@@ -921,7 +921,7 @@ namespace Sodium
 			SdStylePart part,
 			SdPropertyId propertyId,
 			SdStyleInteractionState interactionState,
-			SdLayerPriority layerPriority,
+			SdRootLayer rootLayer,
 			SdSpan<const SdStyleClassId> styleClasses,
 			SdStyleScopeId styleScope,
 			SdTransition& transition) const
@@ -932,7 +932,7 @@ namespace Sodium
 				part,
 				propertyId,
 				interactionState,
-				layerPriority,
+				rootLayer,
 				styleClasses,
 				styleScope,
 				transition);
@@ -1021,7 +1021,7 @@ namespace Sodium
 			SdStyleId targetTag,
 			SdStylePart part,
 			SdStyleInteractionState interactionState,
-			SdLayerPriority layerPriority,
+			SdRootLayer rootLayer,
 			SdSpan<const SdStyleClassId> styleClasses,
 			SdStyleScopeId styleScope,
 			bool resolveValues = true) const
@@ -1030,7 +1030,7 @@ namespace Sodium
 			request.targetTag = targetTag;
 			request.part = part;
 			request.pseudoState = SdPseudoState::FromInteraction(interactionState);
-			request.layerPriority = layerPriority;
+			request.rootLayer = rootLayer;
 			request.classes = styleClasses;
 			request.scope = styleScope;
 			struct AppliedDeclaration final
@@ -1280,7 +1280,7 @@ namespace Sodium
 			SdStylePart part,
 			SdPropertyId propertyId,
 			SdStyleInteractionState interactionState,
-			SdLayerPriority layerPriority,
+			SdRootLayer rootLayer,
 			SdSpan<const SdStyleClassId> styleClasses,
 			SdStyleScopeId styleScope,
 			SdTransition& transition) const
@@ -1289,7 +1289,7 @@ namespace Sodium
 			request.targetTag = targetTypeId;
 			request.part = part;
 			request.pseudoState = SdPseudoState::FromInteraction(interactionState);
-			request.layerPriority = layerPriority;
+			request.rootLayer = rootLayer;
 			request.classes = styleClasses;
 			request.scope = styleScope;
 			bool found = false;
@@ -1504,9 +1504,9 @@ namespace Sodium
 			return *this;
 		}
 
-		SdStyleRuleBuilder& Layer(SdLayerPriority layerPriority) noexcept
+		SdStyleRuleBuilder& Layer(SdRootLayer rootLayer) noexcept
 		{
-			builder.Layer(layerPriority);
+			builder.Layer(rootLayer);
 			TouchCompiledSheet();
 			return *this;
 		}
@@ -1590,16 +1590,16 @@ namespace Sodium
 	template<class TWidget>
 	typename TWidget::Style SdStyleSystem::ResolveTypedStyle(
 		SdStyleInteractionState interactionState,
-		SdLayerPriority layerPriority,
+		SdRootLayer rootLayer,
 		const typename TWidget::Style* inlineStyle) const
 	{
-		return ResolveTypedStyle<TWidget>(interactionState, layerPriority, {}, 0, inlineStyle);
+		return ResolveTypedStyle<TWidget>(interactionState, rootLayer, {}, 0, inlineStyle);
 	}
 
 	template<class TWidget>
 	typename TWidget::Style SdStyleSystem::ResolveTypedStyle(
 		SdStyleInteractionState interactionState,
-		SdLayerPriority layerPriority,
+		SdRootLayer rootLayer,
 		SdSpan<const SdStyleClassId> styleClasses,
 		SdStyleScopeId styleScope,
 		const typename TWidget::Style* inlineStyle) const
@@ -1611,7 +1611,7 @@ namespace Sodium
 			GetTargetTag<TWidget>(),
 			SdStylePart::Root(),
 			interactionState,
-			layerPriority,
+			rootLayer,
 			styleClasses,
 			styleScope);
 		if (inlineStyle)
@@ -1623,7 +1623,7 @@ namespace Sodium
 	bool SdStyleSystem::TryResolveTransition(
 		SdUInt64 fieldId,
 		SdStyleInteractionState interactionState,
-		SdLayerPriority layerPriority,
+		SdRootLayer rootLayer,
 		SdSpan<const SdStyleClassId> styleClasses,
 		SdStyleScopeId styleScope,
 		SdTransition& transition) const
@@ -1636,7 +1636,7 @@ namespace Sodium
 			SdStylePart::Root(),
 			fieldId,
 			interactionState,
-			layerPriority,
+			rootLayer,
 			styleClasses,
 			styleScope,
 			transition);

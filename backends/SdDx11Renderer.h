@@ -57,6 +57,7 @@ namespace Sodium::Backends
 
 		bool Initialize(const Config& config);
 		void Shutdown();
+		bool IsInitialized() const noexcept override { return device.Get() && deviceContext.Get() && vertexShader.Get() && pixelShader.Get() && inputLayout.Get(); }
 		SdTextureHandle CreateTexture(SdUInt32 width, SdUInt32 height, const void* rgbaPixels);
 		SdTextureHandle CreateTexture(const SdTextureDesc& desc) override;
 		void DestroyTexture(SdTextureHandle texture) override;

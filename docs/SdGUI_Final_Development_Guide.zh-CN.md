@@ -384,7 +384,7 @@ Renderer contract 必须明确：
    - hover
    - capture
    - click
-   - layer priority
+   - root layer
 9. render tests
    - draw packet 非空
    - batch count

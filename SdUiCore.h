@@ -6,16 +6,6 @@
 
 namespace Sodium
 {
-	enum class SdLayerPriority : SdUInt8
-	{
-		Background,
-		Content,
-		Floating,
-		Popup,
-		Overlay,
-		Debug
-	};
-
 	enum class SdRootLayer : SdUInt16
 	{
 		Background = 0,
@@ -38,27 +28,6 @@ namespace Sodium
 		DragPreview,
 		DebugOverlay
 	};
-
-	inline constexpr SdRootLayer SdRootLayerFromPriority(SdLayerPriority layerPriority) noexcept
-	{
-		switch (layerPriority)
-		{
-		case SdLayerPriority::Background:
-			return SdRootLayer::Background;
-		case SdLayerPriority::Content:
-			return SdRootLayer::Content;
-		case SdLayerPriority::Floating:
-			return SdRootLayer::Floating;
-		case SdLayerPriority::Popup:
-			return SdRootLayer::Popup;
-		case SdLayerPriority::Overlay:
-			return SdRootLayer::Tooltip;
-		case SdLayerPriority::Debug:
-			return SdRootLayer::DebugOverlay;
-		default:
-			return SdRootLayer::Content;
-		}
-	}
 
 	inline constexpr SdRootLayer SdRootLayerFromPortalRoot(SdPortalRoot portalRoot) noexcept
 	{

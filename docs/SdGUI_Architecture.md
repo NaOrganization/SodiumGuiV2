@@ -889,14 +889,17 @@ Style and layout implementation must avoid CPU hot-path overhead:
 Layer design is preserved and is independent from the old Element architecture.
 
 ```cpp
-enum class LayerPriority
+enum class SdRootLayer
 {
     Background,
     Content,
     Floating,
     Popup,
-    Overlay,
-    Debug
+    Tooltip,
+    ModalBackdrop,
+    Modal,
+    DragPreview,
+    DebugOverlay
 };
 ```
 
@@ -918,7 +921,7 @@ class ContextMenu final : public Sodium::SdWidgetTag
 public:
     void OnCreate(Sodium::SdCreateContext& context)
     {
-        context.widgetState.layerPriority = Sodium::SdLayerPriority::Popup;
+        context.widgetState.rootLayer = Sodium::SdRootLayer::Popup;
     }
 
     void OnUpdate(Sodium::SdUpdateContext& context)

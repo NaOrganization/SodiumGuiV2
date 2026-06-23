@@ -22,7 +22,7 @@ namespace Sodium
 		using Style = typename TWidget::Style;
 		if (Style* style = context.stateStorage.FindResolvedStyle<Style>(*record))
 			return *style;
-		ResolveTypedWidgetStyle<TWidget>(*record, SdStyleInteractionState::Normal, record->state.layerPriority);
+		ResolveTypedWidgetStyle<TWidget>(*record, SdStyleInteractionState::Normal, record->state.rootLayer);
 		Style* style = context.stateStorage.FindResolvedStyle<Style>(*record);
 		assert(style);
 		return *style;
@@ -36,7 +36,7 @@ namespace Sodium
 		using Style = typename TWidget::Style;
 		if (Style* style = context.stateStorage.FindPresentationStyle<Style>(*record))
 			return *style;
-		ResolveTypedWidgetStyle<TWidget>(*record, SdStyleInteractionState::Normal, record->state.layerPriority);
+		ResolveTypedWidgetStyle<TWidget>(*record, SdStyleInteractionState::Normal, record->state.rootLayer);
 		Style* style = context.stateStorage.FindPresentationStyle<Style>(*record);
 		assert(style);
 		return *style;
@@ -45,17 +45,17 @@ namespace Sodium
 	inline SdWidgetRootStyle SdInstance::ResolveRootStyleForWidget(
 		SdWidgetId widgetId,
 		SdStyleInteractionState interactionState,
-		SdLayerPriority layerPriority) const
+		SdRootLayer rootLayer) const
 	{
 		const SdWidgetRecord* record = context.stateStorage.FindWidgetRecord(widgetId);
 		assert(record);
 		if (!record)
-			return context.styling.ResolveRootStyle(SdWidgetTargetIds::Default, interactionState, layerPriority);
+			return context.styling.ResolveRootStyle(SdWidgetTargetIds::Default, interactionState, rootLayer);
 		const SdWidgetRootStyle* inlineRootStyle = context.stateStorage.FindInlineStyle<SdWidgetRootStyle>(*record);
 		return context.styling.ResolveRootStyle(
 			record->state.targetTypeId,
 			interactionState,
-			layerPriority,
+			rootLayer,
 			record->styleClasses,
 			record->styleScope,
 			inlineRootStyle);
@@ -188,6 +188,51 @@ namespace Sodium
 	inline bool SdWidgetContextBase::WasClicked() const noexcept
 	{
 		return instance.GetInteractionSystem().WasClicked(id);
+	}
+
+	inline bool SdWidgetContextBase::WasClicked(SdMouseButton button) const noexcept
+	{
+		return instance.GetInteractionSystem().WasClicked(id, button);
+	}
+
+	inline bool SdWidgetContextBase::WasDoubleClicked(SdMouseButton button) const noexcept
+	{
+		return instance.GetInteractionSystem().WasDoubleClicked(id, button);
+	}
+
+	inline bool SdWidgetContextBase::WasLongPressed(SdMouseButton button) const noexcept
+	{
+		return instance.GetInteractionSystem().WasLongPressed(id, button);
+	}
+
+	inline bool SdWidgetContextBase::WasOutsideClicked() const noexcept
+	{
+		return instance.GetInteractionSystem().WasOutsideClicked(id);
+	}
+
+	inline bool SdWidgetContextBase::IsWheelTarget() const noexcept
+	{
+		return instance.GetInteractionSystem().IsWheelTarget(id);
+	}
+
+	inline bool SdWidgetContextBase::IsKeyboardTarget() const noexcept
+	{
+		return instance.GetInteractionSystem().IsKeyboardTarget(id);
+	}
+
+	inline bool SdWidgetContextBase::IsDragSource() const noexcept
+	{
+		return instance.GetInteractionSystem().IsDragSource(id);
+	}
+
+	inline bool SdWidgetContextBase::IsDragTarget() const noexcept
+	{
+		return instance.GetInteractionSystem().IsDragTarget(id);
+	}
+
+	inline bool SdWidgetContextBase::IsDropTarget() const noexcept
+	{
+		return instance.GetInteractionSystem().IsDropTarget(id);
 	}
 
 	inline bool SdWidgetContextBase::IsCaptured() const noexcept

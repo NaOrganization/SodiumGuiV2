@@ -43,6 +43,7 @@ namespace Sodium::Backends
 	public:
 		bool Initialize(const Config& config);
 		void Shutdown();
+		bool IsInitialized() const noexcept override { return IsRunning(); }
 		SdUtf8String RequestClipboardText();
 		void SetClipboardText(SdUtf8StringView text);
 		bool HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, Sodium::SdInputSystem& targetInputSystem);

@@ -416,11 +416,11 @@ namespace
 				ui.Declare<Sodium::SdButton>("Second command");
 			});
 
-			gui.ui.DeclareKeyed<Sodium::SdTooltip>(
-				"sample_builtin_tooltip",
-				demoControls.tooltipVisible,
-				gui.GetInput().GetMousePosition(),
-				"SdTooltip follows the overlay layer");
+			//gui.ui.DeclareKeyed<Sodium::SdTooltip>(
+			//	"sample_builtin_tooltip",
+			//	demoControls.tooltipVisible,
+			//	gui.GetInput().GetMousePosition(),
+			//	"SdTooltip follows the overlay layer");
 		}
 
 		void ConfigureStyleSystem()
@@ -539,8 +539,8 @@ namespace
 				return false;
 			if (!fontBackend.Initialize())
 				return false;
-			gui.SetRendererBackend(&renderer);
-			gui.SetFontBackend(&fontBackend);
+			if (!gui.Initialize(platform, renderer, fontBackend))
+				return false;
 			const Sodium::SdFontRequest fontRequests[] =
 			{
 				{ L"C:\\Windows\\Fonts\\segoeui.ttf", "Segoe UI" },
@@ -584,8 +584,7 @@ namespace
 				ApplyGlobalTheme();
 				const std::array<float, 4> clearColor = GetClearColor();
 				dx.BeginFrame(clearColor);
-				const Sodium::SdVec2 displaySize = { static_cast<float>(dx.width), static_cast<float>(dx.height) };
-				gui.BeginFrame(platform, displaySize);
+				gui.BeginFrame();
 				const Sodium::SdStyleClassId demoWindowClasses[] = { kExampleDemoWindowClass };
 				gui.ui.DeclareStyled<DemoWindow>(
 					{ Sodium::SdSpan<const Sodium::SdStyleClassId>(demoWindowClasses, 1), kExampleDemoWindowScope },

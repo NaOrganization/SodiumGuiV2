@@ -96,7 +96,7 @@ namespace Sodium
 				return true;
 			if (record.state.portalRoot != SdPortalRoot::None)
 				return true;
-			if (record.state.layerPriority == SdLayerPriority::Floating || record.state.layerPriority == SdLayerPriority::Popup || record.state.layerPriority == SdLayerPriority::Overlay)
+			if (record.state.rootLayer == SdRootLayer::Floating || record.state.rootLayer == SdRootLayer::Popup || record.state.rootLayer == SdRootLayer::Tooltip)
 				return true;
 			if (record.styleCache.presentationStyle.zIndex != 0)
 				return true;
@@ -131,16 +131,16 @@ namespace Sodium
 			if (record.parentId != 0 && parentIt != widgets.end())
 			{
 				const SdWidgetRecord& parentRecord = parentIt->second;
-				if (static_cast<SdUInt8>(record.state.layerPriority) < static_cast<SdUInt8>(parentRecord.state.layerPriority))
-					record.state.layerPriority = parentRecord.state.layerPriority;
+				if (static_cast<SdUInt8>(record.state.rootLayer) < static_cast<SdUInt8>(parentRecord.state.rootLayer))
+					record.state.rootLayer = parentRecord.state.rootLayer;
 				record.state.computedStackingOrder = std::max(record.state.computedStackingOrder, parentRecord.state.computedStackingOrder);
 			}
 			record.state.rootLayer = record.state.portalRoot != SdPortalRoot::None
 				? SdRootLayerFromPortalRoot(record.state.portalRoot)
-				: SdRootLayerFromPriority(record.state.layerPriority);
+				: record.state.rootLayer;
 			record.state.computedClipRect = displayRect;
 			const SdStyleInteractionState styleInteraction = resolveStyleInteraction(id);
-			ResolveWidgetStyle(record, styleInteraction, record.state.layerPriority);
+			ResolveWidgetStyle(record, styleInteraction, record.state.rootLayer);
 
 			SdLayoutResult result = {};
 			result.desiredSize = {
@@ -167,7 +167,7 @@ namespace Sodium
 					record.layoutCallback(widgetObject, layoutContext);
 			}
 
-			ResolveWidgetStyle(record, styleInteraction, record.state.layerPriority);
+			ResolveWidgetStyle(record, styleInteraction, record.state.rootLayer);
 			record.state.measuredSize = result.desiredSize;
 
 			SdUInt32 parentBoxIndex = SdInvalidIndex<SdUInt32>;
@@ -222,19 +222,19 @@ namespace Sodium
 					|| overflowClipsChildren(parentRecord.styleCache.resolvedStyle.overflowY);
 				if (!record.state.escapesParentClip && parentBox && parentClipsChildren)
 					clipRect = intersectRect(clipRect, parentBox->contentBox);
-				if (static_cast<SdUInt8>(record.state.layerPriority) < static_cast<SdUInt8>(parentRecord.state.layerPriority))
-					record.state.layerPriority = parentRecord.state.layerPriority;
+				if (static_cast<SdUInt8>(record.state.rootLayer) < static_cast<SdUInt8>(parentRecord.state.rootLayer))
+					record.state.rootLayer = parentRecord.state.rootLayer;
 				record.state.computedStackingOrder = std::max(record.state.computedStackingOrder, parentRecord.state.computedStackingOrder);
 			}
 			record.state.rootLayer = record.state.portalRoot != SdPortalRoot::None
 				? SdRootLayerFromPortalRoot(record.state.portalRoot)
-				: SdRootLayerFromPriority(record.state.layerPriority);
+				: record.state.rootLayer;
 			displayHiddenByWidgetId[id] = hiddenByDisplay;
 			if (hiddenByDisplay)
 				clipRect = {};
 			record.state.computedClipRect = clipRect;
 			record.layoutCache.clipRect = clipRect;
-			ResolveWidgetStyle(record, resolveStyleInteraction(record.state.id), record.state.layerPriority);
+			ResolveWidgetStyle(record, resolveStyleInteraction(record.state.id), record.state.rootLayer);
 			if (record.arrangeCallback)
 			{
 				if (void* widgetObject = context.stateStorage.GetWidgetObjectPointer(record))
@@ -376,7 +376,7 @@ namespace Sodium
 			const SdStackingKey stackingKey = buildStackingKey(id, paintOrder);
 			SdLayerDrawRecord drawRecord = {};
 			drawRecord.widgetId = id;
-			drawRecord.layerPriority = record.state.layerPriority;
+			drawRecord.rootLayer = record.state.rootLayer;
 			drawRecord.clipRect = record.state.computedClipRect;
 			drawRecord.paintOrder = paintOrder;
 			drawRecord.key = stackingKey;
@@ -387,7 +387,7 @@ namespace Sodium
 
 			SdHitTestRecord hitRecord = {};
 			hitRecord.widgetId = id;
-			hitRecord.layerPriority = record.state.layerPriority;
+			hitRecord.rootLayer = record.state.rootLayer;
 			hitRecord.rect = hitTestRect(record);
 			hitRecord.clipRect = record.state.computedClipRect;
 			hitRecord.paintOrder = paintOrder++;
@@ -421,7 +421,7 @@ namespace Sodium
 				record.state.computedClipRect,
 				record.rootStyleNode.layoutBox,
 				record.state.opacity,
-				static_cast<SdLayerId>(record.state.layerPriority)
+				static_cast<SdLayerId>(record.state.rootLayer)
 			};
 			if (record.paintCallback)
 			{

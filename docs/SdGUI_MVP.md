@@ -25,7 +25,7 @@ Out of scope for this MVP:
 
 1. Full layout tree solving.
 2. Full style selector/token preprocessing.
-3. Popup/modal layer routing beyond the stored layer priority field.
+3. Popup/modal root-layer routing beyond the stored root layer field.
 4. Complex renderer batching across texture/scissor/shader state.
 5. Complex shaping, kerning, RTL layout, and multi-font fallback chains.
 
