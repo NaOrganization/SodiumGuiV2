@@ -333,6 +333,10 @@ namespace
 		SdUtf8String lastMeasuredText = {};
 		SdUtf8String lastPaintText = {};
 		SdColor lastPaintColor = {};
+		SdVec2 measuredSizeOverride = {};
+		SdRect glyphBoundsOverride = {};
+		bool hasMeasuredSizeOverride = false;
+		bool hasGlyphBoundsOverride = false;
 
 		SdFontHandle GetFallbackFont() const noexcept override
 		{
@@ -342,6 +346,8 @@ namespace
 		SdVec2 MeasureText(SdUtf8StringView text, const SdTextStyle& style) override
 		{
 			lastMeasuredText.assign(text.data(), text.size());
+			if (hasMeasuredSizeOverride)
+				return measuredSizeOverride;
 			return { static_cast<float>(text.size()) * style.pixelSize * 0.5f, style.pixelSize };
 		}
 
@@ -357,7 +363,15 @@ namespace
 			lastPaintColor = color;
 			lastPaintText.assign(text.data(), text.size());
 			SdParagraphLayout layout(resource);
-			layout.size = { static_cast<float>(text.size()), 1.0f };
+			layout.size = hasMeasuredSizeOverride
+				? measuredSizeOverride
+				: SdVec2{ static_cast<float>(text.size()), 1.0f };
+			if (hasGlyphBoundsOverride)
+			{
+				SdTextGlyph glyph = {};
+				glyph.rect = glyphBoundsOverride;
+				layout.glyphs.push_back(glyph);
+			}
 			return layout;
 		}
 
@@ -1319,6 +1333,19 @@ namespace
 		const SdResolvedBoxStyle percentageUsed = SdResolveBoxStyle(style, { 300.0f, 120.0f }, { 42.0f, 18.0f });
 		Check(percentageUsed.width == 150.0f, "box model resolves percentage lengths to used values");
 
+		SdBoxStyle borderBoxStyle = {};
+		borderBoxStyle.boxSizing = SdBoxSizing::BorderBox;
+		borderBoxStyle.width = SdLength::Pixels(50.0f);
+		borderBoxStyle.height = SdLength::Pixels(24.0f);
+		borderBoxStyle.padding = SdBoxEdges::All(SdLength::Pixels(4.0f));
+		borderBoxStyle.border = SdBorder::All(SdLength::Pixels(2.0f), SdColorWhite);
+		SdBoxTree borderBoxTree = {};
+		borderBoxTree.AddBox(30, SdInvalidIndex<SdUInt32>, borderBoxStyle);
+		borderBoxTree.Layout({ 0.0f, 0.0f, 200.0f, 100.0f });
+		const SdBoxNode& borderSizedBox = borderBoxTree.GetBoxes()[0];
+		Check(borderSizedBox.borderBox.Width() == 50.0f && borderSizedBox.borderBox.Height() == 24.0f, "box-sizing border-box keeps explicit size on border box");
+		Check(borderSizedBox.contentBox.Width() == 38.0f && borderSizedBox.contentBox.Height() == 12.0f, "box-sizing border-box subtracts padding and border for content box");
+
 		SdBoxStyle parentStyle = {};
 		parentStyle.display = SdDisplay::Flex;
 		parentStyle.flexDirection = SdFlexDirection::Row;
@@ -1475,6 +1502,162 @@ namespace
 		Check(hasPartUsedBox, "runtime writes independent used geometry to part style nodes");
 		Check(hasShadowBox, "runtime shadow box tree indexes root style nodes");
 		Check(hasLayoutBoxFromShadowBox, "runtime writes shadow box geometry to style nodes");
+
+		SdInstance centeredButtonInstance;
+		RecordingFontBackend centeredButtonFontBackend = {};
+		centeredButtonFontBackend.measuredSizeOverride = { 80.0f, 20.0f };
+		centeredButtonFontBackend.glyphBoundsOverride = { 4.0f, 5.0f, 76.0f, 15.0f };
+		centeredButtonFontBackend.hasMeasuredSizeOverride = true;
+		centeredButtonFontBackend.hasGlyphBoundsOverride = true;
+		centeredButtonInstance.SetFontBackend(&centeredButtonFontBackend);
+		centeredButtonInstance.GetStyleSystem().RootRule(SdButton::TargetTypeId)
+			.Set(&SdBoxStyle::width, SdLength::Pixels(160.0f))
+			.Set(&SdBoxStyle::height, SdLength::Pixels(48.0f))
+			.Set(&SdBoxStyle::padding, SdStyleValue::FromSpacing({ 20.0f, 8.0f, 12.0f, 6.0f }));
+		centeredButtonInstance.BeginFrame({ 320.0f, 200.0f });
+		centeredButtonInstance.ui.Declare<SdButton>("Centered");
+		PumpFrame(centeredButtonInstance);
+		bool buttonLabelVisualBoundsCentered = false;
+		for (const auto& [id, record] : centeredButtonInstance.GetStateStorage().GetWidgetRecords())
+		{
+			(void)id;
+			if (record.widgetType != std::type_index(typeid(SdButton)))
+				continue;
+
+			const SdStyleNode& root = centeredButtonInstance.GetRootStyleNode(record.state.id);
+			const SdStyleNode& label = centeredButtonInstance.GetStylePart(record.state.id, SdButton::Parts::Label);
+			const SdResolvedBoxStyle rootBoxStyle = SdResolveBoxStyle(root.resolvedStyle, root.layoutBox.borderBox.Size(), {});
+			const SdRect contentRect = SdInsetRect(root.layoutBox.borderBox, rootBoxStyle.padding);
+			const SdRect glyphRect = BasicWidgetDetail::OffsetRect(centeredButtonFontBackend.glyphBoundsOverride, label.layoutBox.borderBox.min);
+			const float contentCenterX = (contentRect.min.x + contentRect.max.x) * 0.5f;
+			const float contentCenterY = (contentRect.min.y + contentRect.max.y) * 0.5f;
+			const float glyphCenterX = (glyphRect.min.x + glyphRect.max.x) * 0.5f;
+			const float glyphCenterY = (glyphRect.min.y + glyphRect.max.y) * 0.5f;
+			buttonLabelVisualBoundsCentered = std::abs(glyphCenterX - contentCenterX) < 0.001f
+				&& std::abs(glyphCenterY - contentCenterY) < 0.001f;
+		}
+		Check(buttonLabelVisualBoundsCentered, "button label glyph bounds center within content box");
+
+		SdInstance compactButtonInstance;
+		RecordingFontBackend compactButtonFontBackend = {};
+		compactButtonFontBackend.measuredSizeOverride = { 80.0f, 48.0f };
+		compactButtonFontBackend.glyphBoundsOverride = { 4.0f, 19.0f, 76.0f, 29.0f };
+		compactButtonFontBackend.hasMeasuredSizeOverride = true;
+		compactButtonFontBackend.hasGlyphBoundsOverride = true;
+		compactButtonInstance.SetFontBackend(&compactButtonFontBackend);
+		compactButtonInstance.BeginFrame({ 320.0f, 200.0f });
+		compactButtonInstance.ui.Declare<SdButton>("Compact");
+		PumpFrame(compactButtonInstance);
+		bool buttonIgnoresExcessLineBoxHeight = false;
+		for (const auto& [id, record] : compactButtonInstance.GetStateStorage().GetWidgetRecords())
+		{
+			(void)id;
+			if (record.widgetType != std::type_index(typeid(SdButton)))
+				continue;
+			const SdStyleNode& root = compactButtonInstance.GetRootStyleNode(record.state.id);
+			buttonIgnoresExcessLineBoxHeight = root.layoutBox.borderBox.Height() <= 40.0f;
+		}
+		Check(buttonIgnoresExcessLineBoxHeight, "button intrinsic height uses glyph bounds instead of excess line box");
+
+		SdInstance alignedTextPartsInstance;
+		RecordingFontBackend alignedTextFontBackend = {};
+		alignedTextFontBackend.measuredSizeOverride = { 80.0f, 20.0f };
+		alignedTextFontBackend.glyphBoundsOverride = { 4.0f, 5.0f, 76.0f, 15.0f };
+		alignedTextFontBackend.hasMeasuredSizeOverride = true;
+		alignedTextFontBackend.hasGlyphBoundsOverride = true;
+		alignedTextPartsInstance.SetFontBackend(&alignedTextFontBackend);
+		alignedTextPartsInstance.GetStyleSystem().RootRule(SdCheckBox::TargetTypeId)
+			.Set(&SdBoxStyle::minHeight, SdLength::Pixels(48.0f))
+			.Set(&SdBoxStyle::padding, SdStyleValue::FromSpacing({ 20.0f, 8.0f, 12.0f, 6.0f }))
+			.Set(&SdBoxStyle::gap, SdLength::Pixels(10.0f));
+		alignedTextPartsInstance.GetStyleSystem().RootRule(SdSliderFloat::TargetTypeId)
+			.Set(&SdBoxStyle::height, SdLength::Pixels(48.0f))
+			.Set(&SdBoxStyle::padding, SdStyleValue::FromSpacing({ 20.0f, 8.0f, 12.0f, 6.0f }))
+			.Set(&SdBoxStyle::gap, SdLength::Pixels(10.0f));
+		alignedTextPartsInstance.GetStyleSystem().RootRule(SdTextInput::TargetTypeId)
+			.Set(&SdBoxStyle::minHeight, SdLength::Pixels(48.0f))
+			.Set(&SdBoxStyle::padding, SdStyleValue::FromSpacing({ 20.0f, 8.0f, 12.0f, 6.0f }));
+		bool alignedChecked = false;
+		float alignedSliderValue = 0.5f;
+		SdUtf8String alignedInputValue = "Input";
+		bool alignedWindowOpen = true;
+		SdWindowOptions alignedWindowOptions = {};
+		alignedWindowOptions.position = { 32.0f, 132.0f };
+		alignedWindowOptions.size = { 220.0f, 96.0f };
+		alignedTextPartsInstance.BeginFrame({ 420.0f, 260.0f });
+		alignedTextPartsInstance.ui.Declare<SdCheckBox>("Check", alignedChecked);
+		alignedTextPartsInstance.ui.Declare<SdSliderFloat>("Slide", alignedSliderValue, 0.0f, 1.0f);
+		alignedTextPartsInstance.ui.Declare<SdTextInput>(alignedInputValue, "Placeholder");
+		alignedTextPartsInstance.ui.Declare<SdWindow>("Window", alignedWindowOpen, alignedWindowOptions, [](SdUi&) {});
+		PumpFrame(alignedTextPartsInstance);
+		bool checkBoxLabelCentered = false;
+		bool checkBoxHitRectUsesLayoutBox = false;
+		bool sliderLabelCentered = false;
+		bool textInputValueCentered = false;
+		bool windowTitleCentered = false;
+		for (const auto& [id, record] : alignedTextPartsInstance.GetStateStorage().GetWidgetRecords())
+		{
+			(void)id;
+			if (record.widgetType == std::type_index(typeid(SdCheckBox)))
+			{
+				const SdStyleNode& root = alignedTextPartsInstance.GetRootStyleNode(record.state.id);
+				const SdStyleNode& label = alignedTextPartsInstance.GetStylePart(record.state.id, SdCheckBox::Parts::Label);
+				const SdStyleNode& box = alignedTextPartsInstance.GetStylePart(record.state.id, SdCheckBox::Parts::Box);
+				const SdResolvedBoxStyle rootBoxStyle = SdResolveBoxStyle(root.resolvedStyle, root.layoutBox.borderBox.Size(), {});
+				const SdRect contentRect = SdInsetRect(root.layoutBox.borderBox, rootBoxStyle.padding);
+				const SdRect glyphRect = BasicWidgetDetail::OffsetRect(alignedTextFontBackend.glyphBoundsOverride, label.layoutBox.borderBox.min);
+				const float contentCenterY = (contentRect.min.y + contentRect.max.y) * 0.5f;
+				const float glyphCenterY = (glyphRect.min.y + glyphRect.max.y) * 0.5f;
+				const float boxCenterY = (box.layoutBox.borderBox.min.y + box.layoutBox.borderBox.max.y) * 0.5f;
+				checkBoxLabelCentered = std::abs(glyphCenterY - contentCenterY) < 0.001f
+					&& std::abs(boxCenterY - contentCenterY) < 0.001f;
+				for (const SdHitTestRecord& hitRecord : alignedTextPartsInstance.GetLayerSystem().GetHitTestRecords())
+				{
+					if (hitRecord.widgetId != record.state.id)
+						continue;
+					checkBoxHitRectUsesLayoutBox = hitRecord.rect.min.x == root.layoutBox.borderBox.min.x
+						&& hitRecord.rect.min.y == root.layoutBox.borderBox.min.y
+						&& hitRecord.rect.max.x == root.layoutBox.borderBox.max.x
+						&& hitRecord.rect.max.y == root.layoutBox.borderBox.max.y;
+				}
+			}
+			if (record.widgetType == std::type_index(typeid(SdSliderFloat)))
+			{
+				const SdStyleNode& root = alignedTextPartsInstance.GetRootStyleNode(record.state.id);
+				const SdStyleNode& label = alignedTextPartsInstance.GetStylePart(record.state.id, SdSliderFloat::Parts::Label);
+				const SdResolvedBoxStyle rootBoxStyle = SdResolveBoxStyle(root.resolvedStyle, root.layoutBox.borderBox.Size(), {});
+				const SdRect contentRect = SdInsetRect(root.layoutBox.borderBox, rootBoxStyle.padding);
+				const SdRect glyphRect = BasicWidgetDetail::OffsetRect(alignedTextFontBackend.glyphBoundsOverride, label.layoutBox.borderBox.min);
+				const float contentCenterY = (contentRect.min.y + contentRect.max.y) * 0.5f;
+				const float glyphCenterY = (glyphRect.min.y + glyphRect.max.y) * 0.5f;
+				sliderLabelCentered = std::abs(glyphCenterY - contentCenterY) < 0.001f;
+			}
+			if (record.widgetType == std::type_index(typeid(SdTextInput)))
+			{
+				const SdStyleNode& root = alignedTextPartsInstance.GetRootStyleNode(record.state.id);
+				const SdStyleNode& value = alignedTextPartsInstance.GetStylePart(record.state.id, SdTextInput::Parts::Value);
+				const SdResolvedBoxStyle rootBoxStyle = SdResolveBoxStyle(root.resolvedStyle, root.layoutBox.borderBox.Size(), {});
+				const SdRect contentRect = SdInsetRect(root.layoutBox.borderBox, rootBoxStyle.padding);
+				const SdRect glyphRect = BasicWidgetDetail::OffsetRect(alignedTextFontBackend.glyphBoundsOverride, value.layoutBox.borderBox.min);
+				const float contentCenterY = (contentRect.min.y + contentRect.max.y) * 0.5f;
+				const float glyphCenterY = (glyphRect.min.y + glyphRect.max.y) * 0.5f;
+				textInputValueCentered = std::abs(glyphCenterY - contentCenterY) < 0.001f;
+			}
+			if (record.widgetType == std::type_index(typeid(SdWindow)))
+			{
+				const SdStyleNode& titlebar = alignedTextPartsInstance.GetStylePart(record.state.id, SdWindow::Parts::Titlebar);
+				const SdStyleNode& title = alignedTextPartsInstance.GetStylePart(record.state.id, SdWindow::Parts::Title);
+				const SdRect glyphRect = BasicWidgetDetail::OffsetRect(alignedTextFontBackend.glyphBoundsOverride, title.layoutBox.borderBox.min);
+				const float titlebarCenterY = (titlebar.layoutBox.borderBox.min.y + titlebar.layoutBox.borderBox.max.y) * 0.5f;
+				const float glyphCenterY = (glyphRect.min.y + glyphRect.max.y) * 0.5f;
+				windowTitleCentered = std::abs(glyphCenterY - titlebarCenterY) < 0.001f;
+			}
+		}
+		Check(checkBoxLabelCentered, "checkbox label and box glyph bounds center within content box");
+		Check(checkBoxHitRectUsesLayoutBox, "checkbox hit-test rect uses root layout box");
+		Check(sliderLabelCentered, "slider label glyph bounds center within content box");
+		Check(textInputValueCentered, "text input value glyph bounds center within content box");
+		Check(windowTitleCentered, "window title glyph bounds center within titlebar");
 
 		SdInstance panelInstance;
 		panelInstance.BeginFrame({ 320.0f, 200.0f });
@@ -1890,7 +2073,8 @@ namespace
 			&& overflowStyle.overflowY == SdOverflow::Clip,
 			"stylesheet resolves root box model properties");
 		bool childClipMatchesOverflowContent = false;
-		bool childArrangedFromFlexDisplay = false;
+		bool childTargetMatchesFlexLayoutBox = false;
+		bool childConsumesFlexAlignment = false;
 		bool rootUsedBoxIncludesMargin = false;
 		bool rootUsedBoxIncludesContent = false;
 		SdRect overflowContentRect = {};
@@ -1912,8 +2096,12 @@ namespace
 			(void)id;
 			if (record.widgetType == std::type_index(typeid(TestDrawWidget)))
 			{
-				childArrangedFromFlexDisplay = record.state.targetRect.min.x == overflowContentRect.min.x
-					&& record.state.targetRect.min.y == overflowContentRect.min.y;
+				const SdStyleNode& childRoot = overflowInstance.GetRootStyleNode(record.state.id);
+				childTargetMatchesFlexLayoutBox = record.state.targetRect.min.x == childRoot.layoutBox.borderBox.min.x
+					&& record.state.targetRect.min.y == childRoot.layoutBox.borderBox.min.y
+					&& record.state.targetRect.max.x == childRoot.layoutBox.borderBox.max.x
+					&& record.state.targetRect.max.y == childRoot.layoutBox.borderBox.max.y;
+				childConsumesFlexAlignment = record.state.targetRect.min.y > overflowContentRect.min.y;
 				childClipMatchesOverflowContent = record.state.computedClipRect.min.x == overflowContentRect.min.x
 					&& record.state.computedClipRect.min.y == overflowContentRect.min.y
 					&& record.state.computedClipRect.max.x == overflowContentRect.max.x
@@ -1922,7 +2110,8 @@ namespace
 		}
 		Check(rootUsedBoxIncludesMargin, "runtime used geometry resolves root margin box");
 		Check(rootUsedBoxIncludesContent, "runtime used geometry resolves root content box");
-		Check(childArrangedFromFlexDisplay, "runtime derives child arrangement from root flex display style");
+		Check(childTargetMatchesFlexLayoutBox, "runtime target rect is driven by box tree layout");
+		Check(childConsumesFlexAlignment, "runtime consumes flex alignment style for child layout");
 		Check(childClipMatchesOverflowContent, "runtime derives child clipping from root overflow style");
 
 		SdInstance manualInstance;
@@ -2648,10 +2837,26 @@ namespace
 			instance.ui.Declare<SdSliderFloat>(value, 0.0f, 1.0f);
 			PumpFrame(instance);
 
+			SdRect sliderHitRect = {};
+			for (const auto& [id, record] : instance.GetStateStorage().GetWidgetRecords())
+			{
+				(void)id;
+				if (record.widgetType != std::type_index(typeid(SdSliderFloat)))
+					continue;
+				for (const SdHitTestRecord& hitRecord : instance.GetLayerSystem().GetHitTestRecords())
+				{
+					if (hitRecord.widgetId == record.state.id)
+						sliderHitRect = hitRecord.rect;
+				}
+			}
+			const SdVec2 sliderPressPosition = {
+				sliderHitRect.max.x - 2.0f,
+				(sliderHitRect.min.y + sliderHitRect.max.y) * 0.5f
+			};
 			instance.GetInputSystem().PushEvent(SdInputEvent{
 				SdInputEventType::MouseMove,
 				SdInputDevice::Mouse,
-				SdMouseMoveEvent{ { 198.0f, 24.0f } }
+				SdMouseMoveEvent{ sliderPressPosition }
 			});
 			instance.GetInputSystem().PushEvent(SdInputEvent{
 				SdInputEventType::MouseButton,

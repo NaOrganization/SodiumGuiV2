@@ -77,18 +77,50 @@ namespace Sodium
 				|| context.animationSystem.IsActive(record.animation.rectHeight);
 		};
 
+		auto hitTestRect = [](const SdWidgetRecord& record) noexcept
+		{
+			const SdRect& borderBox = record.rootStyleNode.layoutBox.borderBox;
+			return borderBox.Width() > 0.0f || borderBox.Height() > 0.0f
+				? borderBox
+				: record.state.animatedRect;
+		};
+
 		auto overflowClipsChildren = [](SdOverflow overflow) noexcept
 		{
 			return overflow != SdOverflow::Visible;
 		};
 
+		auto intersectRect = [](const SdRect& left, const SdRect& right) noexcept
+		{
+			SdRect result = {
+				std::max(left.min.x, right.min.x),
+				std::max(left.min.y, right.min.y),
+				std::min(left.max.x, right.max.x),
+				std::min(left.max.y, right.max.y)
+			};
+			result.max.x = std::max(result.min.x, result.max.x);
+			result.max.y = std::max(result.min.y, result.max.y);
+			return result;
+		};
+
 		context.layoutSystem.BeginFrame(liveIds.size());
 		context.boxTree.Clear();
 		std::unordered_map<SdWidgetId, SdUInt32> boxIndexByWidgetId = {};
+		std::unordered_map<SdWidgetId, SdUInt32> layoutNodeIndexByWidgetId = {};
+		std::unordered_map<SdWidgetId, bool> displayHiddenByWidgetId = {};
 		boxIndexByWidgetId.reserve(liveIds.size());
+		layoutNodeIndexByWidgetId.reserve(liveIds.size());
+		displayHiddenByWidgetId.reserve(liveIds.size());
 		for (SdWidgetId id : liveIds)
 		{
 			SdWidgetRecord& record = widgets[id];
+			const auto parentIt = widgets.find(record.parentId);
+			if (record.parentId != 0 && parentIt != widgets.end())
+			{
+				const SdWidgetRecord& parentRecord = parentIt->second;
+				if (static_cast<SdUInt8>(record.state.layerPriority) < static_cast<SdUInt8>(parentRecord.state.layerPriority))
+					record.state.layerPriority = parentRecord.state.layerPriority;
+			}
 			record.state.computedClipRect = displayRect;
 			const SdStyleInteractionState styleInteraction = resolveStyleInteraction(id);
 			ResolveWidgetStyle(record, styleInteraction, record.state.layerPriority);
@@ -126,7 +158,7 @@ namespace Sodium
 			const bool styleClipsChildren = overflowClipsChildren(rootUsedStyle.overflowX)
 				|| overflowClipsChildren(rootUsedStyle.overflowY);
 
-			context.layoutSystem.AddNode({
+			const SdUInt32 layoutNodeIndex = context.layoutSystem.AddNode({
 				id,
 				record.parentId,
 				constraints,
@@ -145,6 +177,7 @@ namespace Sodium
 				record.state.arrangeChildren || styleArrangesChildren,
 				record.state.clipChildren || styleClipsChildren
 			});
+			layoutNodeIndexByWidgetId[id] = layoutNodeIndex;
 
 			SdUInt32 parentBoxIndex = SdInvalidIndex<SdUInt32>;
 			const auto parentBoxIt = boxIndexByWidgetId.find(record.parentId);
@@ -164,37 +197,58 @@ namespace Sodium
 		context.boxTree.Layout(displayRect);
 		context.layoutSystem.Measure(displaySize);
 		context.layoutSystem.Arrange(displayRect);
-		const std::vector<SdLayoutNode>& layoutNodes = context.layoutSystem.GetNodes();
-		for (const SdLayoutNode& node : layoutNodes)
+		std::vector<SdLayoutNode>& layoutNodes = context.layoutSystem.GetNodes();
+		for (SdLayoutNode& node : layoutNodes)
 		{
 			SdWidgetRecord& record = widgets[node.widgetId];
+			const SdBoxNode* box = context.boxTree.FindBoxByStyleNodeId(record.rootStyleNodeId);
+			const SdRect targetRect = box ? box->borderBox : SdRect{};
+			const SdRect childContentRect = box ? box->contentBox : SdRect{};
+			const SdUsedBox layoutBox = box ? SdUsedBoxFromNode(*box) : SdUsedBox{};
+			node.targetRect = targetRect;
+			node.result.finalRect = targetRect;
+			node.childContentRect = childContentRect;
 			record.state.measuredSize = node.result.desiredSize;
-			record.state.targetRect = node.targetRect;
-			record.state.childContentRect = node.childContentRect;
-			record.state.computedClipRect = node.computedClipRect;
+			record.state.targetRect = targetRect;
+			record.state.childContentRect = childContentRect;
 			record.layoutCache.measuredSize = node.result.desiredSize;
-			record.layoutCache.targetRect = node.targetRect;
-			record.layoutCache.clipRect = node.computedClipRect;
+			record.layoutCache.targetRect = targetRect;
 			if (SdStyleNode* rootNode = context.stateStorage.FindStyleNodeById(record.rootStyleNodeId))
 			{
-				rootNode->usedBox = SdBuildUsedBox(node.targetRect, rootNode->resolvedStyle);
-				if (const SdBoxNode* box = context.boxTree.FindBoxByStyleNodeId(record.rootStyleNodeId))
-				{
-					rootNode->layoutBox = {
-						box->marginBox,
-						box->borderBox,
-						box->paddingBox,
-						box->contentBox
-					};
-				}
+				rootNode->usedBox = layoutBox;
+				rootNode->layoutBox = layoutBox;
 				record.rootStyleNode = *rootNode;
 			}
-			if (node.parentIndex != SdInvalidIndex<SdUInt32> && node.parentIndex < layoutNodes.size())
+		}
+
+		for (SdWidgetId id : liveIds)
+		{
+			SdWidgetRecord& record = widgets[id];
+			bool hiddenByDisplay = record.styleCache.resolvedStyle.display == SdDisplay::None;
+			SdRect clipRect = displayRect;
+			const auto parentIt = widgets.find(record.parentId);
+			if (record.parentId != 0 && parentIt != widgets.end())
 			{
-				const SdWidgetRecord& parentRecord = widgets[layoutNodes[node.parentIndex].widgetId];
+				const SdWidgetRecord& parentRecord = parentIt->second;
+				const auto parentHiddenIt = displayHiddenByWidgetId.find(record.parentId);
+				hiddenByDisplay = hiddenByDisplay || (parentHiddenIt != displayHiddenByWidgetId.end() && parentHiddenIt->second);
+				clipRect = parentRecord.state.computedClipRect;
+				const SdBoxNode* parentBox = context.boxTree.FindBoxByStyleNodeId(parentRecord.rootStyleNodeId);
+				const bool parentClipsChildren = overflowClipsChildren(parentRecord.styleCache.resolvedStyle.overflowX)
+					|| overflowClipsChildren(parentRecord.styleCache.resolvedStyle.overflowY);
+				if (parentBox && parentClipsChildren)
+					clipRect = intersectRect(clipRect, parentBox->contentBox);
 				if (static_cast<SdUInt8>(record.state.layerPriority) < static_cast<SdUInt8>(parentRecord.state.layerPriority))
 					record.state.layerPriority = parentRecord.state.layerPriority;
 			}
+			displayHiddenByWidgetId[id] = hiddenByDisplay;
+			if (hiddenByDisplay)
+				clipRect = {};
+			record.state.computedClipRect = clipRect;
+			record.layoutCache.clipRect = clipRect;
+			const auto layoutNodeIt = layoutNodeIndexByWidgetId.find(id);
+			if (layoutNodeIt != layoutNodeIndexByWidgetId.end() && layoutNodeIt->second < layoutNodes.size())
+				layoutNodes[layoutNodeIt->second].computedClipRect = clipRect;
 			ResolveWidgetStyle(record, resolveStyleInteraction(record.state.id), record.state.layerPriority);
 			if (record.arrangeCallback)
 			{
@@ -241,6 +295,9 @@ namespace Sodium
 		for (SdWidgetId id : paintIds)
 		{
 			SdWidgetRecord& record = widgets[id];
+			const auto hiddenIt = displayHiddenByWidgetId.find(id);
+			if (hiddenIt != displayHiddenByWidgetId.end() && hiddenIt->second)
+				continue;
 			context.layerSystem.AddDrawRecord({
 				id,
 				record.state.layerPriority,
@@ -250,7 +307,7 @@ namespace Sodium
 			context.layerSystem.AddHitTestRecord({
 				id,
 				record.state.layerPriority,
-				record.state.animatedRect,
+				hitTestRect(record),
 				record.state.computedClipRect,
 				paintOrder++,
 				record.state.inputEnabled && record.state.lifePhase != SdWidgetLifePhase::Leaving
@@ -261,6 +318,9 @@ namespace Sodium
 		for (SdWidgetId id : paintIds)
 		{
 			SdWidgetRecord& record = widgets[id];
+			const auto hiddenIt = displayHiddenByWidgetId.find(id);
+			if (hiddenIt != displayHiddenByWidgetId.end() && hiddenIt->second)
+				continue;
 			if (record.state.opacity <= 0.0f)
 				continue;
 

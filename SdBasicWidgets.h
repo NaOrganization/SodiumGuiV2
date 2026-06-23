@@ -116,6 +116,105 @@ namespace Sodium
 			return { width, ResolveLineHeight(textStyle) };
 		}
 
+		struct SdMeasuredTextLayout final
+		{
+			SdVec2 layoutSize = {};
+			SdRect visibleBounds = {};
+		};
+
+		inline SdRect SizeRect(SdVec2 size) noexcept
+		{
+			return { 0.0f, 0.0f, std::max(0.0f, size.x), std::max(0.0f, size.y) };
+		}
+
+		inline SdMeasuredTextLayout MeasureTextLayout(SdInstance& instance, SdUtf8StringView text, const SdTextStyle& textStyle)
+		{
+			SdMeasuredTextLayout metrics = {};
+			metrics.layoutSize = EstimateTextSize(text, textStyle);
+			metrics.visibleBounds = SizeRect(metrics.layoutSize);
+			if (text.empty())
+				return metrics;
+
+			ISdFontBackend* fontBackend = instance.GetFontBackend();
+			if (!fontBackend)
+				return metrics;
+
+			metrics.layoutSize = fontBackend->MeasureText(text, textStyle);
+			metrics.visibleBounds = SizeRect(metrics.layoutSize);
+			const SdParagraphLayout layout = fontBackend->BuildParagraphLayout(text, textStyle, 0.0f, SdColorWhite);
+			if (layout.size.x > 0.0f || layout.size.y > 0.0f)
+			{
+				metrics.layoutSize = layout.size;
+				metrics.visibleBounds = SizeRect(metrics.layoutSize);
+			}
+			bool hasVisibleBounds = false;
+			SdRect visibleBounds = {};
+			for (const SdTextGlyph& glyph : layout.glyphs)
+			{
+				if (glyph.rect.Width() <= 0.0f || glyph.rect.Height() <= 0.0f)
+					continue;
+				if (!hasVisibleBounds)
+				{
+					visibleBounds = glyph.rect;
+					hasVisibleBounds = true;
+					continue;
+				}
+				visibleBounds.min.x = std::min(visibleBounds.min.x, glyph.rect.min.x);
+				visibleBounds.min.y = std::min(visibleBounds.min.y, glyph.rect.min.y);
+				visibleBounds.max.x = std::max(visibleBounds.max.x, glyph.rect.max.x);
+				visibleBounds.max.y = std::max(visibleBounds.max.y, glyph.rect.max.y);
+			}
+			if (hasVisibleBounds)
+				metrics.visibleBounds = visibleBounds;
+			return metrics;
+		}
+
+		inline SdVec2 AlignTextLayoutOrigin(
+			const SdRect& rect,
+			const SdMeasuredTextLayout& metrics,
+			bool centerX,
+			bool centerY) noexcept
+		{
+			const float x = centerX
+				? rect.min.x + (rect.Width() - metrics.visibleBounds.Width()) * 0.5f
+				: rect.min.x;
+			const float y = centerY
+				? rect.min.y + (rect.Height() - metrics.visibleBounds.Height()) * 0.5f
+				: rect.min.y;
+			return {
+				x - metrics.visibleBounds.min.x,
+				y - metrics.visibleBounds.min.y
+			};
+		}
+
+		inline SdVec2 CenterTextLayoutOrigin(const SdRect& rect, const SdMeasuredTextLayout& metrics) noexcept
+		{
+			return AlignTextLayoutOrigin(rect, metrics, true, true);
+		}
+
+		inline SdVec2 LeftCenterTextLayoutOrigin(const SdRect& rect, const SdMeasuredTextLayout& metrics) noexcept
+		{
+			return AlignTextLayoutOrigin(rect, metrics, false, true);
+		}
+
+		inline SdVec2 LeftTopTextLayoutOrigin(const SdRect& rect, const SdMeasuredTextLayout& metrics) noexcept
+		{
+			return AlignTextLayoutOrigin(rect, metrics, false, false);
+		}
+
+		inline SdRect TextLayoutRect(const SdVec2& origin, const SdMeasuredTextLayout& metrics) noexcept
+		{
+			return { origin, origin + metrics.layoutSize };
+		}
+
+		inline SdVec2 TextVisualSize(const SdMeasuredTextLayout& metrics) noexcept
+		{
+			return {
+				std::max(metrics.layoutSize.x, metrics.visibleBounds.Width()),
+				metrics.visibleBounds.Height()
+			};
+		}
+
 		inline SdVec2 MeasureText(SdInstance& instance, SdUtf8StringView text, const SdTextStyle& textStyle)
 		{
 			if (ISdFontBackend* fontBackend = instance.GetFontBackend())
@@ -233,9 +332,9 @@ namespace Sodium
 			const SdBoxStyle& rootStyle = context.RootStyleNode().resolvedStyle;
 			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(rootStyle, context.constraints.maxSize, {});
 			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle(state.textStyle, rootStyle.fontSize, rootStyle.lineHeight);
-			SdVec2 desiredSize = BasicWidgetDetail::MeasureText(context, state.text, textStyle);
+			SdVec2 desiredSize = BasicWidgetDetail::TextVisualSize(
+				BasicWidgetDetail::MeasureTextLayout(context.instance, state.text, textStyle));
 
-			desiredSize.y = std::max(desiredSize.y, BasicWidgetDetail::ResolveLineHeight(textStyle));
 			desiredSize.x += usedStyle.padding.left + usedStyle.padding.right;
 			desiredSize.y += usedStyle.padding.top + usedStyle.padding.bottom;
 			if (context.constraints.maxSize.x > 0.0f)
@@ -252,18 +351,18 @@ namespace Sodium
 				return;
 
 			const SdBoxStyle& presentation = context.RootStyleNode().presentationStyle;
-			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(presentation, context.animatedRect.Size(), {});
-			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle(state.textStyle, presentation.fontSize, presentation.lineHeight);
-			const SdColor color = BasicWidgetDetail::ApplyOpacity(
-				presentation.color,
-				context.opacity * presentation.opacity);
-			const SdVec2 position = {
-				context.animatedRect.min.x + usedStyle.padding.left,
-				context.animatedRect.min.y + usedStyle.padding.top
-			};
-			context.renderList.AddText(state.text, textStyle, position, color, context.clipRect);
-		}
-	};
+				const SdRect paintRect = BasicWidgetDetail::PaintRect(context);
+				const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(presentation, paintRect.Size(), {});
+				const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle(state.textStyle, presentation.fontSize, presentation.lineHeight);
+				const SdColor color = BasicWidgetDetail::ApplyOpacity(
+					presentation.color,
+					context.opacity * presentation.opacity);
+				const SdRect contentRect = SdInsetRect(paintRect, usedStyle.padding);
+				const BasicWidgetDetail::SdMeasuredTextLayout textLayout = BasicWidgetDetail::MeasureTextLayout(context.instance, state.text, textStyle);
+				const SdVec2 position = BasicWidgetDetail::LeftTopTextLayoutOrigin(contentRect, textLayout);
+				context.renderList.AddText(state.text, textStyle, position, color, context.clipRect);
+			}
+		};
 
 	struct SdPanel final : SdWidgetTag
 	{
@@ -368,8 +467,8 @@ namespace Sodium
 			const SdBoxStyle& rootStyle = context.RootStyleNode().resolvedStyle;
 			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(rootStyle, context.constraints.maxSize, {});
 			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, rootStyle.fontSize, rootStyle.lineHeight);
-			SdVec2 textSize = BasicWidgetDetail::MeasureText(context, state.label, textStyle);
-			textSize.y = std::max(textSize.y, BasicWidgetDetail::ResolveLineHeight(textStyle));
+			const SdVec2 textSize = BasicWidgetDetail::TextVisualSize(
+				BasicWidgetDetail::MeasureTextLayout(context.instance, state.label, textStyle));
 
 			context.SetDesiredSize({
 				std::max(usedStyle.minWidth, textSize.x + usedStyle.padding.left + usedStyle.padding.right),
@@ -386,14 +485,10 @@ namespace Sodium
 			const SdBoxStyle& labelStyle = context.Part(Parts::Label).resolvedStyle;
 			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(rootStyle, rootRect.Size(), {});
 			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, labelStyle.fontSize, labelStyle.lineHeight);
-			const float lineHeight = BasicWidgetDetail::ResolveLineHeight(textStyle);
-			const SdVec2 textSize = BasicWidgetDetail::MeasureText(context.instance, state.label, textStyle);
-			const SdRect labelRect = {
-				rootRect.min.x + std::max(usedStyle.padding.left, (rootRect.Width() - textSize.x) * 0.5f),
-				rootRect.min.y + std::max(usedStyle.padding.top, (rootRect.Height() - lineHeight) * 0.5f),
-				rootRect.min.x + std::max(usedStyle.padding.left, (rootRect.Width() - textSize.x) * 0.5f) + textSize.x,
-				rootRect.min.y + std::max(usedStyle.padding.top, (rootRect.Height() - lineHeight) * 0.5f) + lineHeight
-			};
+			const SdRect contentRect = SdInsetRect(rootRect, usedStyle.padding);
+			const BasicWidgetDetail::SdMeasuredTextLayout textLayout = BasicWidgetDetail::MeasureTextLayout(context.instance, state.label, textStyle);
+			const SdVec2 textOrigin = BasicWidgetDetail::CenterTextLayoutOrigin(contentRect, textLayout);
+			const SdRect labelRect = BasicWidgetDetail::TextLayoutRect(textOrigin, textLayout);
 			context.SetPartBorderBox(Parts::Content, rootRect);
 			context.SetPartBorderBox(Parts::Label, labelRect);
 		}
@@ -507,8 +602,8 @@ namespace Sodium
 			const SdBoxStyle& rootStyle = context.RootStyleNode().resolvedStyle;
 			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(rootStyle, context.constraints.maxSize, {});
 			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, rootStyle.fontSize, rootStyle.lineHeight);
-			SdVec2 textSize = BasicWidgetDetail::MeasureText(context, state.label, textStyle);
-			textSize.y = std::max(textSize.y, BasicWidgetDetail::ResolveLineHeight(textStyle));
+			const SdVec2 textSize = BasicWidgetDetail::TextVisualSize(
+				BasicWidgetDetail::MeasureTextLayout(context.instance, state.label, textStyle));
 			const float labelGap = std::max(0.0f, usedStyle.gap);
 
 			context.SetDesiredSize({
@@ -517,26 +612,64 @@ namespace Sodium
 			});
 		}
 
+		void OnArrange(SdArrangeContext& context)
+		{
+			const State& state = context.State<State>();
+			const Style& style = context.RootResolvedStyle<SdCheckBox>();
+			const SdStyleNode& rootNode = context.RootStyleNode();
+			const SdRect rootRect = BasicWidgetDetail::StyleNodeArrangeRect(rootNode);
+			const SdBoxStyle& rootStyle = rootNode.resolvedStyle;
+			const SdBoxStyle& labelStyle = context.Part(Parts::Label).resolvedStyle;
+			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(rootStyle, rootRect.Size(), {});
+			const SdRect contentRect = SdInsetRect(rootRect, usedStyle.padding);
+			const float labelGap = std::max(0.0f, usedStyle.gap);
+			const float boxY = contentRect.min.y + (contentRect.Height() - style.boxSize) * 0.5f;
+			const SdRect boxRect = {
+				contentRect.min.x,
+				boxY,
+				contentRect.min.x + style.boxSize,
+				boxY + style.boxSize
+			};
+			const SdRect indicatorRect = BasicWidgetDetail::InsetRect(boxRect, { 4.0f, 4.0f, 4.0f, 4.0f });
+
+			if (!state.label.empty())
+			{
+				const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, labelStyle.fontSize, labelStyle.lineHeight);
+				const BasicWidgetDetail::SdMeasuredTextLayout textLayout = BasicWidgetDetail::MeasureTextLayout(context.instance, state.label, textStyle);
+				const SdRect labelArea = {
+					boxRect.max.x + labelGap,
+					contentRect.min.y,
+					contentRect.max.x,
+					contentRect.max.y
+				};
+				const SdVec2 textOrigin = BasicWidgetDetail::LeftCenterTextLayoutOrigin(labelArea, textLayout);
+				context.SetPartBorderBox(Parts::Label, BasicWidgetDetail::TextLayoutRect(textOrigin, textLayout));
+			}
+			else
+			{
+				context.SetPartBorderBox(Parts::Label, {});
+			}
+
+			context.SetPartBorderBox(Parts::Box, boxRect);
+			context.SetPartBorderBox(Parts::Indicator, indicatorRect);
+		}
+
 		void OnPaint(SdPaintContext& context)
 		{
 			const State& state = context.State<State>();
 			const Style& style = context.RootPresentationStyle<SdCheckBox>();
 			const SdBoxStyle& presentation = context.RootStyleNode().presentationStyle;
-			const SdBoxStyle& boxPresentation = context.Part(Parts::Box).presentationStyle;
-			const SdBoxStyle& indicatorPresentation = context.Part(Parts::Indicator).presentationStyle;
-			const SdBoxStyle& labelPresentation = context.Part(Parts::Label).presentationStyle;
+			const SdStyleNode& boxNode = context.Part(Parts::Box);
+			const SdStyleNode& indicatorNode = context.Part(Parts::Indicator);
+			const SdStyleNode& labelNode = context.Part(Parts::Label);
+			const SdBoxStyle& boxPresentation = boxNode.presentationStyle;
+			const SdBoxStyle& indicatorPresentation = indicatorNode.presentationStyle;
+			const SdBoxStyle& labelPresentation = labelNode.presentationStyle;
 			const SdRect paintRect = BasicWidgetDetail::PaintRect(context);
-			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(presentation, paintRect.Size(), {});
-			const float labelGap = std::max(0.0f, usedStyle.gap);
+			const SdRect boxRect = BasicWidgetDetail::StyleNodeRect(boxNode, paintRect);
+			const SdRect indicatorRect = BasicWidgetDetail::StyleNodeRect(indicatorNode, BasicWidgetDetail::InsetRect(boxRect, { 4.0f, 4.0f, 4.0f, 4.0f }));
+			const SdRect labelRect = BasicWidgetDetail::StyleNodeRect(labelNode, paintRect);
 			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, labelPresentation.fontSize, labelPresentation.lineHeight);
-			const float lineHeight = BasicWidgetDetail::ResolveLineHeight(textStyle);
-			const float boxY = paintRect.min.y + (paintRect.Height() - style.boxSize) * 0.5f;
-			const SdRect boxRect = {
-				paintRect.min.x + usedStyle.padding.left,
-				boxY,
-				paintRect.min.x + usedStyle.padding.left + style.boxSize,
-				boxY + style.boxSize
-			};
 			const SdColor background = BasicWidgetDetail::ApplyOpacity(boxPresentation.backgroundColor, context.opacity * boxPresentation.opacity);
 			const SdColor border = BasicWidgetDetail::ApplyOpacity(boxPresentation.border.left.color, context.opacity * boxPresentation.opacity);
 			const SdColor textColor = BasicWidgetDetail::ApplyOpacity(labelPresentation.color, context.opacity * labelPresentation.opacity);
@@ -548,17 +681,14 @@ namespace Sodium
 			if (state.checked)
 			{
 				context.renderList.AddRectFilled(
-					BasicWidgetDetail::InsetRect(boxRect, { 4.0f, 4.0f, 4.0f, 4.0f }),
+					indicatorRect,
 					indicatorColor,
 					context.clipRect,
 					std::max(0.0f, radius - 2.0f));
 			}
 
-			const SdVec2 textPosition = {
-				boxRect.max.x + labelGap,
-				paintRect.min.y + std::max(usedStyle.padding.top, (paintRect.Height() - lineHeight) * 0.5f)
-			};
-			context.renderList.AddText(state.label, textStyle, textPosition, textColor, context.clipRect);
+			if (!state.label.empty())
+				context.renderList.AddText(state.label, textStyle, labelRect.min, textColor, context.clipRect);
 		}
 
 	private:
@@ -658,7 +788,8 @@ namespace Sodium
 			if (!state.label.empty())
 			{
 				const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, rootStyle.fontSize, rootStyle.lineHeight);
-				labelSize = BasicWidgetDetail::MeasureText(context, state.label, textStyle);
+				labelSize = BasicWidgetDetail::TextVisualSize(
+					BasicWidgetDetail::MeasureTextLayout(context.instance, state.label, textStyle));
 			}
 			const float labelGap = state.label.empty() ? 0.0f : std::max(0.0f, usedStyle.gap);
 
@@ -677,32 +808,35 @@ namespace Sodium
 			const SdBoxStyle& rootStyle = rootNode.resolvedStyle;
 			const SdBoxStyle& labelStyle = context.Part(Parts::Label).resolvedStyle;
 			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(rootStyle, rootRect.Size(), { 180.0f, 30.0f });
+			const SdRect contentRect = SdInsetRect(rootRect, usedStyle.padding);
 			const float labelGap = std::max(0.0f, usedStyle.gap);
 			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, labelStyle.fontSize, labelStyle.lineHeight);
-			const float lineHeight = BasicWidgetDetail::ResolveLineHeight(textStyle);
-			float trackStartX = rootRect.min.x + usedStyle.padding.left;
+			float trackStartX = contentRect.min.x;
 			if (!state.label.empty())
 			{
-				const SdVec2 labelSize = BasicWidgetDetail::MeasureText(context.instance, state.label, textStyle);
-				const SdRect labelRect = {
+				const BasicWidgetDetail::SdMeasuredTextLayout textLayout = BasicWidgetDetail::MeasureTextLayout(context.instance, state.label, textStyle);
+				const SdRect labelArea = {
 					trackStartX,
-					rootRect.min.y + std::max(usedStyle.padding.top, (rootRect.Height() - lineHeight) * 0.5f),
-					trackStartX + labelSize.x,
-					rootRect.min.y + std::max(usedStyle.padding.top, (rootRect.Height() - lineHeight) * 0.5f) + lineHeight
+					contentRect.min.y,
+					contentRect.max.x,
+					contentRect.max.y
 				};
+				const SdVec2 textOrigin = BasicWidgetDetail::LeftCenterTextLayoutOrigin(labelArea, textLayout);
+				const SdRect labelRect = BasicWidgetDetail::TextLayoutRect(textOrigin, textLayout);
 				context.SetPartBorderBox(Parts::Label, labelRect);
-				trackStartX += labelSize.x + labelGap;
+				trackStartX = textOrigin.x + textLayout.visibleBounds.max.x + labelGap;
 			}
 			else
 			{
 				context.SetPartBorderBox(Parts::Label, {});
 			}
 
-			const float trackCenterY = rootRect.min.y + (rootRect.Height() * 0.5f);
+			const float trackCenterY = contentRect.min.y + (contentRect.Height() * 0.5f);
+			const float trackWidth = std::max(1.0f, std::min(std::max(1.0f, usedStyle.width), contentRect.max.x - trackStartX));
 			const SdRect trackRect = {
 				trackStartX,
 				trackCenterY - (style.trackHeight * 0.5f),
-				trackStartX + usedStyle.width,
+				trackStartX + trackWidth,
 				trackCenterY + (style.trackHeight * 0.5f)
 			};
 			const float t = BasicWidgetDetail::Normalize(state.value, state.minValue, state.maxValue);
@@ -774,10 +908,22 @@ namespace Sodium
 
 		static float PositionToValue(SdUpdateContext& context, float x, float minValue, float maxValue)
 		{
-			const SdBoxStyle& rootStyle = context.instance.GetRootStyleNode(context.id).resolvedStyle;
-			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(rootStyle, context.widgetState.targetRect.Size(), { 180.0f, 30.0f });
-			const float trackMin = context.widgetState.targetRect.min.x + usedStyle.padding.left;
-			const float trackMax = trackMin + std::max(1.0f, usedStyle.width);
+			const State& state = context.State<State>();
+			const SdStyleNode& rootNode = context.instance.GetRootStyleNode(context.id);
+			const SdRect rootRect = BasicWidgetDetail::StyleNodeArrangeRect(rootNode, context.widgetState.targetRect);
+			const SdBoxStyle& rootStyle = rootNode.resolvedStyle;
+			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(rootStyle, rootRect.Size(), { 180.0f, 30.0f });
+			float trackMin = rootRect.min.x + usedStyle.padding.left;
+			if (!state.label.empty())
+			{
+				const SdBoxStyle& labelStyle = context.instance.GetStylePart(context.id, Parts::Label).resolvedStyle;
+				const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, labelStyle.fontSize, labelStyle.lineHeight);
+				const BasicWidgetDetail::SdMeasuredTextLayout textLayout = BasicWidgetDetail::MeasureTextLayout(context.instance, state.label, textStyle);
+				trackMin += textLayout.visibleBounds.Width() + std::max(0.0f, usedStyle.gap);
+			}
+			const float contentMaxX = rootRect.max.x - usedStyle.padding.right;
+			const float trackWidth = std::max(1.0f, std::min(std::max(1.0f, usedStyle.width), contentMaxX - trackMin));
+			const float trackMax = trackMin + trackWidth;
 			const float t = std::clamp((x - trackMin) / (trackMax - trackMin), 0.0f, 1.0f);
 			return BasicWidgetDetail::Lerp(minValue, maxValue, t);
 		}
@@ -840,16 +986,20 @@ namespace Sodium
 					state.changed = true;
 				}
 
-				const SdBoxStyle& rootStyle = context.instance.GetRootStyleNode(context.id).resolvedStyle;
-				const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(rootStyle, context.widgetState.targetRect.Size(), {});
+				const SdStyleNode& rootNode = context.instance.GetRootStyleNode(context.id);
+				const SdRect rootRect = BasicWidgetDetail::StyleNodeArrangeRect(rootNode, context.widgetState.targetRect);
+				const SdBoxStyle& rootStyle = rootNode.resolvedStyle;
+				const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(rootStyle, rootRect.Size(), {});
 				const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, rootStyle.fontSize, rootStyle.lineHeight);
 				const float lineHeight = BasicWidgetDetail::ResolveLineHeight(textStyle);
-				const SdVec2 textSize = BasicWidgetDetail::MeasureText(context, value, textStyle);
+				const BasicWidgetDetail::SdMeasuredTextLayout textLayout = BasicWidgetDetail::MeasureTextLayout(context.instance, value, textStyle);
+				const SdRect contentRect = SdInsetRect(rootRect, usedStyle.padding);
+				const SdVec2 textPosition = BasicWidgetDetail::LeftCenterTextLayoutOrigin(contentRect, textLayout);
 				const SdRect caretRect = {
-					context.widgetState.targetRect.min.x + usedStyle.padding.left + textSize.x,
-					context.widgetState.targetRect.min.y + usedStyle.padding.top,
-					context.widgetState.targetRect.min.x + usedStyle.padding.left + textSize.x + 1.0f,
-					context.widgetState.targetRect.min.y + usedStyle.padding.top + lineHeight
+					textPosition.x + textLayout.layoutSize.x,
+					textPosition.y,
+					textPosition.x + textLayout.layoutSize.x + 1.0f,
+					textPosition.y + lineHeight
 				};
 				const SdTextInputTargetId targetId = BasicWidgetDetail::MakeTextInputTargetId(context.id);
 				context.instance.GetInputSystem().SetTextInputTarget(targetId, caretRect, lineHeight);
@@ -897,23 +1047,18 @@ namespace Sodium
 			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(rootStyle, rootRect.Size(), {});
 			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, textStyleNode.fontSize, textStyleNode.lineHeight);
 			const float lineHeight = BasicWidgetDetail::ResolveLineHeight(textStyle);
-			const SdUtf8StringView paintText = showPlaceholder ? SdUtf8StringView(state.placeholder) : SdUtf8StringView(state.text);
-			const SdVec2 textSize = BasicWidgetDetail::MeasureText(context.instance, paintText, textStyle);
-			const SdVec2 textPosition = {
-				rootRect.min.x + usedStyle.padding.left,
-				rootRect.min.y + std::max(usedStyle.padding.top, (rootRect.Height() - lineHeight) * 0.5f)
-			};
-			const SdRect textRect = {
-				textPosition.x,
-				textPosition.y,
-				textPosition.x + textSize.x,
-				textPosition.y + lineHeight
-			};
-			const SdVec2 caretTextSize = BasicWidgetDetail::MeasureText(context.instance, state.text, textStyle);
+			SdUtf8String paintText = showPlaceholder ? state.placeholder : state.text;
+			if (!state.composition.empty())
+				paintText += state.composition;
+			const BasicWidgetDetail::SdMeasuredTextLayout textLayout = BasicWidgetDetail::MeasureTextLayout(context.instance, paintText, textStyle);
+			const BasicWidgetDetail::SdMeasuredTextLayout caretTextLayout = BasicWidgetDetail::MeasureTextLayout(context.instance, state.text, textStyle);
+			const SdRect contentRect = SdInsetRect(rootRect, usedStyle.padding);
+			const SdVec2 textPosition = BasicWidgetDetail::LeftCenterTextLayoutOrigin(contentRect, textLayout);
+			const SdRect textRect = BasicWidgetDetail::TextLayoutRect(textPosition, textLayout);
 			const SdRect caretRect = {
-				textPosition.x + caretTextSize.x + 1.0f,
+				textPosition.x + caretTextLayout.layoutSize.x + 1.0f,
 				textPosition.y,
-				textPosition.x + caretTextSize.x + 2.0f,
+				textPosition.x + caretTextLayout.layoutSize.x + 2.0f,
 				textPosition.y + lineHeight
 			};
 			context.SetPartBorderBox(Parts::Field, rootRect);
@@ -1117,25 +1262,22 @@ namespace Sodium
 			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(rootNode.resolvedStyle, rootRect.Size(), { 420.0f, 260.0f });
 			const SdBoxStyle& titleStyle = context.Part(Parts::Title).resolvedStyle;
 			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, titleStyle.fontSize, titleStyle.lineHeight);
-			const float lineHeight = BasicWidgetDetail::ResolveLineHeight(textStyle);
 			const SdRect titlebarRect = {
 				rootRect.min.x,
 				rootRect.min.y,
 				rootRect.max.x,
 				std::min(rootRect.max.y, rootRect.min.y + style.titleHeight)
 			};
-			const SdVec2 titleSize = BasicWidgetDetail::MeasureText(context.instance, state.title, textStyle);
-			const SdVec2 titlePosition = {
-				titlebarRect.min.x + usedStyle.padding.left,
-				titlebarRect.min.y + std::max(0.0f, (titlebarRect.Height() - lineHeight) * 0.5f)
-			};
-			const SdRect titleRect = {
-				titlePosition.x,
-				titlePosition.y,
-				titlePosition.x + titleSize.x,
-				titlePosition.y + lineHeight
-			};
 			const SdRect closeRect = state.options.closable ? CloseRect(titlebarRect) : SdRect{};
+			const BasicWidgetDetail::SdMeasuredTextLayout titleLayout = BasicWidgetDetail::MeasureTextLayout(context.instance, state.title, textStyle);
+			const SdRect titleArea = {
+				titlebarRect.min.x + usedStyle.padding.left,
+				titlebarRect.min.y,
+				state.options.closable ? std::max(titlebarRect.min.x + usedStyle.padding.left, closeRect.min.x - 6.0f) : titlebarRect.max.x - usedStyle.padding.right,
+				titlebarRect.max.y
+			};
+			const SdVec2 titlePosition = BasicWidgetDetail::LeftCenterTextLayoutOrigin(titleArea, titleLayout);
+			const SdRect titleRect = BasicWidgetDetail::TextLayoutRect(titlePosition, titleLayout);
 			const SdRect resizeHandleRect = {
 				rootRect.max.x - 12.0f,
 				rootRect.max.y - 12.0f,
@@ -1628,7 +1770,8 @@ namespace Sodium
 			const SdBoxStyle& rootStyle = context.RootStyleNode().resolvedStyle;
 			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(rootStyle, context.constraints.maxSize, {});
 			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, rootStyle.fontSize, rootStyle.lineHeight);
-			const SdVec2 textSize = BasicWidgetDetail::MeasureText(context, state.text, textStyle);
+			const SdVec2 textSize = BasicWidgetDetail::TextVisualSize(
+				BasicWidgetDetail::MeasureTextLayout(context.instance, state.text, textStyle));
 			const SdVec2 size = state.visible
 				? SdVec2{ textSize.x + usedStyle.padding.left + usedStyle.padding.right, textSize.y + usedStyle.padding.top + usedStyle.padding.bottom }
 				: SdVec2{};
@@ -1646,6 +1789,9 @@ namespace Sodium
 			const SdRect paintRect = BasicWidgetDetail::PaintRect(context);
 			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(presentation, paintRect.Size(), {});
 			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle({}, presentation.fontSize, presentation.lineHeight);
+			const BasicWidgetDetail::SdMeasuredTextLayout textLayout = BasicWidgetDetail::MeasureTextLayout(context.instance, state.text, textStyle);
+			const SdRect contentRect = SdInsetRect(paintRect, usedStyle.padding);
+			const SdVec2 textPosition = BasicWidgetDetail::LeftTopTextLayoutOrigin(contentRect, textLayout);
 			const SdColor background = BasicWidgetDetail::ApplyOpacity(presentation.backgroundColor, context.opacity * presentation.opacity);
 			const SdColor border = BasicWidgetDetail::ApplyOpacity(presentation.border.left.color, context.opacity * presentation.opacity);
 			const SdColor color = BasicWidgetDetail::ApplyOpacity(presentation.color, context.opacity * presentation.opacity);
@@ -1655,7 +1801,7 @@ namespace Sodium
 			context.renderList.AddText(
 				state.text,
 				textStyle,
-				{ paintRect.min.x + usedStyle.padding.left, paintRect.min.y + usedStyle.padding.top },
+				textPosition,
 				color,
 				context.clipRect);
 		}

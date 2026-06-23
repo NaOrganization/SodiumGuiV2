@@ -150,6 +150,50 @@ namespace Sodium
 		return result;
 	}
 
+	inline bool SdIsExplicitLength(SdLength length) noexcept
+	{
+		return length.unit != SdLengthUnit::Auto;
+	}
+
+	inline float SdHorizontalBoxExtras(const SdResolvedBoxStyle& style) noexcept
+	{
+		return style.padding.left + style.padding.right + style.border.left + style.border.right;
+	}
+
+	inline float SdVerticalBoxExtras(const SdResolvedBoxStyle& style) noexcept
+	{
+		return style.padding.top + style.padding.bottom + style.border.top + style.border.bottom;
+	}
+
+	inline float SdResolveBorderBoxAxisSize(float resolvedSize, float extras, bool sizeUsesBorderBox) noexcept
+	{
+		return std::max(0.0f, sizeUsesBorderBox ? resolvedSize : resolvedSize + extras);
+	}
+
+	inline float SdResolveBorderBoxWidth(const SdBoxStyle& sourceStyle, const SdResolvedBoxStyle& usedStyle, float autoContentWidth = 0.0f) noexcept
+	{
+		const float resolvedSize = usedStyle.width > 0.0f ? usedStyle.width : autoContentWidth;
+		const bool sizeUsesBorderBox = !SdIsExplicitLength(sourceStyle.width) || usedStyle.boxSizing == SdBoxSizing::BorderBox;
+		return SdResolveBorderBoxAxisSize(resolvedSize, SdHorizontalBoxExtras(usedStyle), sizeUsesBorderBox);
+	}
+
+	inline float SdResolveBorderBoxHeight(const SdBoxStyle& sourceStyle, const SdResolvedBoxStyle& usedStyle, float autoContentHeight = 0.0f) noexcept
+	{
+		const float resolvedSize = usedStyle.height > 0.0f ? usedStyle.height : autoContentHeight;
+		const bool sizeUsesBorderBox = !SdIsExplicitLength(sourceStyle.height) || usedStyle.boxSizing == SdBoxSizing::BorderBox;
+		return SdResolveBorderBoxAxisSize(resolvedSize, SdVerticalBoxExtras(usedStyle), sizeUsesBorderBox);
+	}
+
+	inline SdUsedBox SdUsedBoxFromNode(const SdBoxNode& box) noexcept
+	{
+		return {
+			box.marginBox,
+			box.borderBox,
+			box.paddingBox,
+			box.contentBox
+		};
+	}
+
 	inline SdUsedBox SdBuildUsedBox(SdRect borderBox, const SdBoxStyle& style) noexcept
 	{
 		const SdVec2 basis = borderBox.Size();
@@ -171,6 +215,27 @@ namespace Sodium
 		std::vector<SdUInt32> rootIndices = {};
 		std::vector<SdUInt32> lastChildIndices = {};
 		std::unordered_map<SdStyleNodeId, SdUInt32> boxIndexByStyleNodeId = {};
+
+		void SetBoxEmpty(SdBoxNode& box) noexcept
+		{
+			box.marginBox = {};
+			box.borderBox = {};
+			box.paddingBox = {};
+			box.contentBox = {};
+		}
+
+		void SetSubtreeEmpty(SdUInt32 boxIndex)
+		{
+			if (boxIndex >= boxes.size())
+				return;
+			SetBoxEmpty(boxes[boxIndex]);
+			for (SdUInt32 childIndex = boxes[boxIndex].firstChildIndex;
+				childIndex != SdInvalidIndex<SdUInt32>;
+				childIndex = boxes[childIndex].nextSiblingIndex)
+			{
+				SetSubtreeEmpty(childIndex);
+			}
+		}
 
 		void SetBoxRect(SdBoxNode& box, SdRect borderBox)
 		{
@@ -199,16 +264,16 @@ namespace Sodium
 			{
 				SdBoxNode& child = boxes[childIndex];
 				if (child.display == SdDisplay::None)
+				{
+					child.usedStyleValues = SdResolveBoxStyle(child.style, parent.contentBox.Size(), child.intrinsicSize);
+					SetSubtreeEmpty(childIndex);
 					continue;
+				}
 
 				const SdVec2 basis = parent.contentBox.Size();
 				child.usedStyleValues = SdResolveBoxStyle(child.style, basis, child.intrinsicSize);
-				const float borderWidth = std::max(0.0f, child.usedStyleValues.width
-					+ child.usedStyleValues.padding.left + child.usedStyleValues.padding.right
-					+ child.usedStyleValues.border.left + child.usedStyleValues.border.right);
-				const float borderHeight = std::max(0.0f, child.usedStyleValues.height
-					+ child.usedStyleValues.padding.top + child.usedStyleValues.padding.bottom
-					+ child.usedStyleValues.border.top + child.usedStyleValues.border.bottom);
+				const float borderWidth = SdResolveBorderBoxWidth(child.style, child.usedStyleValues);
+				const float borderHeight = SdResolveBorderBoxHeight(child.style, child.usedStyleValues);
 				if (child.usedStyleValues.position == SdPosition::Absolute)
 				{
 					if (child.explicitBorderBox.Width() > 0.0f || child.explicitBorderBox.Height() > 0.0f)
@@ -243,21 +308,27 @@ namespace Sodium
 			SdSize visibleChildCount = 0;
 			const auto childBorderWidth = [row](const SdBoxNode& child) noexcept
 			{
-				const float contentWidth = row && child.style.flexBasis.unit != SdLengthUnit::Auto
+				const bool usesFlexBasis = row && SdIsExplicitLength(child.style.flexBasis);
+				const float resolvedWidth = usesFlexBasis
 					? child.usedStyleValues.flexBasis
 					: child.usedStyleValues.width;
-				return std::max(0.0f, contentWidth
-					+ child.usedStyleValues.padding.left + child.usedStyleValues.padding.right
-					+ child.usedStyleValues.border.left + child.usedStyleValues.border.right);
+				const bool widthIsExplicit = SdIsExplicitLength(child.style.width);
+				const bool sizeUsesBorderBox = usesFlexBasis
+					? child.usedStyleValues.boxSizing == SdBoxSizing::BorderBox
+					: (!widthIsExplicit || child.usedStyleValues.boxSizing == SdBoxSizing::BorderBox);
+				return SdResolveBorderBoxAxisSize(resolvedWidth, SdHorizontalBoxExtras(child.usedStyleValues), sizeUsesBorderBox);
 			};
 			const auto childBorderHeight = [row](const SdBoxNode& child) noexcept
 			{
-				const float contentHeight = !row && child.style.flexBasis.unit != SdLengthUnit::Auto
+				const bool usesFlexBasis = !row && SdIsExplicitLength(child.style.flexBasis);
+				const float resolvedHeight = usesFlexBasis
 					? child.usedStyleValues.flexBasis
 					: child.usedStyleValues.height;
-				return std::max(0.0f, contentHeight
-					+ child.usedStyleValues.padding.top + child.usedStyleValues.padding.bottom
-					+ child.usedStyleValues.border.top + child.usedStyleValues.border.bottom);
+				const bool heightIsExplicit = SdIsExplicitLength(child.style.height);
+				const bool sizeUsesBorderBox = usesFlexBasis
+					? child.usedStyleValues.boxSizing == SdBoxSizing::BorderBox
+					: (!heightIsExplicit || child.usedStyleValues.boxSizing == SdBoxSizing::BorderBox);
+				return SdResolveBorderBoxAxisSize(resolvedHeight, SdVerticalBoxExtras(child.usedStyleValues), sizeUsesBorderBox);
 			};
 
 			for (SdUInt32 childIndex = parent.firstChildIndex;
@@ -266,7 +337,11 @@ namespace Sodium
 			{
 				SdBoxNode& child = boxes[childIndex];
 				if (child.display == SdDisplay::None)
+				{
+					child.usedStyleValues = SdResolveBoxStyle(child.style, parent.contentBox.Size(), child.intrinsicSize);
+					SetSubtreeEmpty(childIndex);
 					continue;
+				}
 
 				child.usedStyleValues = SdResolveBoxStyle(child.style, parent.contentBox.Size(), child.intrinsicSize);
 				if (child.usedStyleValues.position == SdPosition::Absolute)
@@ -317,7 +392,10 @@ namespace Sodium
 			{
 				SdBoxNode& child = boxes[childIndex];
 				if (child.display == SdDisplay::None)
+				{
+					SetSubtreeEmpty(childIndex);
 					continue;
+				}
 
 				if (child.usedStyleValues.position == SdPosition::Absolute)
 				{
@@ -461,6 +539,11 @@ namespace Sodium
 			{
 				SdBoxNode& root = boxes[rootIndex];
 				root.usedStyleValues = SdResolveBoxStyle(root.style, containingBlock.Size(), root.intrinsicSize);
+				if (root.display == SdDisplay::None)
+				{
+					SetSubtreeEmpty(rootIndex);
+					continue;
+				}
 				if (root.explicitBorderBox.Width() > 0.0f || root.explicitBorderBox.Height() > 0.0f)
 				{
 					SetBoxRect(root, root.explicitBorderBox);
@@ -468,8 +551,9 @@ namespace Sodium
 					blockY = root.marginBox.max.y;
 					continue;
 				}
-				const float width = root.usedStyleValues.width > 0.0f ? root.usedStyleValues.width : containingBlock.Width();
-				const float height = root.usedStyleValues.height;
+				const float autoContentWidth = root.display == SdDisplay::InlineBlock ? 0.0f : containingBlock.Width();
+				const float width = SdResolveBorderBoxWidth(root.style, root.usedStyleValues, autoContentWidth);
+				const float height = SdResolveBorderBoxHeight(root.style, root.usedStyleValues);
 				const SdRect rect = {
 					containingBlock.min.x + root.usedStyleValues.margin.left,
 					blockY + root.usedStyleValues.margin.top,
