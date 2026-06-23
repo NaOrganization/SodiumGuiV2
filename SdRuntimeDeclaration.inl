@@ -64,12 +64,13 @@ namespace Sodium
 			instance.context.frame.frameIndex
 		};
 
-		idStack.PushParent(id);
-		if constexpr (requires(T& value, SdUpdateContext& context, TArgs&&... values) { value.OnUpdate(context, std::forward<TArgs>(values)...); })
-			widget.OnUpdate(updateContext, std::forward<TArgs>(args)...);
-		else if constexpr (requires(T& value, SdUpdateContext& context) { value.OnUpdate(context); })
-			widget.OnUpdate(updateContext);
-		idStack.PopParent();
+		{
+			SdIdScope idScope(idStack, id);
+			if constexpr (requires(T& value, SdUpdateContext& context, TArgs&&... values) { value.OnUpdate(context, std::forward<TArgs>(values)...); })
+				widget.OnUpdate(updateContext, std::forward<TArgs>(args)...);
+			else if constexpr (requires(T& value, SdUpdateContext& context) { value.OnUpdate(context); })
+				widget.OnUpdate(updateContext);
+		}
 
 		return widget;
 	}

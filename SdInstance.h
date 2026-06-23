@@ -10,6 +10,7 @@
 #include "SdStyleAnimation.h"
 #include "SdUi.h"
 
+#include <unordered_map>
 #include <vector>
 
 namespace Sodium
@@ -99,9 +100,31 @@ namespace Sodium
 		SdFrameDiagnostics diagnostics = {};
 	};
 
+	struct SdRuntimeScratch final
+	{
+		std::vector<SdWidgetId> liveIds = {};
+		std::vector<SdWidgetId> paintIds = {};
+		std::unordered_map<SdWidgetId, SdUInt32> boxIndexByWidgetId = {};
+		std::unordered_map<SdWidgetId, bool> displayHiddenByWidgetId = {};
+
+		void BeginLayoutPaintFrame(SdSize widgetCapacity)
+		{
+			liveIds.clear();
+			paintIds.clear();
+			boxIndexByWidgetId.clear();
+			displayHiddenByWidgetId.clear();
+
+			liveIds.reserve(widgetCapacity);
+			paintIds.reserve(widgetCapacity);
+			boxIndexByWidgetId.reserve(widgetCapacity);
+			displayHiddenByWidgetId.reserve(widgetCapacity);
+		}
+	};
+
 	struct SdContext final
 	{
 		SdFrameState frame = {};
+		SdRuntimeScratch scratch = {};
 		SdStateStorage stateStorage = {};
 		std::vector<SdWidgetId> frameOrder = {};
 		SdInputSystem input{ 512 };

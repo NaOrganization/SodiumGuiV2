@@ -581,7 +581,13 @@ namespace
 				if (dx.occluded)
 					::Sleep(16);
 
-				dx.Resize(resizeWidth, resizeHeight);
+				if (resizeWidth != 0 && resizeHeight != 0)
+				{
+					if (!dx.Resize(resizeWidth, resizeHeight))
+						break;
+					resizeWidth = 0;
+					resizeHeight = 0;
+				}
 
 				ApplyGlobalTheme();
 				const std::array<float, 4> clearColor = GetClearColor();

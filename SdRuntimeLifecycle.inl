@@ -38,7 +38,7 @@ namespace Sodium
 		record.state.lastSubmittedFrame = context.frame.frameIndex;
 		record.state.inputEnabled = true;
 		record.state.targetTypeId = SdWidgetTargetIds::Default;
-		record.state.rootLayer = record.state.rootLayer;
+		record.state.rootLayer = SdRootLayer::Content;
 		record.state.manualLayout = false;
 		record.state.arrangeChildren = false;
 		record.state.clipChildren = false;

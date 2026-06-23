@@ -4,9 +4,9 @@ namespace Sodium
 {
 	inline void SdInstance::SolveLayoutAndPaint()
 	{
-		std::vector<SdWidgetId> liveIds;
 		auto& widgets = context.stateStorage.GetWidgetRecords();
-		liveIds.reserve(widgets.size());
+		context.scratch.BeginLayoutPaintFrame(widgets.size());
+		std::vector<SdWidgetId>& liveIds = context.scratch.liveIds;
 		for (const auto& [id, record] : widgets)
 		{
 			if (record.state.lifePhase != SdWidgetLifePhase::Dead)
@@ -120,10 +120,8 @@ namespace Sodium
 		};
 
 		context.boxTree.Clear();
-		std::unordered_map<SdWidgetId, SdUInt32> boxIndexByWidgetId = {};
-		std::unordered_map<SdWidgetId, bool> displayHiddenByWidgetId = {};
-		boxIndexByWidgetId.reserve(liveIds.size());
-		displayHiddenByWidgetId.reserve(liveIds.size());
+		auto& boxIndexByWidgetId = context.scratch.boxIndexByWidgetId;
+		auto& displayHiddenByWidgetId = context.scratch.displayHiddenByWidgetId;
 		for (SdWidgetId id : liveIds)
 		{
 			SdWidgetRecord& record = widgets[id];
@@ -318,7 +316,8 @@ namespace Sodium
 			}
 		}
 
-		std::vector<SdWidgetId> paintIds = liveIds;
+		std::vector<SdWidgetId>& paintIds = context.scratch.paintIds;
+		paintIds.assign(liveIds.begin(), liveIds.end());
 		auto buildStackingKey = [&widgets](SdWidgetId id, SdUInt32 paintOrder)
 		{
 			const SdWidgetRecord& record = widgets[id];

@@ -91,4 +91,25 @@ namespace Sodium
 			return hash.Finish();
 		}
 	};
+
+	class SdIdScope final
+	{
+	private:
+		SdIdStack& idStack;
+
+	public:
+		SdIdScope(SdIdStack& stack, SdWidgetId id)
+			: idStack(stack)
+		{
+			idStack.PushParent(id);
+		}
+
+		SdIdScope(const SdIdScope&) = delete;
+		SdIdScope& operator=(const SdIdScope&) = delete;
+
+		~SdIdScope()
+		{
+			idStack.PopParent();
+		}
+	};
 }

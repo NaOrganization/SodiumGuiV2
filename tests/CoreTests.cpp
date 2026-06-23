@@ -78,6 +78,22 @@ namespace
 		}
 	};
 
+	struct TestRootLayerWidget final : SdWidgetTag
+	{
+		using Style = SdWidgetRootStyle;
+
+		void OnUpdate(SdUpdateContext& context, bool usePopupLayer)
+		{
+			if (usePopupLayer)
+				context.widgetState.rootLayer = SdRootLayer::Popup;
+		}
+
+		void OnLayout(SdLayoutContext& context)
+		{
+			context.SetDesiredSize({ 32.0f, 32.0f });
+		}
+	};
+
 	struct TestContainer final : SdWidgetTag
 	{
 		static constexpr SdStyleId TargetTypeId = SdWidgetTargetIds::Panel;
@@ -2522,6 +2538,12 @@ namespace
 		idStack.PopParent();
 		Check(childKeyedId != keyedId && childResolvedKey != resolvedKey, "id stack keys are scoped by parent");
 
+		{
+			SdIdScope scope(idStack, keyedId);
+			Check(idStack.CurrentParentId() == keyedId, "id scope pushes parent while active");
+		}
+		Check(idStack.CurrentParentId() == 0, "id scope pops parent when destroyed");
+
 		SdStyleSystem styleSystem;
 		styleSystem.RootRule(SdWidgetTargetIds::Default)
 			.Layer(SdRootLayer::Tooltip)
@@ -3362,6 +3384,33 @@ namespace
 			"layer direct draw channels are built after sorting by root layer");
 	}
 
+	void TestWidgetRootLayerDefaultReset()
+	{
+		SdInstance instance;
+		instance.BeginFrame({ 320.0f, 200.0f });
+		instance.ui.DeclareKeyed<TestRootLayerWidget>("root-layer-widget", true);
+		PumpFrame(instance);
+
+		const auto findRootLayer = [&instance]()
+		{
+			for (const auto& [id, record] : instance.GetStateStorage().GetWidgetRecords())
+			{
+				(void)id;
+				if (record.debugKey == "root-layer-widget")
+					return record.state.rootLayer;
+			}
+			return SdRootLayer::DebugOverlay;
+		};
+
+		Check(findRootLayer() == SdRootLayer::Popup, "widget can opt into popup root layer");
+
+		instance.BeginFrame({ 320.0f, 200.0f });
+		instance.ui.DeclareKeyed<TestRootLayerWidget>("root-layer-widget", false);
+		PumpFrame(instance);
+
+		Check(findRootLayer() == SdRootLayer::Content, "widget root layer resets to content when not set this frame");
+	}
+
 	void TestStackingContextAndPortalRoot()
 	{
 		SdInstance windowInstance;
@@ -3603,6 +3652,7 @@ int main()
 	TestBuiltInWidgetInteraction();
 	TestAnimationSystemDirect();
 	TestLayerSystemDirect();
+	TestWidgetRootLayerDefaultReset();
 	TestStackingContextAndPortalRoot();
 	TestInteractionSystemAdvancedEvents();
 	TestRenderListBatchingDirect();
