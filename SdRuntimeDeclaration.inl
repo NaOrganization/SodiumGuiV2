@@ -78,7 +78,7 @@ namespace Sodium
 	T& SdUi::Declare(TArgs&&... args)
 	{
 		const SdWidgetId parentId = idStack.CurrentParentId();
-		const SdWidgetId id = idStack.ResolveAnonymousWidgetId(Detail::SdTypeHash<T>());
+		const SdWidgetId id = idStack.ResolveAnonymousWidgetId(SdStableTypeId<T>());
 		auto configureStyle = [this](SdWidgetRecord& record)
 		{
 			instance.SetWidgetStyleIdentity(record, {}, 0);
@@ -96,7 +96,7 @@ namespace Sodium
 	{
 		const SdWidgetId parentId = idStack.CurrentParentId();
 		SdResolvedKey resolvedKey = 0;
-		const SdWidgetId id = idStack.ResolveKeyedWidgetId(Detail::SdTypeHash<T>(), key, resolvedKey);
+		const SdWidgetId id = idStack.ResolveKeyedWidgetId(SdStableTypeId<T>(), key, resolvedKey);
 		auto configureStyle = [this](SdWidgetRecord& record)
 		{
 			instance.SetWidgetStyleIdentity(record, {}, 0);
@@ -119,7 +119,7 @@ namespace Sodium
 	T& SdUi::DeclareStyled(SdStyleIdentity styleIdentity, const typename T::Style* inlineStyle, TArgs&&... args)
 	{
 		const SdWidgetId parentId = idStack.CurrentParentId();
-		const SdWidgetId id = idStack.ResolveAnonymousWidgetId(Detail::SdTypeHash<T>());
+		const SdWidgetId id = idStack.ResolveAnonymousWidgetId(SdStableTypeId<T>());
 		auto configureStyle = [this, styleIdentity, inlineStyle](SdWidgetRecord& record)
 		{
 			instance.SetWidgetStyleIdentity(record, styleIdentity.classes, styleIdentity.scope);
@@ -134,7 +134,7 @@ namespace Sodium
 	T& SdUi::DeclareStyled(SdStyleIdentity styleIdentity, TArgs&&... args)
 	{
 		const SdWidgetId parentId = idStack.CurrentParentId();
-		const SdWidgetId id = idStack.ResolveAnonymousWidgetId(Detail::SdTypeHash<T>());
+		const SdWidgetId id = idStack.ResolveAnonymousWidgetId(SdStableTypeId<T>());
 		auto configureStyle = [this, styleIdentity](SdWidgetRecord& record)
 		{
 			instance.SetWidgetStyleIdentity(record, styleIdentity.classes, styleIdentity.scope);
@@ -155,7 +155,7 @@ namespace Sodium
 	{
 		const SdWidgetId parentId = idStack.CurrentParentId();
 		SdResolvedKey resolvedKey = 0;
-		const SdWidgetId id = idStack.ResolveKeyedWidgetId(Detail::SdTypeHash<T>(), key, resolvedKey);
+		const SdWidgetId id = idStack.ResolveKeyedWidgetId(SdStableTypeId<T>(), key, resolvedKey);
 		auto configureStyle = [this, styleIdentity, inlineStyle](SdWidgetRecord& record)
 		{
 			instance.SetWidgetStyleIdentity(record, styleIdentity.classes, styleIdentity.scope);
@@ -171,7 +171,7 @@ namespace Sodium
 	{
 		const SdWidgetId parentId = idStack.CurrentParentId();
 		SdResolvedKey resolvedKey = 0;
-		const SdWidgetId id = idStack.ResolveKeyedWidgetId(Detail::SdTypeHash<T>(), key, resolvedKey);
+		const SdWidgetId id = idStack.ResolveKeyedWidgetId(SdStableTypeId<T>(), key, resolvedKey);
 		auto configureStyle = [this, styleIdentity](SdWidgetRecord& record)
 		{
 			instance.SetWidgetStyleIdentity(record, styleIdentity.classes, styleIdentity.scope);
@@ -184,7 +184,7 @@ namespace Sodium
 	template<SdDeclarableWidget TWidget, class TModel>
 	TModel& SdUi::Model(SdUtf8StringView key)
 	{
-		const SdResolvedKey resolvedKey = idStack.ResolveModelKey(Detail::SdTypeHash<TWidget>(), key);
+		const SdResolvedKey resolvedKey = idStack.ResolveModelKey(SdStableTypeId<TWidget>(), key);
 		return instance.GetOrCreateModel<TModel>(resolvedKey);
 	}
 

@@ -1,9 +1,8 @@
 #pragma once
 
-#include "SdCore.h"
+#include "SdHash.h"
 
 #include <cassert>
-#include <functional>
 #include <unordered_map>
 #include <vector>
 
@@ -13,17 +12,7 @@ namespace Sodium
 	{
 	private:
 		std::vector<SdWidgetId> parentStack = {};
-		std::unordered_map<SdWidgetId, SdUInt32> nextOrdinalByParent = {};
-
-		static SdUInt64 HashCombine(SdUInt64 seed, SdUInt64 value) noexcept
-		{
-			return seed ^ (value + 0x9E3779B97F4A7C15ull + (seed << 6) + (seed >> 2));
-		}
-
-		static SdUInt64 NormalizeHash(SdUInt64 value) noexcept
-		{
-			return value == 0 ? 1 : value;
-		}
+		std::unordered_map<SdWidgetId, SdUInt64> nextOrdinalByParent = {};
 
 	public:
 		SdIdStack()
@@ -53,52 +42,48 @@ namespace Sodium
 			parentStack.pop_back();
 		}
 
-		SdWidgetId ResolveAnonymousWidgetId(SdUInt64 typeHash)
+		SdWidgetId ResolveAnonymousWidgetId(SdUInt64 typeId)
 		{
 			const SdWidgetId parentId = CurrentParentId();
-			SdUInt32& ordinal = nextOrdinalByParent[parentId];
+			SdUInt64& ordinal = nextOrdinalByParent[parentId];
 			++ordinal;
 
-			SdUInt64 seed = 1469598103934665603ull;
-			seed = HashCombine(seed, parentId);
-			seed = HashCombine(seed, typeHash);
-			seed = HashCombine(seed, ordinal);
-			return NormalizeHash(seed);
+			SdHashBuilder hash;
+			hash.Add(parentId);
+			hash.Add(typeId);
+			hash.Add(ordinal);
+			return hash.Finish();
 		}
 
-		SdWidgetId ResolveKeyedWidgetId(SdUInt64 typeHash, SdUtf8StringView key, SdResolvedKey& resolvedKey) const
+		SdWidgetId ResolveKeyedWidgetId(SdUInt64 typeId, SdUtf8StringView key, SdResolvedKey& resolvedKey) const
 		{
 			static constexpr SdUInt64 ResolvedKeySalt = 0xA0761D6478BD642Full;
 			const SdWidgetId parentId = CurrentParentId();
-			SdUInt64 keyHash = std::hash<SdUtf8StringView>{}(key);
-			keyHash = NormalizeHash(keyHash);
+			const SdUInt64 keyHash = SdHashString64(key);
 
-			SdUInt64 keySeed = 1469598103934665603ull;
-			keySeed = HashCombine(keySeed, ResolvedKeySalt);
-			keySeed = HashCombine(keySeed, parentId);
-			keySeed = HashCombine(keySeed, typeHash);
-			keySeed = HashCombine(keySeed, keyHash);
-			resolvedKey = NormalizeHash(keySeed);
+			SdHashBuilder keyBuilder;
+			keyBuilder.Add(ResolvedKeySalt);
+			keyBuilder.Add(parentId);
+			keyBuilder.Add(typeId);
+			keyBuilder.Add(keyHash);
+			resolvedKey = keyBuilder.Finish();
 
-			SdUInt64 seed = 1469598103934665603ull;
-			seed = HashCombine(seed, parentId);
-			seed = HashCombine(seed, typeHash);
-			seed = HashCombine(seed, keyHash);
-			return NormalizeHash(seed);
+			SdHashBuilder widgetBuilder;
+			widgetBuilder.Add(parentId);
+			widgetBuilder.Add(typeId);
+			widgetBuilder.Add(keyHash);
+			return widgetBuilder.Finish();
 		}
 
-		SdResolvedKey ResolveModelKey(SdUInt64 typeHash, SdUtf8StringView key) const
+		SdResolvedKey ResolveModelKey(SdUInt64 typeId, SdUtf8StringView key) const
 		{
 			static constexpr SdUInt64 ResolvedKeySalt = 0xA0761D6478BD642Full;
-			SdUInt64 keyHash = std::hash<SdUtf8StringView>{}(key);
-			keyHash = NormalizeHash(keyHash);
-
-			SdUInt64 keySeed = 1469598103934665603ull;
-			keySeed = HashCombine(keySeed, ResolvedKeySalt);
-			keySeed = HashCombine(keySeed, CurrentParentId());
-			keySeed = HashCombine(keySeed, typeHash);
-			keySeed = HashCombine(keySeed, keyHash);
-			return NormalizeHash(keySeed);
+			SdHashBuilder hash;
+			hash.Add(ResolvedKeySalt);
+			hash.Add(CurrentParentId());
+			hash.Add(typeId);
+			hash.Add(SdHashString64(key));
+			return hash.Finish();
 		}
 	};
 }

@@ -938,7 +938,7 @@ namespace Sodium
 			if constexpr (requires { TWidget::TargetTypeId; })
 				return TWidget::TargetTypeId;
 			else
-				return Detail::SdTypeHash<TWidget>();
+				return SdStableTypeId<TWidget>();
 		}
 
 		template<class TWidget>

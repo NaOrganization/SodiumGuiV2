@@ -334,12 +334,25 @@ namespace Sodium
 		}
 	};
 
+#ifndef NDEBUG
+	struct SdSubmittedIdInfo final
+	{
+		SdWidgetId parentId = 0;
+		SdResolvedKey resolvedKey = 0;
+		SdUtf8String debugKey = {};
+		std::type_index widgetType = std::type_index(typeid(void));
+	};
+#endif
+
 	class SdStateStorage final
 	{
 	private:
 		std::unordered_map<SdWidgetId, SdWidgetRecord> widgetRecords = {};
 		std::unordered_map<SdResolvedKey, SdWidgetId> widgetIdByResolvedKey = {};
 		std::unordered_map<SdResolvedKey, std::unordered_map<std::type_index, Detail::SdObjectHandle>> keyedModels = {};
+#ifndef NDEBUG
+		std::unordered_map<SdWidgetId, SdSubmittedIdInfo> submittedIdsThisFrame = {};
+#endif
 		std::vector<SdStyleNode> styleNodes = {};
 		Detail::SdObjectStore objectStore = {};
 		SdStateStorageStats stats = {};
@@ -415,6 +428,9 @@ namespace Sodium
 			widgetRecords.clear();
 			widgetIdByResolvedKey.clear();
 			keyedModels.clear();
+#ifndef NDEBUG
+			submittedIdsThisFrame.clear();
+#endif
 			styleNodes.clear();
 			objectStore.Clear();
 			stats = {};
@@ -422,6 +438,9 @@ namespace Sodium
 
 		void BeginFrame()
 		{
+#ifndef NDEBUG
+			submittedIdsThisFrame.clear();
+#endif
 			stats.ResetFrameTransient();
 			stats.modelCount = static_cast<SdUInt32>(keyedModels.size());
 			stats.styleNodeCount = CountLiveStyleNodes();
@@ -544,6 +563,26 @@ namespace Sodium
 			return styleNodes;
 		}
 
+#ifndef NDEBUG
+		void CheckSubmittedWidgetId(
+			SdWidgetId widgetId,
+			SdWidgetId parentId,
+			SdResolvedKey resolvedKey,
+			SdUtf8StringView debugKey,
+			std::type_index widgetType)
+		{
+			SdSubmittedIdInfo info = {};
+			info.parentId = parentId;
+			info.resolvedKey = resolvedKey;
+			info.debugKey.assign(debugKey.data(), debugKey.size());
+			info.widgetType = widgetType;
+
+			auto [it, inserted] = submittedIdsThisFrame.try_emplace(widgetId, std::move(info));
+			(void)it;
+			assert(inserted && "Duplicate widget id detected. Use a unique key or push a different id scope.");
+		}
+#endif
+
 		SdUInt32 CountLiveStyleNodes() const noexcept
 		{
 			SdUInt32 count = 0;
@@ -559,7 +598,12 @@ namespace Sodium
 		{
 			if (resolvedKey == 0)
 				return;
+#ifndef NDEBUG
+			auto [it, inserted] = widgetIdByResolvedKey.try_emplace(resolvedKey, widgetId);
+			assert(inserted || it->second == widgetId);
+#else
 			widgetIdByResolvedKey[resolvedKey] = widgetId;
+#endif
 		}
 
 		SdWidgetId FindWidgetIdByResolvedKey(SdResolvedKey resolvedKey) const noexcept

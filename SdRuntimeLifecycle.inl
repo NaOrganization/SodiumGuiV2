@@ -25,6 +25,9 @@ namespace Sodium
 
 	inline void SdInstance::MarkSubmitted(SdWidgetRecord& record, SdWidgetId id, SdWidgetId parentId, SdResolvedKey resolvedKey, SdUtf8StringView debugKey)
 	{
+#ifndef NDEBUG
+		context.stateStorage.CheckSubmittedWidgetId(id, parentId, resolvedKey, debugKey, record.widgetType);
+#endif
 		record.parentId = parentId;
 		record.order = context.nextOrder++;
 		record.resolvedKey = resolvedKey;

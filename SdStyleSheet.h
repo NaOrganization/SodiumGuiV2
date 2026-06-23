@@ -388,7 +388,7 @@ namespace Sodium
 			if constexpr (requires { TWidget::TargetTypeId; })
 				rule.selector.targetTag = TWidget::TargetTypeId;
 			else
-				rule.selector.targetTag = Detail::SdTypeHash<TWidget>();
+				rule.selector.targetTag = SdStableTypeId<TWidget>();
 			rule.selector.part = part;
 			rule.selector.matchPart = !part.IsRoot();
 			rule.specificity.types = 1;

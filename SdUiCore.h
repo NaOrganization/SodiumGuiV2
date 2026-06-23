@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "SdCore.h"
+#include "SdStableTypeId.h"
 
 #include <algorithm>
 
