@@ -539,7 +539,7 @@ namespace SodiumDynamicExample
 
 			const auto frameStart = std::chrono::steady_clock::now();
 			ApplyGlobalTheme();
-			gui.BeginFrame(platform, dx.displaySize);
+			gui.BeginFrame();
 			const Sodium::SdStyleClassId overlayWindowClasses[] = { kOverlayWindowClass };
 			gui.ui.DeclareStyled<OverlayWindow>(
 				{ Sodium::SdSpan<const Sodium::SdStyleClassId>(overlayWindowClasses, 1), kOverlayWindowScope },
