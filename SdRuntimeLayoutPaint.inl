@@ -218,7 +218,8 @@ namespace Sodium
 				hiddenByDisplay = hiddenByDisplay || (parentHiddenIt != displayHiddenByWidgetId.end() && parentHiddenIt->second);
 				clipRect = record.state.escapesParentClip ? displayRect : parentRecord.state.computedClipRect;
 				const SdBoxNode* parentBox = context.boxTree.FindBoxByStyleNodeId(parentRecord.rootStyleNodeId);
-				const bool parentClipsChildren = overflowClipsChildren(parentRecord.styleCache.resolvedStyle.overflowX)
+				const bool parentClipsChildren = parentRecord.state.clipChildren
+					|| overflowClipsChildren(parentRecord.styleCache.resolvedStyle.overflowX)
 					|| overflowClipsChildren(parentRecord.styleCache.resolvedStyle.overflowY);
 				if (!record.state.escapesParentClip && parentBox && parentClipsChildren)
 					clipRect = intersectRect(clipRect, parentBox->contentBox);

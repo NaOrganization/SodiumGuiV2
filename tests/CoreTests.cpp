@@ -2816,6 +2816,28 @@ namespace
 		Check(instance.GetDiagnostics().drawCommandCount > 0, "built-in widgets emit draw commands");
 		Check(instance.GetLayerSystem().GetHitTestRecords().size() > 0, "built-in input widgets register hit tests");
 		Check(fontBackend.lastMeasuredText.size() > 0, "built-in text-bearing widgets measure text");
+
+		SdWidgetId windowId = 0;
+		for (const auto& [id, record] : instance.GetStateStorage().GetWidgetRecords())
+		{
+			(void)id;
+			if (record.widgetType == std::type_index(typeid(SdWindow)))
+				windowId = record.state.id;
+		}
+		bool windowChildClipMatchesContent = false;
+		for (const auto& [id, record] : instance.GetStateStorage().GetWidgetRecords())
+		{
+			(void)id;
+			if (record.parentId == windowId && record.widgetType == std::type_index(typeid(SdText)))
+			{
+				const SdWidgetRecord& windowRecord = instance.GetStateStorage().GetWidgetRecords().at(windowId);
+				windowChildClipMatchesContent = record.state.computedClipRect.min.x == windowRecord.state.childContentRect.min.x
+					&& record.state.computedClipRect.min.y == windowRecord.state.childContentRect.min.y
+					&& record.state.computedClipRect.max.x == windowRecord.state.childContentRect.max.x
+					&& record.state.computedClipRect.max.y == windowRecord.state.childContentRect.max.y;
+			}
+		}
+		Check(windowChildClipMatchesContent, "window clips child content to its content box");
 	}
 
 	void TestBuiltInWidgetInteraction()

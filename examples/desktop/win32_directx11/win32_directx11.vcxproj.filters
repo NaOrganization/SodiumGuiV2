@@ -16,11 +16,11 @@
     <Filter Include="SodiumGUI\Render">
       <UniqueIdentifier>{5d626578-59b2-4c28-9d9e-3c7adfb50351}</UniqueIdentifier>
     </Filter>
-    <Filter Include="SodiumGUI\Widgets">
-      <UniqueIdentifier>{6750c491-81da-4a34-b6cb-0303394cf117}</UniqueIdentifier>
-    </Filter>
     <Filter Include="SodiumGUI\Backends">
       <UniqueIdentifier>{67da6ab6-f800-4c08-8b7a-83bb121aad01}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SodiumGUI\UI\Widgets">
+      <UniqueIdentifier>{6750c491-81da-4a34-b6cb-0303394cf117}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -138,7 +138,7 @@
       <Filter>SodiumGUI\Backends</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\SdBasicWidgets.h">
-      <Filter>SodiumGUI\Widgets</Filter>
+      <Filter>SodiumGUI\UI\Widgets</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
