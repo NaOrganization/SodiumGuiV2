@@ -334,6 +334,20 @@ namespace Sodium
 				record.state.stackingContextActivationOrder,
 				record.state.stackingContextTreeOrder);
 		};
+		auto buildWidgetPath = [&widgets](SdWidgetId id)
+		{
+			std::vector<SdWidgetId> path = {};
+			for (SdWidgetId currentId = id; currentId != 0;)
+			{
+				path.push_back(currentId);
+				const auto it = widgets.find(currentId);
+				if (it == widgets.end())
+					break;
+				currentId = it->second.parentId;
+			}
+			std::reverse(path.begin(), path.end());
+			return path;
+		};
 		std::sort(paintIds.begin(), paintIds.end(), [&widgets](SdWidgetId left, SdWidgetId right)
 		{
 			const SdWidgetRecord& leftRecord = widgets[left];
@@ -395,6 +409,8 @@ namespace Sodium
 			hitRecord.inputEnabled = record.state.inputEnabled && record.state.lifePhase != SdWidgetLifePhase::Leaving;
 			hitRecord.key = stackingKey;
 			hitRecord.portalRoot = record.state.portalRoot;
+			hitRecord.parentWidgetId = record.parentId;
+			hitRecord.widgetPath = buildWidgetPath(id);
 			context.layerSystem.AddHitTestRecord(hitRecord);
 		}
 		context.layerSystem.Finalize();

@@ -79,8 +79,23 @@ namespace Sodium
 		template<SdDeclarableWidget TWidget, class TModel = typename TWidget::Model>
 		TModel& Model(SdUtf8StringView key);
 
+		template<SdDeclarableWidget TWidget, class TModel = typename TWidget::Model>
+		TModel& Model(SdUtf8StringView key, SdModelLifetime lifetime);
+
+		template<SdDeclarableWidget TWidget, class TModel = typename TWidget::Model>
+		TModel& WidgetModel(SdUtf8StringView key);
+
+		template<SdDeclarableWidget TWidget, class TModel = typename TWidget::Model>
+		TModel& ScopeModel(SdUtf8StringView key);
+
+		template<SdDeclarableWidget TWidget, class TModel = typename TWidget::Model>
+		TModel& GlobalModel(SdUtf8StringView key);
+
 		template<SdDeclarableWidget TWidget, class TConfigure, class TModel = typename TWidget::Model>
 		void ConfigureModel(SdUtf8StringView key, TConfigure&& configure);
+
+		template<SdDeclarableWidget TWidget, class TConfigure, class TModel = typename TWidget::Model>
+		void ConfigureModel(SdUtf8StringView key, SdModelLifetime lifetime, TConfigure&& configure);
 
 		void BeginPortal(SdPortalRoot root, SdWidgetId ownerWidgetId = 0, SdWidgetId anchorWidgetId = 0);
 		void EndPortal();

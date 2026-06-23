@@ -9,9 +9,9 @@ namespace Sodium
 	}
 
 	template<class T>
-	T& SdInstance::GetOrCreateModel(SdResolvedKey resolvedKey)
+	T& SdInstance::GetOrCreateModel(SdResolvedKey resolvedKey, SdModelLifetime lifetime, SdWidgetId ownerWidgetId)
 	{
-		return context.stateStorage.GetOrCreateModel<T>(resolvedKey);
+		return context.stateStorage.GetOrCreateModel<T>(resolvedKey, lifetime, ownerWidgetId);
 	}
 
 	template<class TWidget>
@@ -114,8 +114,19 @@ namespace Sodium
 	template<class T>
 	T& SdWidgetContextBase::Model()
 	{
+		return Model<T>(SdModelLifetime::Widget);
+	}
+
+	template<class T>
+	T& SdWidgetContextBase::Model(SdModelLifetime lifetime)
+	{
 		assert(resolvedKey != 0);
-		return instance.GetOrCreateModel<T>(resolvedKey);
+		SdWidgetId ownerWidgetId = 0;
+		if (lifetime == SdModelLifetime::Widget)
+			ownerWidgetId = id;
+		else if (lifetime == SdModelLifetime::Scope)
+			ownerWidgetId = parentId;
+		return instance.GetOrCreateModel<T>(resolvedKey, lifetime, ownerWidgetId);
 	}
 
 	inline const SdStyleNode& SdWidgetContextBase::RootStyleNode() const

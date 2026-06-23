@@ -220,6 +220,12 @@ namespace Sodium
 			context.platform->StartFrame(context.input);
 			FinishInputAndBeginUiFrame();
 		}
+		void BeginFrame(SdVec2 displaySize)
+		{
+			BeginInputFrame();
+			context.input.GetMutableSnapshot().display.size = displaySize;
+			FinishInputAndBeginUiFrame();
+		}
 
 		void EndFrame();
 		void Render();
@@ -253,12 +259,15 @@ namespace Sodium
 		ISdPlatformBackend* GetPlatformBackend() const noexcept { return context.platform; }
 		ISdRendererBackend* GetRendererBackend() const noexcept { return context.renderer; }
 		ISdFontBackend* GetFontBackend() const noexcept { return context.fontBackend; }
+		void SetPlatformBackend(ISdPlatformBackend* platform) noexcept;
+		void SetRendererBackend(ISdRendererBackend* renderer) noexcept;
+		void SetFontBackend(ISdFontBackend* fontBackend) noexcept;
 
 		template<class T>
 		T& GetOrCreateUserState(SdWidgetId widgetId);
 
 		template<class T>
-		T& GetOrCreateModel(SdResolvedKey resolvedKey);
+		T& GetOrCreateModel(SdResolvedKey resolvedKey, SdModelLifetime lifetime = SdModelLifetime::Manual, SdWidgetId ownerWidgetId = 0);
 
 		template<class TWidget>
 		void ResolveTypedWidgetStyle(SdWidgetRecord& record, SdStyleInteractionState interactionState, SdRootLayer rootLayer);
@@ -282,11 +291,6 @@ namespace Sodium
 		void SetPartUsedBox(SdWidgetId widgetId, SdStylePart part, const SdUsedBox& usedBox);
 		void SetPartLayoutBox(SdWidgetId widgetId, SdStylePart part, const SdUsedBox& layoutBox);
 		void SetPartBorderBox(SdWidgetId widgetId, SdStylePart part, SdRect borderBox);
-
-	private:
-		void SetPlatformBackend(ISdPlatformBackend* platform) noexcept;
-		void SetRendererBackend(ISdRendererBackend* renderer) noexcept;
-		void SetFontBackend(ISdFontBackend* fontBackend) noexcept;
 
 		void BeginInputFrame();
 		void FinishInputAndBeginUiFrame();

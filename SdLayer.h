@@ -137,6 +137,8 @@ namespace Sodium
 		bool blocksLowerInput = false;
 		bool modalBoundary = false;
 		SdPortalRoot portalRoot = SdPortalRoot::None;
+		SdWidgetId parentWidgetId = 0;
+		std::vector<SdWidgetId> widgetPath = {};
 	};
 
 	struct SdLayerDrawRecord final
@@ -178,7 +180,7 @@ namespace Sodium
 		{
 			SdLayerDrawRecord result = record;
 			if (UsesDefaultStackingKey(result.key))
-				result.key = SdMakeStackingKey(result.rootLayer, 0, result.paintOrder, result.paintOrder);
+				result.key = SdMakeStackingKey(result.rootLayer, 0, 0, result.paintOrder);
 			result.paintOrder = result.key.paintOrder;
 			return result;
 		}
@@ -187,7 +189,7 @@ namespace Sodium
 		{
 			SdHitTestRecord result = record;
 			if (UsesDefaultStackingKey(result.key))
-				result.key = SdMakeStackingKey(result.rootLayer, 0, result.paintOrder, result.paintOrder);
+				result.key = SdMakeStackingKey(result.rootLayer, 0, 0, result.paintOrder);
 			result.paintOrder = result.key.paintOrder;
 			if (result.pointerEventsNone)
 			{
@@ -228,6 +230,32 @@ namespace Sodium
 			result.max.x = std::max(result.min.x, result.max.x);
 			result.max.y = std::max(result.min.y, result.max.y);
 			return result;
+		}
+
+		const SdHitTestRecord* FindHitTestRecord(SdWidgetId widgetId) const noexcept
+		{
+			for (const SdHitTestRecord& record : hitTestRecords)
+			{
+				if (record.widgetId == widgetId)
+					return &record;
+			}
+			return nullptr;
+		}
+
+		std::vector<SdWidgetId> BuildHitPath(const SdHitTestRecord& targetRecord) const
+		{
+			if (!targetRecord.widgetPath.empty())
+				return targetRecord.widgetPath;
+
+			std::vector<SdWidgetId> path = {};
+			for (const SdHitTestRecord* record = &targetRecord; record; record = FindHitTestRecord(record->parentWidgetId))
+			{
+				path.push_back(record->widgetId);
+				if (record->parentWidgetId == 0)
+					break;
+			}
+			std::reverse(path.begin(), path.end());
+			return path;
 		}
 
 	public:
@@ -287,7 +315,7 @@ namespace Sodium
 			finalized = true;
 		}
 
-		SdWidgetId HitTest(const SdVec2& point) const
+		std::vector<SdWidgetId> HitTest(const SdVec2& point) const
 		{
 			assert(finalized && "SdLayerSystem::HitTest called before Finalize().");
 			const SdHitTestRecord* bestHit = nullptr;
@@ -310,8 +338,14 @@ namespace Sodium
 					bestBlocker = &record;
 			}
 			if (bestBlocker && (!bestHit || SdLessStackingKey(bestHit->key, bestBlocker->key)))
-				return 0;
-			return bestHit ? bestHit->widgetId : 0;
+				return {};
+			return bestHit ? BuildHitPath(*bestHit) : std::vector<SdWidgetId>{};
+		}
+
+		SdWidgetId HitTestWidget(const SdVec2& point) const
+		{
+			const std::vector<SdWidgetId> path = HitTest(point);
+			return path.empty() ? 0 : path.back();
 		}
 
 		const std::vector<SdHitTestRecord>& GetHitTestRecords() const noexcept
@@ -440,7 +474,8 @@ namespace Sodium
 			state.keyboardWidget = state.focusedWidget;
 			state.dropTargetWidget = 0;
 			pointerRoute.clear();
-			const SdWidgetId hitWidget = layerSystem.HitTest(input.GetMousePosition());
+			const std::vector<SdWidgetId> hitPath = layerSystem.HitTest(input.GetMousePosition());
+			const SdWidgetId hitWidget = hitPath.empty() ? 0 : hitPath.back();
 			state.hoveredWidget = state.capturedWidget != 0 && capturePolicy != SdPointerCapturePolicy::None ? state.capturedWidget : hitWidget;
 			if (input.GetMouseWheelDelta().x != 0.0f || input.GetMouseWheelDelta().y != 0.0f)
 				state.wheelWidget = hitWidget;
@@ -536,16 +571,18 @@ namespace Sodium
 
 			const SdMouseButtonInteraction& leftButton = mouseButtons[static_cast<SdSize>(SdMouseButton::Left)];
 			state.capturedWidget = leftButton.capturedWidget;
-			BuildPointerRoute(hitWidget);
+			BuildPointerRoute(hitPath);
 		}
 
-		void BuildPointerRoute(SdWidgetId targetWidget)
+		void BuildPointerRoute(const std::vector<SdWidgetId>& targetPath)
 		{
-			if (targetWidget == 0)
+			if (targetPath.empty())
 				return;
-			pointerRoute.push_back({ targetWidget, SdInteractionRoutePhase::Tunnel });
-			pointerRoute.push_back({ targetWidget, SdInteractionRoutePhase::Target });
-			pointerRoute.push_back({ targetWidget, SdInteractionRoutePhase::Bubble });
+			for (SdSize index = 0; index + 1 < targetPath.size(); ++index)
+				pointerRoute.push_back({ targetPath[index], SdInteractionRoutePhase::Tunnel });
+			pointerRoute.push_back({ targetPath.back(), SdInteractionRoutePhase::Target });
+			for (SdSize index = targetPath.size() - 1; index > 0; --index)
+				pointerRoute.push_back({ targetPath[index - 1], SdInteractionRoutePhase::Bubble });
 		}
 
 		const SdInteractionState& GetState() const noexcept

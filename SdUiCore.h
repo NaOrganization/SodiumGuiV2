@@ -108,10 +108,9 @@ namespace Sodium
 	namespace Detail
 	{
 		template<class T>
-		SdUInt64 SdTypeHash() noexcept
+		consteval SdUInt64 SdTypeHash()
 		{
-			static const int anchor = 0;
-			return static_cast<SdUInt64>(reinterpret_cast<std::uintptr_t>(&anchor));
+			return SdStableTypeId<T>();
 		}
 	}
 

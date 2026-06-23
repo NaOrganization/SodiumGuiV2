@@ -12,11 +12,11 @@ namespace Sodium
 		TArgs&&... args)
 	{
 		SdWidgetRecord& record = instance.GetOrCreateWidgetRecord(id);
-		const bool created = record.widgetType != std::type_index(typeid(T)) || !instance.context.stateStorage.HasWidgetObject(record);
+		const bool created = record.widgetType != SdStableTypeId<T>() || !instance.context.stateStorage.HasWidgetObject(record);
 
 		if (created)
 		{
-			record.widgetType = std::type_index(typeid(T));
+			record.widgetType = SdStableTypeId<T>();
 			instance.context.stateStorage.CreateWidgetObject<T>(record);
 			record.styleCallback = &SdInstance::StyleThunk<T>;
 			record.typedStyleAnimationCallback = &SdInstance::TypedStyleAnimationThunk<T>;
@@ -184,14 +184,51 @@ namespace Sodium
 	template<SdDeclarableWidget TWidget, class TModel>
 	TModel& SdUi::Model(SdUtf8StringView key)
 	{
-		const SdResolvedKey resolvedKey = idStack.ResolveModelKey(SdStableTypeId<TWidget>(), key);
-		return instance.GetOrCreateModel<TModel>(resolvedKey);
+		return Model<TWidget, TModel>(key, SdModelLifetime::Manual);
+	}
+
+	template<SdDeclarableWidget TWidget, class TModel>
+	TModel& SdUi::Model(SdUtf8StringView key, SdModelLifetime lifetime)
+	{
+		const SdWidgetId parentId = lifetime == SdModelLifetime::Global ? 0 : idStack.CurrentParentId();
+		const SdResolvedKey resolvedKey = idStack.ResolveModelKeyInParent(parentId, SdStableTypeId<TWidget>(), key);
+		SdWidgetId ownerWidgetId = 0;
+		if (lifetime == SdModelLifetime::Widget)
+			ownerWidgetId = instance.context.stateStorage.FindWidgetIdByResolvedKey(resolvedKey);
+		else if (lifetime == SdModelLifetime::Scope)
+			ownerWidgetId = parentId;
+		return instance.GetOrCreateModel<TModel>(resolvedKey, lifetime, ownerWidgetId);
+	}
+
+	template<SdDeclarableWidget TWidget, class TModel>
+	TModel& SdUi::WidgetModel(SdUtf8StringView key)
+	{
+		return Model<TWidget, TModel>(key, SdModelLifetime::Widget);
+	}
+
+	template<SdDeclarableWidget TWidget, class TModel>
+	TModel& SdUi::ScopeModel(SdUtf8StringView key)
+	{
+		return Model<TWidget, TModel>(key, SdModelLifetime::Scope);
+	}
+
+	template<SdDeclarableWidget TWidget, class TModel>
+	TModel& SdUi::GlobalModel(SdUtf8StringView key)
+	{
+		return Model<TWidget, TModel>(key, SdModelLifetime::Global);
 	}
 
 	template<SdDeclarableWidget TWidget, class TConfigure, class TModel>
 	void SdUi::ConfigureModel(SdUtf8StringView key, TConfigure&& configure)
 	{
 		TModel& model = Model<TWidget, TModel>(key);
+		std::forward<TConfigure>(configure)(model);
+	}
+
+	template<SdDeclarableWidget TWidget, class TConfigure, class TModel>
+	void SdUi::ConfigureModel(SdUtf8StringView key, SdModelLifetime lifetime, TConfigure&& configure)
+	{
+		TModel& model = Model<TWidget, TModel>(key, lifetime);
 		std::forward<TConfigure>(configure)(model);
 	}
 }

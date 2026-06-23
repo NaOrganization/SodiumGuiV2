@@ -8,7 +8,6 @@
 #include <memory>
 #include <new>
 #include <string>
-#include <typeindex>
 #include <type_traits>
 #include <unordered_map>
 #include <utility>
@@ -18,18 +17,18 @@ namespace Sodium::Detail
 {
 	struct SdObjectHandle final
 	{
-		std::type_index type = std::type_index(typeid(void));
+		SdTypeId type = 0;
 		SdUInt32 index = SdInvalidIndex<SdUInt32>;
 		SdUInt32 generation = 0;
 
 		bool IsValid() const noexcept
 		{
-			return generation != 0 && index != SdInvalidIndex<SdUInt32> && type != std::type_index(typeid(void));
+			return generation != 0 && index != SdInvalidIndex<SdUInt32> && type != 0;
 		}
 
 		void Reset() noexcept
 		{
-			type = std::type_index(typeid(void));
+			type = 0;
 			index = SdInvalidIndex<SdUInt32>;
 			generation = 0;
 		}
@@ -107,7 +106,7 @@ namespace Sodium::Detail
 			::new (static_cast<void*>(slot.storage)) T(std::forward<TArgs>(args)...);
 			slot.occupied = true;
 			++liveCount;
-			return { std::type_index(typeid(T)), index, slot.generation };
+			return { SdStableTypeId<T>(), index, slot.generation };
 		}
 
 		void* Get(const SdObjectHandle& handle) noexcept override
@@ -163,12 +162,12 @@ namespace Sodium::Detail
 	class SdObjectStore final
 	{
 	private:
-		std::unordered_map<std::type_index, std::unique_ptr<SdObjectPoolBase>> pools = {};
+		std::unordered_map<SdTypeId, std::unique_ptr<SdObjectPoolBase>> pools = {};
 
 		template<class T>
 		SdTypedObjectPool<T>& GetOrCreatePool()
 		{
-			const std::type_index type = std::type_index(typeid(T));
+			const SdTypeId type = SdStableTypeId<T>();
 			auto it = pools.find(type);
 			if (it == pools.end())
 			{
@@ -190,7 +189,7 @@ namespace Sodium::Detail
 		template<class T>
 		T* Get(const SdObjectHandle& handle) noexcept
 		{
-			if (handle.type != std::type_index(typeid(T)))
+			if (handle.type != SdStableTypeId<T>())
 				return nullptr;
 			auto it = pools.find(handle.type);
 			if (it == pools.end())
@@ -272,7 +271,7 @@ namespace Sodium
 		Detail::SdObjectHandle resolvedStyle = {};
 		Detail::SdObjectHandle presentationStyle = {};
 		Detail::SdObjectHandle inlineStyle = {};
-		std::type_index styleType = std::type_index(typeid(void));
+		SdTypeId styleType = 0;
 		SdStyleId targetTypeId = SdWidgetTargetIds::Default;
 		SdStyleInteractionState interactionState = SdStyleInteractionState::Normal;
 		SdRootLayer rootLayer = SdRootLayer::Content;
@@ -293,9 +292,9 @@ namespace Sodium
 		SdStyleCache styleCache = {};
 		SdAnimationWidgetState animation = {};
 		Detail::SdObjectHandle widgetObject = {};
-		std::unordered_map<std::type_index, Detail::SdObjectHandle> userStates = {};
-		std::unordered_map<std::type_index, SdTypedStyleRecord> typedStyles = {};
-		std::type_index widgetType = std::type_index(typeid(void));
+		std::unordered_map<SdTypeId, Detail::SdObjectHandle> userStates = {};
+		std::unordered_map<SdTypeId, SdTypedStyleRecord> typedStyles = {};
+		SdTypeId widgetType = 0;
 		std::vector<SdStyleClassId> styleClasses = {};
 		SdStyleScopeId styleScope = 0;
 		SdUInt64 styleIdentityRevision = 1;
@@ -313,6 +312,13 @@ namespace Sodium
 		{
 			return resolvedKey != 0;
 		}
+	};
+
+	struct SdModelRecord final
+	{
+		Detail::SdObjectHandle object = {};
+		SdModelLifetime lifetime = SdModelLifetime::Manual;
+		SdWidgetId ownerWidgetId = 0;
 	};
 
 	struct SdStateStorageStats final
@@ -340,7 +346,7 @@ namespace Sodium
 		SdWidgetId parentId = 0;
 		SdResolvedKey resolvedKey = 0;
 		SdUtf8String debugKey = {};
-		std::type_index widgetType = std::type_index(typeid(void));
+		SdTypeId widgetType = 0;
 	};
 #endif
 
@@ -349,7 +355,7 @@ namespace Sodium
 	private:
 		std::unordered_map<SdWidgetId, SdWidgetRecord> widgetRecords = {};
 		std::unordered_map<SdResolvedKey, SdWidgetId> widgetIdByResolvedKey = {};
-		std::unordered_map<SdResolvedKey, std::unordered_map<std::type_index, Detail::SdObjectHandle>> keyedModels = {};
+		std::unordered_map<SdResolvedKey, std::unordered_map<SdTypeId, SdModelRecord>> keyedModels = {};
 #ifndef NDEBUG
 		std::unordered_map<SdWidgetId, SdSubmittedIdInfo> submittedIdsThisFrame = {};
 #endif
@@ -411,11 +417,31 @@ namespace Sodium
 			record.typedStyles.clear();
 		}
 
-		void DestroyModelMap(std::unordered_map<std::type_index, Detail::SdObjectHandle>& modelMap)
+		void DestroyModelMap(std::unordered_map<SdTypeId, SdModelRecord>& modelMap)
 		{
-			for (auto& [type, handle] : modelMap)
-				objectStore.Destroy(handle);
+			for (auto& [type, modelRecord] : modelMap)
+				objectStore.Destroy(modelRecord.object);
 			modelMap.clear();
+		}
+
+		void UpdateModelOwnership(SdModelRecord& modelRecord, SdModelLifetime lifetime, SdWidgetId ownerWidgetId) noexcept
+		{
+			if (modelRecord.lifetime == SdModelLifetime::Manual)
+				return;
+			modelRecord.lifetime = lifetime;
+			modelRecord.ownerWidgetId = ownerWidgetId;
+		}
+
+		void BindWidgetModelOwner(SdResolvedKey resolvedKey, SdWidgetId widgetId) noexcept
+		{
+			auto keyIt = keyedModels.find(resolvedKey);
+			if (keyIt == keyedModels.end())
+				return;
+			for (auto& [type, modelRecord] : keyIt->second)
+			{
+				if (modelRecord.lifetime == SdModelLifetime::Widget && modelRecord.ownerWidgetId == 0)
+					modelRecord.ownerWidgetId = widgetId;
+			}
 		}
 
 	public:
@@ -569,7 +595,7 @@ namespace Sodium
 			SdWidgetId parentId,
 			SdResolvedKey resolvedKey,
 			SdUtf8StringView debugKey,
-			std::type_index widgetType)
+			SdTypeId widgetType)
 		{
 			SdSubmittedIdInfo info = {};
 			info.parentId = parentId;
@@ -604,6 +630,7 @@ namespace Sodium
 #else
 			widgetIdByResolvedKey[resolvedKey] = widgetId;
 #endif
+			BindWidgetModelOwner(resolvedKey, widgetId);
 		}
 
 		SdWidgetId FindWidgetIdByResolvedKey(SdResolvedKey resolvedKey) const noexcept
@@ -618,7 +645,7 @@ namespace Sodium
 			auto recordIt = widgetRecords.find(widgetId);
 			assert(recordIt != widgetRecords.end());
 			SdWidgetRecord& record = recordIt->second;
-			Detail::SdObjectHandle& object = record.userStates[std::type_index(typeid(T))];
+			Detail::SdObjectHandle& object = record.userStates[SdStableTypeId<T>()];
 			if (!object.IsValid())
 			{
 				object = objectStore.Create<T>();
@@ -634,24 +661,27 @@ namespace Sodium
 		}
 
 		template<class T>
-		T& GetOrCreateModel(SdResolvedKey resolvedKey)
+		T& GetOrCreateModel(SdResolvedKey resolvedKey, SdModelLifetime lifetime = SdModelLifetime::Manual, SdWidgetId ownerWidgetId = 0)
 		{
 			assert(resolvedKey != 0);
-			std::unordered_map<std::type_index, Detail::SdObjectHandle>& modelMap = keyedModels[resolvedKey];
-			Detail::SdObjectHandle& object = modelMap[std::type_index(typeid(T))];
-			if (!object.IsValid())
+			std::unordered_map<SdTypeId, SdModelRecord>& modelMap = keyedModels[resolvedKey];
+			SdModelRecord& modelRecord = modelMap[SdStableTypeId<T>()];
+			UpdateModelOwnership(modelRecord, lifetime, ownerWidgetId);
+			if (!modelRecord.object.IsValid())
 			{
-				object = objectStore.Create<T>();
+				modelRecord.object = objectStore.Create<T>();
+				modelRecord.lifetime = lifetime;
+				modelRecord.ownerWidgetId = ownerWidgetId;
 				stats.modelCount = static_cast<SdUInt32>(keyedModels.size());
 				stats.liveObjectCount = objectStore.GetLiveObjectCount();
-				return *objectStore.Get<T>(object);
+				return *objectStore.Get<T>(modelRecord.object);
 			}
-			if (T* model = objectStore.Get<T>(object))
+			if (T* model = objectStore.Get<T>(modelRecord.object))
 				return *model;
-			objectStore.Destroy(object);
-			object = objectStore.Create<T>();
+			objectStore.Destroy(modelRecord.object);
+			modelRecord.object = objectStore.Create<T>();
 			stats.liveObjectCount = objectStore.GetLiveObjectCount();
-			return *objectStore.Get<T>(object);
+			return *objectStore.Get<T>(modelRecord.object);
 		}
 
 		bool RemoveModel(SdResolvedKey resolvedKey)
@@ -666,6 +696,37 @@ namespace Sodium
 			return true;
 		}
 
+		SdUInt32 RemoveOwnedModels(SdWidgetId ownerWidgetId)
+		{
+			SdUInt32 removedCount = 0;
+			for (auto keyIt = keyedModels.begin(); keyIt != keyedModels.end();)
+			{
+				auto& modelMap = keyIt->second;
+				for (auto modelIt = modelMap.begin(); modelIt != modelMap.end();)
+				{
+					SdModelRecord& modelRecord = modelIt->second;
+					if (modelRecord.lifetime != SdModelLifetime::Manual && modelRecord.ownerWidgetId == ownerWidgetId)
+					{
+						objectStore.Destroy(modelRecord.object);
+						modelIt = modelMap.erase(modelIt);
+						++removedCount;
+					}
+					else
+					{
+						++modelIt;
+					}
+				}
+
+				if (modelMap.empty())
+					keyIt = keyedModels.erase(keyIt);
+				else
+					++keyIt;
+			}
+			stats.modelCount = static_cast<SdUInt32>(keyedModels.size());
+			stats.liveObjectCount = objectStore.GetLiveObjectCount();
+			return removedCount;
+		}
+
 		template<class TRemoveCallback>
 		SdUInt32 RemoveDeadWidgets(TRemoveCallback&& removeCallback)
 		{
@@ -677,6 +738,7 @@ namespace Sodium
 					if (it->second.resolvedKey != 0)
 						widgetIdByResolvedKey.erase(it->second.resolvedKey);
 					removeCallback(it->first);
+					RemoveOwnedModels(it->first);
 					DestroyWidgetRecordObjects(it->second);
 					it = widgetRecords.erase(it);
 					++removedCount;
@@ -726,9 +788,9 @@ namespace Sodium
 		template<class TStyle>
 		SdTypedStyleRecord& GetOrCreateTypedStyleRecord(SdWidgetRecord& record)
 		{
-			SdTypedStyleRecord& styleRecord = record.typedStyles[std::type_index(typeid(TStyle))];
-			if (styleRecord.styleType == std::type_index(typeid(void)))
-				styleRecord.styleType = std::type_index(typeid(TStyle));
+			SdTypedStyleRecord& styleRecord = record.typedStyles[SdStableTypeId<TStyle>()];
+			if (styleRecord.styleType == 0)
+				styleRecord.styleType = SdStableTypeId<TStyle>();
 			return styleRecord;
 		}
 
@@ -767,7 +829,7 @@ namespace Sodium
 		template<class TStyle>
 		TStyle* FindResolvedStyle(SdWidgetRecord& record) noexcept
 		{
-			auto it = record.typedStyles.find(std::type_index(typeid(TStyle)));
+			auto it = record.typedStyles.find(SdStableTypeId<TStyle>());
 			if (it == record.typedStyles.end())
 				return nullptr;
 			return objectStore.Get<TStyle>(it->second.resolvedStyle);
@@ -776,7 +838,7 @@ namespace Sodium
 		template<class TStyle>
 		TStyle* FindPresentationStyle(SdWidgetRecord& record) noexcept
 		{
-			auto it = record.typedStyles.find(std::type_index(typeid(TStyle)));
+			auto it = record.typedStyles.find(SdStableTypeId<TStyle>());
 			if (it == record.typedStyles.end())
 				return nullptr;
 			return objectStore.Get<TStyle>(it->second.presentationStyle);
@@ -791,14 +853,14 @@ namespace Sodium
 		template<class TStyle>
 		SdTypedStyleRecord* FindTypedStyleRecord(SdWidgetRecord& record) noexcept
 		{
-			auto it = record.typedStyles.find(std::type_index(typeid(TStyle)));
+			auto it = record.typedStyles.find(SdStableTypeId<TStyle>());
 			return it == record.typedStyles.end() ? nullptr : &it->second;
 		}
 
 		template<class TStyle>
 		const SdTypedStyleRecord* FindTypedStyleRecord(const SdWidgetRecord& record) const noexcept
 		{
-			auto it = record.typedStyles.find(std::type_index(typeid(TStyle)));
+			auto it = record.typedStyles.find(SdStableTypeId<TStyle>());
 			return it == record.typedStyles.end() ? nullptr : &it->second;
 		}
 
@@ -853,7 +915,7 @@ namespace Sodium
 		template<class TStyle>
 		bool ClearInlineStyle(SdWidgetRecord& record)
 		{
-			auto it = record.typedStyles.find(std::type_index(typeid(TStyle)));
+			auto it = record.typedStyles.find(SdStableTypeId<TStyle>());
 			if (it == record.typedStyles.end() || !it->second.inlineStyle.IsValid())
 				return false;
 

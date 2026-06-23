@@ -77,10 +77,15 @@ namespace Sodium
 
 		SdResolvedKey ResolveModelKey(SdUInt64 typeId, SdUtf8StringView key) const
 		{
+			return ResolveModelKeyInParent(CurrentParentId(), typeId, key);
+		}
+
+		SdResolvedKey ResolveModelKeyInParent(SdWidgetId parentId, SdUInt64 typeId, SdUtf8StringView key) const
+		{
 			static constexpr SdUInt64 ResolvedKeySalt = 0xA0761D6478BD642Full;
 			SdHashBuilder hash;
 			hash.Add(ResolvedKeySalt);
-			hash.Add(CurrentParentId());
+			hash.Add(parentId);
 			hash.Add(typeId);
 			hash.Add(SdHashString64(key));
 			return hash.Finish();

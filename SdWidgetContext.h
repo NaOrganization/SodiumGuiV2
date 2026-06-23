@@ -31,6 +31,14 @@ namespace Sodium
 		Dead
 	};
 
+	enum class SdModelLifetime : SdUInt8
+	{
+		Widget,
+		Scope,
+		Global,
+		Manual
+	};
+
 	struct SdWidgetState final
 	{
 		SdWidgetId id = 0;
@@ -85,6 +93,9 @@ namespace Sodium
 
 		template<class T>
 		T& Model();
+
+		template<class T>
+		T& Model(SdModelLifetime lifetime);
 
 		const SdStyleNode& RootStyleNode() const;
 		const SdStyleNode& Part(SdStylePart part) const;

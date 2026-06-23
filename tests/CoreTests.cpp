@@ -1,4 +1,4 @@
-﻿#include "SodiumGUI.h"
+#include "SodiumGUI.h"
 
 #include <algorithm>
 #include <chrono>
@@ -510,20 +510,20 @@ namespace
 		for (const auto& [id, record] : instance.GetStateStorage().GetWidgetRecords())
 		{
 			(void)id;
-			if (record.widgetType == std::type_index(typeid(SdButton)))
+			if (record.widgetType == SdStableTypeId<SdButton>())
 				buttonHasLabel = instance.GetStylePart(record.state.id, SdButton::Parts::Label).part == SdButton::Parts::Label;
-			if (record.widgetType == std::type_index(typeid(SdCheckBox)))
+			if (record.widgetType == SdStableTypeId<SdCheckBox>())
 				checkBoxHasLabel = instance.GetStylePart(record.state.id, SdCheckBox::Parts::Label).part == SdCheckBox::Parts::Label;
-			if (record.widgetType == std::type_index(typeid(SdSliderFloat)))
+			if (record.widgetType == SdStableTypeId<SdSliderFloat>())
 				sliderHasLabel = instance.GetStylePart(record.state.id, SdSliderFloat::Parts::Label).part == SdSliderFloat::Parts::Label;
-			if (record.widgetType == std::type_index(typeid(SdTextInput)))
+			if (record.widgetType == SdStableTypeId<SdTextInput>())
 				inputHasCaret = instance.GetStylePart(record.state.id, SdTextInput::Parts::Caret).part == SdTextInput::Parts::Caret;
-			if (record.widgetType == std::type_index(typeid(SdWindow)))
+			if (record.widgetType == SdStableTypeId<SdWindow>())
 			{
 				windowHasTitlebar = instance.GetStylePart(record.state.id, SdWindow::Parts::Titlebar).part == SdWindow::Parts::Titlebar;
 				windowHasCloseButton = instance.GetStylePart(record.state.id, SdWindow::Parts::CloseButton).part == SdWindow::Parts::CloseButton;
 			}
-			if (record.widgetType == std::type_index(typeid(SdScrollView)))
+			if (record.widgetType == SdStableTypeId<SdScrollView>())
 				scrollViewHasThumb = instance.GetStylePart(record.state.id, SdScrollView::Parts::Thumb).part == SdScrollView::Parts::Thumb;
 		}
 
@@ -566,7 +566,7 @@ namespace
 		for (const auto& [id, record] : partStyleInstance.GetStateStorage().GetWidgetRecords())
 		{
 			(void)id;
-			if (record.widgetType == std::type_index(typeid(SdButton)))
+			if (record.widgetType == SdStableTypeId<SdButton>())
 			{
 				const SdBoxStyle& contentStyle = partStyleInstance.GetStylePart(record.state.id, SdButton::Parts::Content).presentationStyle;
 				const SdBoxStyle& labelStyle = partStyleInstance.GetStylePart(record.state.id, SdButton::Parts::Label).presentationStyle;
@@ -625,7 +625,7 @@ namespace
 		for (const auto& [id, record] : partStyleInstance.GetStateStorage().GetWidgetRecords())
 		{
 			(void)id;
-			if (record.widgetType != std::type_index(typeid(SdButton)))
+			if (record.widgetType != SdStableTypeId<SdButton>())
 				continue;
 			const SdStyleNode& contentNode = partStyleInstance.GetStylePart(record.state.id, SdButton::Parts::Content);
 			const SdStyleNode& labelNode = partStyleInstance.GetStylePart(record.state.id, SdButton::Parts::Label);
@@ -683,7 +683,7 @@ namespace
 		for (const auto& [id, record] : checkBoxPartStyleInstance.GetStateStorage().GetWidgetRecords())
 		{
 			(void)id;
-			if (record.widgetType == std::type_index(typeid(SdCheckBox)))
+			if (record.widgetType == SdStableTypeId<SdCheckBox>())
 			{
 				const SdBoxStyle& boxStyle = checkBoxPartStyleInstance.GetStylePart(record.state.id, SdCheckBox::Parts::Box).presentationStyle;
 				const SdBoxStyle& indicatorStyle = checkBoxPartStyleInstance.GetStylePart(record.state.id, SdCheckBox::Parts::Indicator).presentationStyle;
@@ -723,7 +723,7 @@ namespace
 		for (const auto& [id, record] : sliderPartStyleInstance.GetStateStorage().GetWidgetRecords())
 		{
 			(void)id;
-			if (record.widgetType == std::type_index(typeid(SdSliderFloat)))
+			if (record.widgetType == SdStableTypeId<SdSliderFloat>())
 			{
 				const SdBoxStyle& trackStyle = sliderPartStyleInstance.GetStylePart(record.state.id, SdSliderFloat::Parts::Track).presentationStyle;
 				const SdBoxStyle& fillStyle = sliderPartStyleInstance.GetStylePart(record.state.id, SdSliderFloat::Parts::Fill).presentationStyle;
@@ -755,7 +755,7 @@ namespace
 		for (const auto& [id, record] : scrollViewPartStyleInstance.GetStateStorage().GetWidgetRecords())
 		{
 			(void)id;
-			if (record.widgetType == std::type_index(typeid(SdScrollView)))
+			if (record.widgetType == SdStableTypeId<SdScrollView>())
 			{
 				const SdBoxStyle& scrollbarStyle = scrollViewPartStyleInstance.GetStylePart(record.state.id, SdScrollView::Parts::Scrollbar).presentationStyle;
 				const SdBoxStyle& thumbStyle = scrollViewPartStyleInstance.GetStylePart(record.state.id, SdScrollView::Parts::Thumb).presentationStyle;
@@ -814,7 +814,7 @@ namespace
 		for (const auto& [id, record] : inputPartStyleInstance.GetStateStorage().GetWidgetRecords())
 		{
 			(void)id;
-			if (record.widgetType == std::type_index(typeid(SdTextInput)))
+			if (record.widgetType == SdStableTypeId<SdTextInput>())
 			{
 				const SdBoxStyle& fieldStyle = inputPartStyleInstance.GetStylePart(record.state.id, SdTextInput::Parts::Field).presentationStyle;
 				inputFieldPartRuleApplied = fieldStyle.backgroundColor == inputFieldPartColor
@@ -879,7 +879,7 @@ namespace
 		for (const auto& [id, record] : windowPartStyleInstance.GetStateStorage().GetWidgetRecords())
 		{
 			(void)id;
-			if (record.widgetType == std::type_index(typeid(SdWindow)))
+			if (record.widgetType == SdStableTypeId<SdWindow>())
 			{
 				const SdBoxStyle& contentStyle = windowPartStyleInstance.GetStylePart(record.state.id, SdWindow::Parts::Content).presentationStyle;
 				const SdBoxStyle& titlebarStyle = windowPartStyleInstance.GetStylePart(record.state.id, SdWindow::Parts::Titlebar).presentationStyle;
@@ -1191,7 +1191,7 @@ namespace
 		for (const auto& [id, record] : inlineInstance.GetStateStorage().GetWidgetRecords())
 		{
 			(void)id;
-			if (record.widgetType != std::type_index(typeid(SdButton)))
+			if (record.widgetType != SdStableTypeId<SdButton>())
 				continue;
 			const SdStyleNode& root = inlineInstance.GetRootStyleNode(record.state.id);
 			rootInlineApplied = root.resolvedStyle.backgroundColor == inlineColor
@@ -1261,7 +1261,7 @@ namespace
 		for (const auto& [id, record] : geometryInstance.GetStateStorage().GetWidgetRecords())
 		{
 			(void)id;
-			if (record.widgetType == std::type_index(typeid(SdSliderFloat)))
+			if (record.widgetType == SdStableTypeId<SdSliderFloat>())
 			{
 				const SdStyleNode& root = geometryInstance.GetRootStyleNode(record.state.id);
 				const SdStyleNode& track = geometryInstance.GetStylePart(record.state.id, SdSliderFloat::Parts::Track);
@@ -1271,12 +1271,12 @@ namespace
 					&& track.layoutBox.borderBox.Width() < root.usedBox.borderBox.Width()
 					&& thumb.layoutBox.borderBox.Width() != track.layoutBox.borderBox.Width();
 			}
-			if (record.widgetType == std::type_index(typeid(SdWindow)))
+			if (record.widgetType == SdStableTypeId<SdWindow>())
 			{
 				const SdStyleNode& titlebar = geometryInstance.GetStylePart(record.state.id, SdWindow::Parts::Titlebar);
 				windowTitlebarHasUsedGeometry = std::abs(titlebar.layoutBox.borderBox.Height() - 30.0f) < 0.001f;
 			}
-			if (record.widgetType == std::type_index(typeid(SdTextInput)))
+			if (record.widgetType == SdStableTypeId<SdTextInput>())
 				firstCaretX = geometryInstance.GetStylePart(record.state.id, SdTextInput::Parts::Caret).layoutBox.borderBox.min.x;
 		}
 		geometryInputValue = "AAAAA";
@@ -1289,7 +1289,7 @@ namespace
 		for (const auto& [id, record] : geometryInstance.GetStateStorage().GetWidgetRecords())
 		{
 			(void)id;
-			if (record.widgetType == std::type_index(typeid(SdTextInput)))
+			if (record.widgetType == SdStableTypeId<SdTextInput>())
 			{
 				const float secondCaretX = geometryInstance.GetStylePart(record.state.id, SdTextInput::Parts::Caret).layoutBox.borderBox.min.x;
 				textInputCaretGeometryMoved = secondCaretX > firstCaretX;
@@ -1510,7 +1510,7 @@ namespace
 		for (const auto& [id, record] : instance.GetStateStorage().GetWidgetRecords())
 		{
 			(void)id;
-			if (record.widgetType == std::type_index(typeid(SdButton)))
+			if (record.widgetType == SdStableTypeId<SdButton>())
 			{
 				const SdStyleNode& root = instance.GetRootStyleNode(record.state.id);
 				const SdStyleNode& content = instance.GetStylePart(record.state.id, SdButton::Parts::Content);
@@ -1552,7 +1552,7 @@ namespace
 		for (const auto& [id, record] : centeredButtonInstance.GetStateStorage().GetWidgetRecords())
 		{
 			(void)id;
-			if (record.widgetType != std::type_index(typeid(SdButton)))
+			if (record.widgetType != SdStableTypeId<SdButton>())
 				continue;
 
 			const SdStyleNode& root = centeredButtonInstance.GetRootStyleNode(record.state.id);
@@ -1583,7 +1583,7 @@ namespace
 		for (const auto& [id, record] : compactButtonInstance.GetStateStorage().GetWidgetRecords())
 		{
 			(void)id;
-			if (record.widgetType != std::type_index(typeid(SdButton)))
+			if (record.widgetType != SdStableTypeId<SdButton>())
 				continue;
 			const SdStyleNode& root = compactButtonInstance.GetRootStyleNode(record.state.id);
 			buttonIgnoresExcessLineBoxHeight = root.layoutBox.borderBox.Height() <= 40.0f;
@@ -1629,7 +1629,7 @@ namespace
 		for (const auto& [id, record] : alignedTextPartsInstance.GetStateStorage().GetWidgetRecords())
 		{
 			(void)id;
-			if (record.widgetType == std::type_index(typeid(SdCheckBox)))
+			if (record.widgetType == SdStableTypeId<SdCheckBox>())
 			{
 				const SdStyleNode& root = alignedTextPartsInstance.GetRootStyleNode(record.state.id);
 				const SdStyleNode& label = alignedTextPartsInstance.GetStylePart(record.state.id, SdCheckBox::Parts::Label);
@@ -1652,7 +1652,7 @@ namespace
 						&& hitRecord.rect.max.y == root.layoutBox.borderBox.max.y;
 				}
 			}
-			if (record.widgetType == std::type_index(typeid(SdSliderFloat)))
+			if (record.widgetType == SdStableTypeId<SdSliderFloat>())
 			{
 				const SdStyleNode& root = alignedTextPartsInstance.GetRootStyleNode(record.state.id);
 				const SdStyleNode& label = alignedTextPartsInstance.GetStylePart(record.state.id, SdSliderFloat::Parts::Label);
@@ -1663,7 +1663,7 @@ namespace
 				const float glyphCenterY = (glyphRect.min.y + glyphRect.max.y) * 0.5f;
 				sliderLabelCentered = std::abs(glyphCenterY - contentCenterY) < 0.001f;
 			}
-			if (record.widgetType == std::type_index(typeid(SdTextInput)))
+			if (record.widgetType == SdStableTypeId<SdTextInput>())
 			{
 				const SdStyleNode& root = alignedTextPartsInstance.GetRootStyleNode(record.state.id);
 				const SdStyleNode& value = alignedTextPartsInstance.GetStylePart(record.state.id, SdTextInput::Parts::Value);
@@ -1674,7 +1674,7 @@ namespace
 				const float glyphCenterY = (glyphRect.min.y + glyphRect.max.y) * 0.5f;
 				textInputValueCentered = std::abs(glyphCenterY - contentCenterY) < 0.001f;
 			}
-			if (record.widgetType == std::type_index(typeid(SdWindow)))
+			if (record.widgetType == SdStableTypeId<SdWindow>())
 			{
 				const SdStyleNode& titlebar = alignedTextPartsInstance.GetStylePart(record.state.id, SdWindow::Parts::Titlebar);
 				const SdStyleNode& title = alignedTextPartsInstance.GetStylePart(record.state.id, SdWindow::Parts::Title);
@@ -1701,7 +1701,7 @@ namespace
 		for (const auto& [id, record] : panelInstance.GetStateStorage().GetWidgetRecords())
 		{
 			(void)id;
-			if (record.widgetType == std::type_index(typeid(SdPanel)))
+			if (record.widgetType == SdStableTypeId<SdPanel>())
 			{
 				const SdStyleNode& root = panelInstance.GetRootStyleNode(record.state.id);
 				hasContentRectFromUsedBox = record.state.childContentRect.min.x == root.usedBox.contentBox.min.x
@@ -1728,7 +1728,7 @@ namespace
 		for (const auto& [id, record] : panelPaintInstance.GetStateStorage().GetWidgetRecords())
 		{
 			(void)id;
-			if (record.widgetType == std::type_index(typeid(SdPanel)))
+			if (record.widgetType == SdStableTypeId<SdPanel>())
 				panelLayoutMinX = panelPaintInstance.GetRootStyleNode(record.state.id).layoutBox.borderBox.min.x;
 		}
 		const SdUInt32 panelPaintPackedRgb = panelPaintColor.Pack() & 0x00ffffffu;
@@ -1759,7 +1759,7 @@ namespace
 		for (const auto& [id, record] : buttonPaintInstance.GetStateStorage().GetWidgetRecords())
 		{
 			(void)id;
-			if (record.widgetType == std::type_index(typeid(SdButton)))
+			if (record.widgetType == SdStableTypeId<SdButton>())
 				buttonLayoutMinX = buttonPaintInstance.GetRootStyleNode(record.state.id).layoutBox.borderBox.min.x;
 		}
 		const SdUInt32 buttonPaintPackedRgb = buttonPaintColor.Pack() & 0x00ffffffu;
@@ -1791,7 +1791,7 @@ namespace
 		for (const auto& [id, record] : checkBoxPaintInstance.GetStateStorage().GetWidgetRecords())
 		{
 			(void)id;
-			if (record.widgetType == std::type_index(typeid(SdCheckBox)))
+			if (record.widgetType == SdStableTypeId<SdCheckBox>())
 				checkBoxLayoutMinX = checkBoxPaintInstance.GetRootStyleNode(record.state.id).layoutBox.borderBox.min.x;
 		}
 		const SdUInt32 checkBoxPaintPackedRgb = checkBoxPaintColor.Pack() & 0x00ffffffu;
@@ -1824,7 +1824,7 @@ namespace
 		for (const auto& [id, record] : sliderPaintInstance.GetStateStorage().GetWidgetRecords())
 		{
 			(void)id;
-			if (record.widgetType == std::type_index(typeid(SdSliderFloat)))
+			if (record.widgetType == SdStableTypeId<SdSliderFloat>())
 				sliderLayoutMinX = sliderPaintInstance.GetRootStyleNode(record.state.id).layoutBox.borderBox.min.x;
 		}
 		const SdUInt32 sliderPaintPackedRgb = sliderPaintColor.Pack() & 0x00ffffffu;
@@ -1857,7 +1857,7 @@ namespace
 		for (const auto& [id, record] : textInputPaintInstance.GetStateStorage().GetWidgetRecords())
 		{
 			(void)id;
-			if (record.widgetType == std::type_index(typeid(SdTextInput)))
+			if (record.widgetType == SdStableTypeId<SdTextInput>())
 				textInputLayoutMinX = textInputPaintInstance.GetRootStyleNode(record.state.id).layoutBox.borderBox.min.x;
 		}
 		const SdUInt32 textInputPaintPackedRgb = textInputPaintColor.Pack() & 0x00ffffffu;
@@ -1886,7 +1886,7 @@ namespace
 		for (const auto& [id, record] : imageViewerPaintInstance.GetStateStorage().GetWidgetRecords())
 		{
 			(void)id;
-			if (record.widgetType == std::type_index(typeid(SdImageViewer)))
+			if (record.widgetType == SdStableTypeId<SdImageViewer>())
 				imageViewerLayoutMinX = imageViewerPaintInstance.GetRootStyleNode(record.state.id).layoutBox.borderBox.min.x;
 		}
 		const SdUInt32 imageViewerPaintPackedRgb = imageViewerPaintColor.Pack() & 0x00ffffffu;
@@ -1916,7 +1916,7 @@ namespace
 		for (const auto& [id, record] : popupPaintInstance.GetStateStorage().GetWidgetRecords())
 		{
 			(void)id;
-			if (record.widgetType == std::type_index(typeid(SdPopup)))
+			if (record.widgetType == SdStableTypeId<SdPopup>())
 				popupLayoutMinX = popupPaintInstance.GetRootStyleNode(record.state.id).layoutBox.borderBox.min.x;
 		}
 		const SdUInt32 popupPaintPackedRgb = popupPaintColor.Pack() & 0x00ffffffu;
@@ -1946,7 +1946,7 @@ namespace
 		for (const auto& [id, record] : contextMenuPaintInstance.GetStateStorage().GetWidgetRecords())
 		{
 			(void)id;
-			if (record.widgetType == std::type_index(typeid(SdContextMenu)))
+			if (record.widgetType == SdStableTypeId<SdContextMenu>())
 				contextMenuLayoutMinX = contextMenuPaintInstance.GetRootStyleNode(record.state.id).layoutBox.borderBox.min.x;
 		}
 		const SdUInt32 contextMenuPaintPackedRgb = contextMenuPaintColor.Pack() & 0x00ffffffu;
@@ -1975,7 +1975,7 @@ namespace
 		for (const auto& [id, record] : tooltipPaintInstance.GetStateStorage().GetWidgetRecords())
 		{
 			(void)id;
-			if (record.widgetType == std::type_index(typeid(SdTooltip)))
+			if (record.widgetType == SdStableTypeId<SdTooltip>())
 				tooltipLayoutMinX = tooltipPaintInstance.GetRootStyleNode(record.state.id).layoutBox.borderBox.min.x;
 		}
 		const SdUInt32 tooltipPaintPackedRgb = tooltipPaintColor.Pack() & 0x00ffffffu;
@@ -2011,7 +2011,7 @@ namespace
 		for (const auto& [id, record] : scrollViewPaintInstance.GetStateStorage().GetWidgetRecords())
 		{
 			(void)id;
-			if (record.widgetType == std::type_index(typeid(SdScrollView)))
+			if (record.widgetType == SdStableTypeId<SdScrollView>())
 				scrollViewLayoutMinX = scrollViewPaintInstance.GetStylePart(record.state.id, SdScrollView::Parts::Scrollbar).layoutBox.borderBox.min.x;
 		}
 		const SdUInt32 scrollViewPaintPackedRgb = scrollViewPaintColor.Pack() & 0x00ffffffu;
@@ -2049,7 +2049,7 @@ namespace
 		for (const auto& [id, record] : windowPaintInstance.GetStateStorage().GetWidgetRecords())
 		{
 			(void)id;
-			if (record.widgetType == std::type_index(typeid(SdWindow)))
+			if (record.widgetType == SdStableTypeId<SdWindow>())
 				windowLayoutMinX = windowPaintInstance.GetRootStyleNode(record.state.id).layoutBox.borderBox.min.x;
 		}
 		const SdUInt32 windowPaintPackedRgb = windowPaintColor.Pack() & 0x00ffffffu;
@@ -2112,7 +2112,7 @@ namespace
 		for (const auto& [id, record] : overflowInstance.GetStateStorage().GetWidgetRecords())
 		{
 			(void)id;
-			if (record.widgetType == std::type_index(typeid(TestOverflowContainer)))
+			if (record.widgetType == SdStableTypeId<TestOverflowContainer>())
 			{
 				const SdStyleNode& root = overflowInstance.GetRootStyleNode(record.state.id);
 				overflowContentRect = record.state.childContentRect;
@@ -2125,7 +2125,7 @@ namespace
 		for (const auto& [id, record] : overflowInstance.GetStateStorage().GetWidgetRecords())
 		{
 			(void)id;
-			if (record.widgetType == std::type_index(typeid(TestDrawWidget)))
+			if (record.widgetType == SdStableTypeId<TestDrawWidget>())
 			{
 				const SdStyleNode& childRoot = overflowInstance.GetRootStyleNode(record.state.id);
 				childTargetMatchesFlexLayoutBox = record.state.targetRect.min.x == childRoot.layoutBox.borderBox.min.x
@@ -2154,7 +2154,7 @@ namespace
 		for (const auto& [id, record] : manualInstance.GetStateStorage().GetWidgetRecords())
 		{
 			(void)id;
-			if (record.widgetType == std::type_index(typeid(TestManualLayoutWidget)))
+			if (record.widgetType == SdStableTypeId<TestManualLayoutWidget>())
 			{
 				const SdBoxNode* box = manualInstance.GetBoxTree().FindBoxByStyleNodeId(record.rootStyleNodeId);
 				manualShadowBoxUsesAbsoluteRect = box
@@ -2242,6 +2242,52 @@ namespace
 		Check(instance.GetStateStorage().FindWidgetRecord(widgetId) == nullptr, "dead widget record is removed");
 		Check(instance.GetDiagnostics().liveObjectCount < liveObjectCountBeforeSweep, "dead widget object storage is released");
 		Check(instance.GetDiagnostics().modelCount >= 1, "keyed model remains after widget sweep");
+
+		SdInstance ownedInstance;
+		ownedInstance.BeginFrame({ 640.0f, 480.0f });
+		ownedInstance.ui.DeclareKeyed<ModelWidget>("owned_model");
+		ownedInstance.ui.WidgetModel<ModelWidget>("owned_model").value = 7.0f;
+		PumpFrame(ownedInstance);
+		Check(ownedInstance.GetDiagnostics().modelCount == 1, "widget model is stored while keyed widget is alive");
+
+		ownedInstance.BeginFrame({ 640.0f, 480.0f });
+		PumpFrame(ownedInstance);
+		std::this_thread::sleep_for(std::chrono::milliseconds(220));
+		ownedInstance.BeginFrame({ 640.0f, 480.0f });
+		PumpFrame(ownedInstance);
+		Check(ownedInstance.GetDiagnostics().removedWidgetCount >= 1, "widget model owner is swept");
+		Check(ownedInstance.GetDiagnostics().modelCount == 0, "widget model is removed with owning widget");
+
+		SdInstance scopeInstance;
+		scopeInstance.BeginFrame({ 640.0f, 480.0f });
+		scopeInstance.ui.DeclareKeyed<TestContainer>("scope_owner", [](SdUi& ui)
+		{
+			ui.ScopeModel<ModelWidget>("scoped_model").value = 5.0f;
+		});
+		PumpFrame(scopeInstance);
+		Check(scopeInstance.GetDiagnostics().modelCount == 1, "scope model is stored while scope owner is alive");
+
+		scopeInstance.BeginFrame({ 640.0f, 480.0f });
+		PumpFrame(scopeInstance);
+		std::this_thread::sleep_for(std::chrono::milliseconds(220));
+		scopeInstance.BeginFrame({ 640.0f, 480.0f });
+		PumpFrame(scopeInstance);
+		Check(scopeInstance.GetDiagnostics().removedWidgetCount >= 1, "scope model owner is swept");
+		Check(scopeInstance.GetDiagnostics().modelCount == 0, "scope model is removed with owning scope");
+
+		SdInstance globalInstance;
+		globalInstance.BeginFrame({ 640.0f, 480.0f });
+		globalInstance.ui.DeclareKeyed<TestContainer>("first_scope", [](SdUi& ui)
+		{
+			ui.GlobalModel<ModelWidget>("global_model").value = 9.0f;
+		});
+		PumpFrame(globalInstance);
+		globalInstance.BeginFrame({ 640.0f, 480.0f });
+		globalInstance.ui.DeclareKeyed<TestContainer>("second_scope", [](SdUi& ui)
+		{
+			Check(ui.GlobalModel<ModelWidget>("global_model").value == 9.0f, "global model ignores current parent scope");
+		});
+		PumpFrame(globalInstance);
 	}
 
 	void TestBasicTextModelI18n()
@@ -2631,7 +2677,7 @@ namespace
 		for (const auto& [id, record] : transitionInstance.GetStateStorage().GetWidgetRecords())
 		{
 			(void)id;
-			if (record.widgetType != std::type_index(typeid(TypedStyleWidget)))
+			if (record.widgetType != SdStableTypeId<TypedStyleWidget>())
 				continue;
 			for (const SdPropertyAnimationChannel& channel : transitionInstance.GetContext().presentationChannels.GetChannels())
 			{
@@ -2821,14 +2867,14 @@ namespace
 		for (const auto& [id, record] : instance.GetStateStorage().GetWidgetRecords())
 		{
 			(void)id;
-			if (record.widgetType == std::type_index(typeid(SdWindow)))
+			if (record.widgetType == SdStableTypeId<SdWindow>())
 				windowId = record.state.id;
 		}
 		bool windowChildClipMatchesContent = false;
 		for (const auto& [id, record] : instance.GetStateStorage().GetWidgetRecords())
 		{
 			(void)id;
-			if (record.parentId == windowId && record.widgetType == std::type_index(typeid(SdText)))
+			if (record.parentId == windowId && record.widgetType == SdStableTypeId<SdText>())
 			{
 				const SdWidgetRecord& windowRecord = instance.GetStateStorage().GetWidgetRecords().at(windowId);
 				windowChildClipMatchesContent = record.state.computedClipRect.min.x == windowRecord.state.childContentRect.min.x
@@ -2909,7 +2955,7 @@ namespace
 			for (const auto& [id, record] : instance.GetStateStorage().GetWidgetRecords())
 			{
 				(void)id;
-				if (record.widgetType != std::type_index(typeid(SdSliderFloat)))
+				if (record.widgetType != SdStableTypeId<SdSliderFloat>())
 					continue;
 				for (const SdHitTestRecord& hitRecord : instance.GetLayerSystem().GetHitTestRecords())
 				{
@@ -3212,14 +3258,14 @@ namespace
 		layers.AddHitTestRecord({ 1, SdRootLayer::Content, { 0.0f, 0.0f, 100.0f, 100.0f }, { 0.0f, 0.0f, 100.0f, 100.0f }, 0, true });
 		layers.AddHitTestRecord({ 2, SdRootLayer::Popup, { 0.0f, 0.0f, 100.0f, 100.0f }, { 0.0f, 0.0f, 100.0f, 100.0f }, 0, true });
 		layers.Finalize();
-		Check(layers.HitTest({ 12.0f, 12.0f }) == 2, "layer direct higher priority wins hit-test");
+		Check(layers.HitTestWidget({ 12.0f, 12.0f }) == 2, "layer direct higher priority wins hit-test");
 
 		layers.BeginFrame();
 		layers.AddHitTestRecord({ 1, SdRootLayer::Content, { 0.0f, 0.0f, 100.0f, 100.0f }, { 0.0f, 0.0f, 100.0f, 100.0f }, 0, true });
 		layers.AddHitTestRecord({ 2, SdRootLayer::Content, { 0.0f, 0.0f, 100.0f, 100.0f }, { 0.0f, 0.0f, 100.0f, 100.0f }, 4, true });
 		layers.AddHitTestRecord({ 3, SdRootLayer::Tooltip, { 0.0f, 0.0f, 100.0f, 100.0f }, { 0.0f, 0.0f, 100.0f, 100.0f }, 5, false });
 		layers.Finalize();
-		Check(layers.HitTest({ 12.0f, 12.0f }) == 2, "layer direct paint order wins within layer and disabled records are ignored");
+		Check(layers.HitTestWidget({ 12.0f, 12.0f }) == 2, "layer direct paint order wins within layer and disabled records are ignored");
 
 		layers.BeginFrame();
 		SdHitTestRecord lowerZ = {};
@@ -3236,7 +3282,7 @@ namespace
 		layers.AddHitTestRecord(lowerZ);
 		layers.AddHitTestRecord(higherZ);
 		layers.Finalize();
-		Check(layers.HitTest({ 12.0f, 12.0f }) == 2, "layer direct z-index wins before paint order");
+		Check(layers.HitTestWidget({ 12.0f, 12.0f }) == 2, "layer direct z-index wins before paint order");
 
 		layers.BeginFrame();
 		SdHitTestRecord normalWindow = lowerZ;
@@ -3251,7 +3297,7 @@ namespace
 		layers.AddHitTestRecord(normalWindow);
 		layers.AddHitTestRecord(activatedWindow);
 		layers.Finalize();
-		Check(layers.HitTest({ 12.0f, 12.0f }) == 5, "layer direct activation order wins before tree order");
+		Check(layers.HitTestWidget({ 12.0f, 12.0f }) == 5, "layer direct activation order wins before tree order");
 
 		layers.BeginFrame();
 		layers.AddHitTestRecord(lowerZ);
@@ -3265,7 +3311,32 @@ namespace
 		inputBlocker.key = SdMakeStackingKey(SdRootLayer::Popup, 0, 0, 0);
 		layers.AddHitTestRecord(inputBlocker);
 		layers.Finalize();
-		Check(layers.HitTest({ 12.0f, 12.0f }) == 0, "layer direct input blocker stops lower hit-test records");
+		Check(layers.HitTestWidget({ 12.0f, 12.0f }) == 0, "layer direct input blocker stops lower hit-test records");
+
+		layers.BeginFrame();
+		SdHitTestRecord parentHit = lowerZ;
+		parentHit.widgetId = 11;
+		parentHit.parentWidgetId = 0;
+		parentHit.widgetPath = { 11 };
+		parentHit.key = SdMakeStackingKey(SdRootLayer::Content, 0, 0, 0);
+		SdHitTestRecord childHit = parentHit;
+		childHit.widgetId = 12;
+		childHit.parentWidgetId = 11;
+		childHit.widgetPath = { 11, 12 };
+		childHit.rect = { 8.0f, 8.0f, 60.0f, 60.0f };
+		childHit.key = SdMakeStackingKey(SdRootLayer::Content, 0, 1, 1);
+		SdHitTestRecord leafHit = childHit;
+		leafHit.widgetId = 13;
+		leafHit.parentWidgetId = 12;
+		leafHit.widgetPath = { 11, 12, 13 };
+		leafHit.rect = { 10.0f, 10.0f, 40.0f, 40.0f };
+		leafHit.key = SdMakeStackingKey(SdRootLayer::Content, 0, 2, 2);
+		layers.AddHitTestRecord(parentHit);
+		layers.AddHitTestRecord(childHit);
+		layers.AddHitTestRecord(leafHit);
+		layers.Finalize();
+		const std::vector<SdWidgetId> hitPath = layers.HitTest({ 12.0f, 12.0f });
+		Check(hitPath.size() == 3 && hitPath[0] == 11 && hitPath[1] == 12 && hitPath[2] == 13, "layer direct hit-test returns ancestor path to target");
 
 		layers.BeginFrame();
 		layers.AddDrawRecord({ 1, SdRootLayer::Content, { 0.0f, 0.0f, 640.0f, 480.0f }, 0 });
@@ -3329,7 +3400,7 @@ namespace
 		for (const auto& [id, record] : windowInstance.GetStateStorage().GetWidgetRecords())
 		{
 			(void)id;
-			if (record.parentId == firstWindowId && record.widgetType == std::type_index(typeid(TestDrawWidget)))
+			if (record.parentId == firstWindowId && record.widgetType == SdStableTypeId<TestDrawWidget>())
 				firstChildId = record.state.id;
 		}
 
@@ -3369,13 +3440,13 @@ namespace
 		for (const auto& [id, record] : portalInstance.GetStateStorage().GetWidgetRecords())
 		{
 			(void)id;
-			if (record.widgetType == std::type_index(typeid(SdPopup)))
+			if (record.widgetType == SdStableTypeId<SdPopup>())
 				popupId = record.state.id;
 		}
 		for (const auto& [id, record] : portalInstance.GetStateStorage().GetWidgetRecords())
 		{
 			(void)id;
-			if (record.parentId == popupId && record.widgetType == std::type_index(typeid(TestDrawWidget)))
+			if (record.parentId == popupId && record.widgetType == SdStableTypeId<TestDrawWidget>())
 				popupChildId = record.state.id;
 		}
 
@@ -3399,6 +3470,15 @@ namespace
 		layers.BeginFrame();
 		layers.AddHitTestRecord({ 10, SdRootLayer::Content, { 0.0f, 0.0f, 80.0f, 80.0f }, { 0.0f, 0.0f, 200.0f, 200.0f }, 0, true });
 		layers.AddHitTestRecord({ 20, SdRootLayer::Popup, { 100.0f, 0.0f, 180.0f, 80.0f }, { 0.0f, 0.0f, 200.0f, 200.0f }, 1, true });
+		SdHitTestRecord childRoute = {};
+		childRoute.widgetId = 11;
+		childRoute.rootLayer = SdRootLayer::Content;
+		childRoute.rect = { 10.0f, 10.0f, 70.0f, 70.0f };
+		childRoute.clipRect = { 0.0f, 0.0f, 200.0f, 200.0f };
+		childRoute.key = SdMakeStackingKey(SdRootLayer::Content, 0, 1, 1);
+		childRoute.parentWidgetId = 10;
+		childRoute.widgetPath = { 10, 11 };
+		layers.AddHitTestRecord(childRoute);
 		layers.Finalize();
 
 		SdInteractionSystem interaction;
@@ -3409,29 +3489,38 @@ namespace
 		input.mouse.buttons[static_cast<SdSize>(SdMouseButton::Right)].isDown = true;
 		input.mouse.buttons[static_cast<SdSize>(SdMouseButton::Right)].wentDown = true;
 		interaction.Update(layers, input, 1);
-		Check(interaction.IsPressed(10), "interaction press captures left pointer target");
-		Check(interaction.IsPressed(10, SdMouseButton::Right), "interaction tracks independent right button press");
-		Check(interaction.GetPointerRoute().size() == 3, "interaction builds tunnel target bubble route");
+		Check(interaction.IsPressed(11), "interaction press captures left pointer target");
+		Check(interaction.IsPressed(11, SdMouseButton::Right), "interaction tracks independent right button press");
+		const std::vector<SdInteractionRouteNode>& route = interaction.GetPointerRoute();
+		Check(
+			route.size() == 3
+			&& route[0].widgetId == 10
+			&& route[0].phase == SdInteractionRoutePhase::Tunnel
+			&& route[1].widgetId == 11
+			&& route[1].phase == SdInteractionRoutePhase::Target
+			&& route[2].widgetId == 10
+			&& route[2].phase == SdInteractionRoutePhase::Bubble,
+			"interaction builds tunnel target bubble route");
 
 		input.mouse.buttons[static_cast<SdSize>(SdMouseButton::Left)].wentDown = false;
 		input.mouse.buttons[static_cast<SdSize>(SdMouseButton::Right)].wentDown = false;
 		input.mouse.position = { 40.0f, 20.0f };
 		interaction.Update(layers, input, 2);
-		Check(interaction.IsDragSource(10), "interaction starts drag after pointer moves past threshold");
+		Check(interaction.IsDragSource(11), "interaction starts drag after pointer moves past threshold");
 
 		input.mouse.buttons[static_cast<SdSize>(SdMouseButton::Left)].isDown = false;
 		input.mouse.buttons[static_cast<SdSize>(SdMouseButton::Left)].wentUp = true;
 		input.mouse.position = { 120.0f, 20.0f };
 		interaction.Update(layers, input, 3);
 		Check(interaction.IsDropTarget(20), "interaction routes drop to hit widget under release");
-		Check(interaction.WasOutsideClicked(10), "interaction detects outside release for active widget");
+		Check(interaction.WasOutsideClicked(11), "interaction detects outside release for active widget");
 
 		input = {};
 		input.mouse.position = { 20.0f, 20.0f };
 		input.mouse.wheelDelta = { 0.0f, -1.0f };
 		input.keyboard.keys[static_cast<SdSize>(SdKeyCode::Tab)].wentDown = true;
 		interaction.Update(layers, input, 4);
-		Check(interaction.IsWheelTarget(10), "interaction routes scroll wheel to hovered hit widget");
+		Check(interaction.IsWheelTarget(11), "interaction routes scroll wheel to hovered hit widget");
 		Check(interaction.GetState().keyboardWidget == interaction.GetState().focusedWidget, "interaction keeps keyboard routing on focused widget");
 
 		input = {};
@@ -3441,7 +3530,7 @@ namespace
 		interaction.Update(layers, input, 5);
 		input.mouse.buttons[static_cast<SdSize>(SdMouseButton::Left)].wentDown = false;
 		interaction.Update(layers, input, 36);
-		Check(interaction.WasLongPressed(10), "interaction detects long press");
+		Check(interaction.WasLongPressed(11), "interaction detects long press");
 		input.mouse.buttons[static_cast<SdSize>(SdMouseButton::Left)].isDown = false;
 		input.mouse.buttons[static_cast<SdSize>(SdMouseButton::Left)].wentUp = true;
 		interaction.Update(layers, input, 37);
@@ -3463,7 +3552,7 @@ namespace
 		input.mouse.buttons[static_cast<SdSize>(SdMouseButton::Left)].wentDown = false;
 		input.mouse.buttons[static_cast<SdSize>(SdMouseButton::Left)].wentUp = true;
 		interaction.Update(layers, input, 41);
-		Check(interaction.WasDoubleClicked(10), "interaction detects double click");
+		Check(interaction.WasDoubleClicked(11), "interaction detects double click");
 
 		interaction.SetFocusScope(10);
 		interaction.SetModalScope(20);
