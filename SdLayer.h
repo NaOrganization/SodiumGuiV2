@@ -14,6 +14,9 @@ namespace Sodium
 		SdUInt16 rootLayer = static_cast<SdUInt16>(SdRootLayer::Content);
 		SdUInt16 stackingContextDepth = 0;
 		SdUInt32 stackingContextId = 0;
+		SdInt32 contextZIndex = 0;
+		SdUInt32 contextActivationOrder = 0;
+		SdUInt32 contextTreeOrder = 0;
 		SdInt32 zIndex = 0;
 		SdUInt32 activationOrder = 0;
 		SdUInt32 treeOrder = 0;
@@ -29,12 +32,18 @@ namespace Sodium
 		SdUInt32 paintOrder = 0,
 		SdUInt32 stackingContextId = 0,
 		SdUInt16 stackingContextDepth = 0,
-		SdUInt32 activationOrder = 0) noexcept
+		SdUInt32 activationOrder = 0,
+		SdInt32 contextZIndex = 0,
+		SdUInt32 contextActivationOrder = 0,
+		SdUInt32 contextTreeOrder = 0) noexcept
 	{
 		return {
 			static_cast<SdUInt16>(rootLayer),
 			stackingContextDepth,
 			stackingContextId,
+			contextZIndex,
+			contextActivationOrder,
+			contextTreeOrder,
 			zIndex,
 			activationOrder,
 			treeOrder,
@@ -49,7 +58,10 @@ namespace Sodium
 		SdUInt32 paintOrder = 0,
 		SdUInt32 stackingContextId = 0,
 		SdUInt16 stackingContextDepth = 0,
-		SdUInt32 activationOrder = 0) noexcept
+		SdUInt32 activationOrder = 0,
+		SdInt32 contextZIndex = 0,
+		SdUInt32 contextActivationOrder = 0,
+		SdUInt32 contextTreeOrder = 0) noexcept
 	{
 		return SdMakeStackingKey(
 			SdRootLayerFromPriority(layerPriority),
@@ -58,7 +70,10 @@ namespace Sodium
 			paintOrder,
 			stackingContextId,
 			stackingContextDepth,
-			activationOrder);
+			activationOrder,
+			contextZIndex,
+			contextActivationOrder,
+			contextTreeOrder);
 	}
 
 	inline constexpr bool SdLessStackingKey(const SdStackingKey& left, const SdStackingKey& right) noexcept
@@ -66,11 +81,17 @@ namespace Sodium
 		if (left.rootLayer != right.rootLayer)
 			return left.rootLayer < right.rootLayer;
 
+		if (left.contextZIndex != right.contextZIndex)
+			return left.contextZIndex < right.contextZIndex;
+
+		if (left.contextActivationOrder != right.contextActivationOrder)
+			return left.contextActivationOrder < right.contextActivationOrder;
+
+		if (left.contextTreeOrder != right.contextTreeOrder)
+			return left.contextTreeOrder < right.contextTreeOrder;
+
 		if (left.stackingContextDepth != right.stackingContextDepth)
 			return left.stackingContextDepth < right.stackingContextDepth;
-
-		if (left.stackingContextId != right.stackingContextId)
-			return left.stackingContextId < right.stackingContextId;
 
 		if (left.zIndex != right.zIndex)
 			return left.zIndex < right.zIndex;
@@ -80,6 +101,9 @@ namespace Sodium
 
 		if (left.treeOrder != right.treeOrder)
 			return left.treeOrder < right.treeOrder;
+
+		if (left.stackingContextId != right.stackingContextId)
+			return left.stackingContextId < right.stackingContextId;
 
 		return left.paintOrder < right.paintOrder;
 	}
@@ -91,10 +115,35 @@ namespace Sodium
 		SdRect bounds = {};
 		SdRect hitRect = {};
 		SdRect clipRect = {};
+		SdPortalRoot portalRoot = SdPortalRoot::None;
 		bool visible = true;
 		bool hitTestVisible = true;
 		bool blocksLowerInput = false;
 		bool escapesParentClip = false;
+	};
+
+	struct SdStackingContextNode final
+	{
+		SdUInt32 id = 0;
+		SdUInt32 parentId = 0;
+		SdWidgetId ownerWidgetId = 0;
+		SdUInt16 depth = 0;
+		SdRootLayer rootLayer = SdRootLayer::Content;
+		SdInt32 zIndex = 0;
+		SdUInt32 activationOrder = 0;
+		SdUInt32 treeOrder = 0;
+	};
+
+	struct SdPortalRecord final
+	{
+		SdWidgetId portalWidgetId = 0;
+		SdWidgetId ownerWidgetId = 0;
+		SdWidgetId anchorWidgetId = 0;
+		SdPortalRoot root = SdPortalRoot::None;
+		SdRootLayer rootLayer = SdRootLayer::Popup;
+		SdRect anchorRect = {};
+		bool closeOnOutsideClick = true;
+		bool escapeParentClip = true;
 	};
 
 	struct SdHitTestRecord final
@@ -111,6 +160,7 @@ namespace Sodium
 		bool pointerEventsNone = false;
 		bool blocksLowerInput = false;
 		bool modalBoundary = false;
+		SdPortalRoot portalRoot = SdPortalRoot::None;
 	};
 
 	struct SdLayerDrawRecord final
@@ -123,6 +173,7 @@ namespace Sodium
 		SdRect bounds = {};
 		bool visible = true;
 		bool escapesParentClip = false;
+		SdPortalRoot portalRoot = SdPortalRoot::None;
 	};
 
 	struct SdLayerDrawChannel final
@@ -139,6 +190,8 @@ namespace Sodium
 		std::vector<SdLayerDrawRecord> drawRecords = {};
 		std::vector<SdLayerDrawChannel> drawChannels = {};
 		std::vector<SdHitTestRecord> hitTestRecords = {};
+		std::vector<SdStackingContextNode> stackingContexts = {};
+		std::vector<SdPortalRecord> portalRecords = {};
 		bool finalized = true;
 
 		static bool UsesDefaultStackingKey(const SdStackingKey& key) noexcept
@@ -209,7 +262,21 @@ namespace Sodium
 			drawRecords.clear();
 			drawChannels.clear();
 			hitTestRecords.clear();
+			stackingContexts.clear();
+			portalRecords.clear();
 			finalized = false;
+		}
+
+		void AddStackingContext(const SdStackingContextNode& node)
+		{
+			stackingContexts.push_back(node);
+		}
+
+		void AddPortalRecord(const SdPortalRecord& record)
+		{
+			if (record.root == SdPortalRoot::None)
+				return;
+			portalRecords.push_back(record);
 		}
 
 		void AddDrawRecord(const SdLayerDrawRecord& record)
@@ -286,6 +353,16 @@ namespace Sodium
 		const std::vector<SdLayerDrawChannel>& GetDrawChannels() const noexcept
 		{
 			return drawChannels;
+		}
+
+		const std::vector<SdStackingContextNode>& GetStackingContexts() const noexcept
+		{
+			return stackingContexts;
+		}
+
+		const std::vector<SdPortalRecord>& GetPortalRecords() const noexcept
+		{
+			return portalRecords;
 		}
 	};
 

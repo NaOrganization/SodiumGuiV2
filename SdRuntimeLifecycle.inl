@@ -35,6 +35,7 @@ namespace Sodium
 		record.state.lastSubmittedFrame = context.frame.frameIndex;
 		record.state.inputEnabled = true;
 		record.state.targetTypeId = SdWidgetTargetIds::Default;
+		record.state.rootLayer = SdRootLayerFromPriority(record.state.layerPriority);
 		record.state.manualLayout = false;
 		record.state.arrangeChildren = false;
 		record.state.clipChildren = false;
@@ -42,6 +43,17 @@ namespace Sodium
 		record.state.childContentRect = {};
 		record.state.computedClipRect = {};
 		record.state.computedStackingOrder = record.state.stackingOrder;
+		record.state.stackingContextId = 0;
+		record.state.parentStackingContextId = 0;
+		record.state.stackingContextDepth = 0;
+		record.state.stackingContextZIndex = 0;
+		record.state.stackingContextActivationOrder = 0;
+		record.state.stackingContextTreeOrder = 0;
+		record.state.createsStackingContext = false;
+		record.state.portalRoot = SdPortalRoot::None;
+		record.state.portalOwnerWidgetId = 0;
+		record.state.portalAnchorWidgetId = 0;
+		record.state.escapesParentClip = false;
 		if (record.state.lifePhase == SdWidgetLifePhase::Leaving || record.state.lifePhase == SdWidgetLifePhase::Dead)
 			record.state.lifePhase = SdWidgetLifePhase::Entering;
 		context.stateStorage.RegisterResolvedKey(resolvedKey, id);

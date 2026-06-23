@@ -29,6 +29,16 @@ namespace Sodium
 		DebugOverlay = 800
 	};
 
+	enum class SdPortalRoot : SdUInt8
+	{
+		None,
+		Popup,
+		Tooltip,
+		Modal,
+		DragPreview,
+		DebugOverlay
+	};
+
 	inline constexpr SdRootLayer SdRootLayerFromPriority(SdLayerPriority layerPriority) noexcept
 	{
 		switch (layerPriority)
@@ -45,6 +55,26 @@ namespace Sodium
 			return SdRootLayer::Tooltip;
 		case SdLayerPriority::Debug:
 			return SdRootLayer::DebugOverlay;
+		default:
+			return SdRootLayer::Content;
+		}
+	}
+
+	inline constexpr SdRootLayer SdRootLayerFromPortalRoot(SdPortalRoot portalRoot) noexcept
+	{
+		switch (portalRoot)
+		{
+		case SdPortalRoot::Popup:
+			return SdRootLayer::Popup;
+		case SdPortalRoot::Tooltip:
+			return SdRootLayer::Tooltip;
+		case SdPortalRoot::Modal:
+			return SdRootLayer::Modal;
+		case SdPortalRoot::DragPreview:
+			return SdRootLayer::DragPreview;
+		case SdPortalRoot::DebugOverlay:
+			return SdRootLayer::DebugOverlay;
+		case SdPortalRoot::None:
 		default:
 			return SdRootLayer::Content;
 		}

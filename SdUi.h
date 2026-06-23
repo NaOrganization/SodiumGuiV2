@@ -6,6 +6,7 @@
 #include <functional>
 #include <string_view>
 #include <type_traits>
+#include <vector>
 
 namespace Sodium
 {
@@ -24,9 +25,18 @@ namespace Sodium
 	private:
 		friend class SdInstance;
 
+		struct SdPortalFrame final
+		{
+			SdPortalRoot root = SdPortalRoot::None;
+			SdWidgetId ownerWidgetId = 0;
+			SdWidgetId anchorWidgetId = 0;
+		};
+
 		SdInstance& instance;
 		SdIdStack idStack = {};
+		std::vector<SdPortalFrame> portalStack = {};
 		void BeginDeclarationFrame();
+		SdPortalFrame CurrentPortalFrame() const noexcept;
 
 		template<SdDeclarableWidget T, class TConfigureStyle, class... TArgs>
 		T& DeclareResolved(
@@ -71,6 +81,9 @@ namespace Sodium
 
 		template<SdDeclarableWidget TWidget, class TConfigure, class TModel = typename TWidget::Model>
 		void ConfigureModel(SdUtf8StringView key, TConfigure&& configure);
+
+		void BeginPortal(SdPortalRoot root, SdWidgetId ownerWidgetId = 0, SdWidgetId anchorWidgetId = 0);
+		void EndPortal();
 
 		SdInstance& GetInstance() noexcept { return instance; }
 	};

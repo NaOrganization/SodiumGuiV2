@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 namespace Sodium
 {
@@ -10,6 +10,24 @@ namespace Sodium
 	inline void SdUi::BeginDeclarationFrame()
 	{
 		idStack.BeginFrame();
+		portalStack.clear();
+	}
+
+	inline SdUi::SdPortalFrame SdUi::CurrentPortalFrame() const noexcept
+	{
+		return portalStack.empty() ? SdPortalFrame{} : portalStack.back();
+	}
+
+	inline void SdUi::BeginPortal(SdPortalRoot root, SdWidgetId ownerWidgetId, SdWidgetId anchorWidgetId)
+	{
+		portalStack.push_back({ root, ownerWidgetId, anchorWidgetId });
+	}
+
+	inline void SdUi::EndPortal()
+	{
+		assert(!portalStack.empty());
+		if (!portalStack.empty())
+			portalStack.pop_back();
 	}
 
 	inline SdInstance::SdInstance()
@@ -32,7 +50,6 @@ namespace Sodium
 		if (newDisplaySize.x > 0.0f && newDisplaySize.y > 0.0f)
 			context.frame.displaySize = newDisplaySize;
 		context.input.FinalizeFrame();
-		context.interactionSystem.Update(context.layerSystem, context.input.GetSnapshot());
 		renderList.SetSharedData(&context.renderSharedData);
 		renderList.SetStats(&context.renderStats);
 		renderList.Reset();

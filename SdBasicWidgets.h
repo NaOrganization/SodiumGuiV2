@@ -1647,7 +1647,11 @@ namespace Sodium
 			state.position = position;
 			Configure(context, open);
 			if (open)
+			{
+				context.ui.BeginPortal(SdPortalRoot::Popup, context.id, context.id);
 				std::forward<TContent>(content)(context.ui);
+				context.ui.EndPortal();
+			}
 		}
 
 		void OnLayout(SdLayoutContext& context)
@@ -1685,6 +1689,12 @@ namespace Sodium
 		{
 			context.widgetState.targetTypeId = TargetTypeId;
 			context.widgetState.layerPriority = SdLayerPriority::Popup;
+			context.widgetState.rootLayer = SdRootLayer::Popup;
+			context.widgetState.portalRoot = SdPortalRoot::Popup;
+			context.widgetState.portalOwnerWidgetId = context.id;
+			context.widgetState.portalAnchorWidgetId = context.id;
+			context.widgetState.escapesParentClip = true;
+			context.widgetState.createsStackingContext = open;
 			context.widgetState.inputEnabled = open;
 			context.widgetState.layoutWeight = open ? 1.0f : 0.0f;
 		}
@@ -1710,10 +1720,20 @@ namespace Sodium
 			state.position = position;
 			context.widgetState.targetTypeId = TargetTypeId;
 			context.widgetState.layerPriority = SdLayerPriority::Popup;
+			context.widgetState.rootLayer = SdRootLayer::Popup;
+			context.widgetState.portalRoot = SdPortalRoot::Popup;
+			context.widgetState.portalOwnerWidgetId = context.id;
+			context.widgetState.portalAnchorWidgetId = context.id;
+			context.widgetState.escapesParentClip = true;
+			context.widgetState.createsStackingContext = open;
 			context.widgetState.inputEnabled = open;
 			context.widgetState.layoutWeight = open ? 1.0f : 0.0f;
 			if (open)
+			{
+				context.ui.BeginPortal(SdPortalRoot::Popup, context.id, context.id);
 				std::forward<TContent>(content)(context.ui);
+				context.ui.EndPortal();
+			}
 		}
 
 		void OnLayout(SdLayoutContext& context)
@@ -1767,6 +1787,12 @@ namespace Sodium
 			state.text.assign(text.data(), text.size());
 			context.widgetState.targetTypeId = TargetTypeId;
 			context.widgetState.layerPriority = SdLayerPriority::Overlay;
+			context.widgetState.rootLayer = SdRootLayer::Tooltip;
+			context.widgetState.portalRoot = SdPortalRoot::Tooltip;
+			context.widgetState.portalOwnerWidgetId = context.id;
+			context.widgetState.portalAnchorWidgetId = context.id;
+			context.widgetState.escapesParentClip = true;
+			context.widgetState.createsStackingContext = visible;
 			context.widgetState.inputEnabled = false;
 			context.widgetState.layoutWeight = visible ? 1.0f : 0.0f;
 		}

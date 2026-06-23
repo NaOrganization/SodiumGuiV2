@@ -90,6 +90,22 @@ namespace Sodium
 			return overflow != SdOverflow::Visible;
 		};
 
+		auto createsStackingContext = [&widgets](const SdWidgetRecord& record) noexcept
+		{
+			if (record.state.createsStackingContext)
+				return true;
+			if (record.state.portalRoot != SdPortalRoot::None)
+				return true;
+			if (record.state.layerPriority == SdLayerPriority::Floating || record.state.layerPriority == SdLayerPriority::Popup || record.state.layerPriority == SdLayerPriority::Overlay)
+				return true;
+			if (record.styleCache.presentationStyle.zIndex != 0)
+				return true;
+			if (record.styleCache.presentationStyle.opacity < 1.0f)
+				return true;
+			(void)widgets;
+			return false;
+		};
+
 		auto intersectRect = [](const SdRect& left, const SdRect& right) noexcept
 		{
 			SdRect result = {
@@ -119,6 +135,9 @@ namespace Sodium
 					record.state.layerPriority = parentRecord.state.layerPriority;
 				record.state.computedStackingOrder = std::max(record.state.computedStackingOrder, parentRecord.state.computedStackingOrder);
 			}
+			record.state.rootLayer = record.state.portalRoot != SdPortalRoot::None
+				? SdRootLayerFromPortalRoot(record.state.portalRoot)
+				: SdRootLayerFromPriority(record.state.layerPriority);
 			record.state.computedClipRect = displayRect;
 			const SdStyleInteractionState styleInteraction = resolveStyleInteraction(id);
 			ResolveWidgetStyle(record, styleInteraction, record.state.layerPriority);
@@ -197,16 +216,19 @@ namespace Sodium
 				const SdWidgetRecord& parentRecord = parentIt->second;
 				const auto parentHiddenIt = displayHiddenByWidgetId.find(record.parentId);
 				hiddenByDisplay = hiddenByDisplay || (parentHiddenIt != displayHiddenByWidgetId.end() && parentHiddenIt->second);
-				clipRect = parentRecord.state.computedClipRect;
+				clipRect = record.state.escapesParentClip ? displayRect : parentRecord.state.computedClipRect;
 				const SdBoxNode* parentBox = context.boxTree.FindBoxByStyleNodeId(parentRecord.rootStyleNodeId);
 				const bool parentClipsChildren = overflowClipsChildren(parentRecord.styleCache.resolvedStyle.overflowX)
 					|| overflowClipsChildren(parentRecord.styleCache.resolvedStyle.overflowY);
-				if (parentBox && parentClipsChildren)
+				if (!record.state.escapesParentClip && parentBox && parentClipsChildren)
 					clipRect = intersectRect(clipRect, parentBox->contentBox);
 				if (static_cast<SdUInt8>(record.state.layerPriority) < static_cast<SdUInt8>(parentRecord.state.layerPriority))
 					record.state.layerPriority = parentRecord.state.layerPriority;
 				record.state.computedStackingOrder = std::max(record.state.computedStackingOrder, parentRecord.state.computedStackingOrder);
 			}
+			record.state.rootLayer = record.state.portalRoot != SdPortalRoot::None
+				? SdRootLayerFromPortalRoot(record.state.portalRoot)
+				: SdRootLayerFromPriority(record.state.layerPriority);
 			displayHiddenByWidgetId[id] = hiddenByDisplay;
 			if (hiddenByDisplay)
 				clipRect = {};
@@ -244,39 +266,99 @@ namespace Sodium
 				widgets[id].typedStyleAnimationCallback(*this, widgets[id], context.frame.deltaTime);
 		}
 
+		SdUInt32 nextStackingContextId = 1;
+		for (SdWidgetId id : liveIds)
+		{
+			SdWidgetRecord& record = widgets[id];
+			const auto parentIt = widgets.find(record.parentId);
+			const SdWidgetRecord* parentRecord = parentIt != widgets.end() ? &parentIt->second : nullptr;
+			const bool newContext = createsStackingContext(record);
+			record.state.parentStackingContextId = parentRecord ? parentRecord->state.stackingContextId : 0;
+			record.state.stackingContextDepth = parentRecord ? parentRecord->state.stackingContextDepth : 0;
+			record.state.createsStackingContext = newContext;
+			if (newContext)
+			{
+				record.state.stackingContextId = nextStackingContextId++;
+				record.state.stackingContextDepth = parentRecord ? static_cast<SdUInt16>(parentRecord->state.stackingContextDepth + 1) : 1;
+				record.state.stackingContextZIndex = parentRecord ? parentRecord->state.stackingContextZIndex : record.styleCache.presentationStyle.zIndex;
+				record.state.stackingContextActivationOrder = parentRecord ? parentRecord->state.stackingContextActivationOrder : record.state.computedStackingOrder;
+				record.state.stackingContextTreeOrder = parentRecord ? parentRecord->state.stackingContextTreeOrder : record.order;
+				context.layerSystem.AddStackingContext({
+					record.state.stackingContextId,
+					record.state.parentStackingContextId,
+					record.state.id,
+					record.state.stackingContextDepth,
+					record.state.rootLayer,
+					record.styleCache.presentationStyle.zIndex,
+					record.state.computedStackingOrder,
+					record.order
+				});
+			}
+			else
+			{
+				record.state.stackingContextId = parentRecord ? parentRecord->state.stackingContextId : 0;
+				record.state.stackingContextZIndex = parentRecord ? parentRecord->state.stackingContextZIndex : 0;
+				record.state.stackingContextActivationOrder = parentRecord ? parentRecord->state.stackingContextActivationOrder : 0;
+				record.state.stackingContextTreeOrder = parentRecord ? parentRecord->state.stackingContextTreeOrder : record.order;
+			}
+
+			if (record.state.portalRoot != SdPortalRoot::None)
+			{
+				context.layerSystem.AddPortalRecord({
+					record.state.id,
+					record.state.portalOwnerWidgetId,
+					record.state.portalAnchorWidgetId,
+					record.state.portalRoot,
+					record.state.rootLayer,
+					record.state.animatedRect,
+					true,
+					record.state.escapesParentClip
+				});
+			}
+		}
+
 		std::vector<SdWidgetId> paintIds = liveIds;
 		auto buildStackingKey = [&widgets](SdWidgetId id, SdUInt32 paintOrder)
 		{
 			const SdWidgetRecord& record = widgets[id];
 			return SdMakeStackingKey(
-				record.state.layerPriority,
+				record.state.rootLayer,
 				record.styleCache.presentationStyle.zIndex,
 				record.order,
 				paintOrder,
-				0,
-				0,
-				record.state.computedStackingOrder);
+				record.state.stackingContextId,
+				record.state.stackingContextDepth,
+				record.state.computedStackingOrder,
+				record.state.stackingContextZIndex,
+				record.state.stackingContextActivationOrder,
+				record.state.stackingContextTreeOrder);
 		};
 		std::sort(paintIds.begin(), paintIds.end(), [&widgets](SdWidgetId left, SdWidgetId right)
 		{
 			const SdWidgetRecord& leftRecord = widgets[left];
 			const SdWidgetRecord& rightRecord = widgets[right];
 			const SdStackingKey leftKey = SdMakeStackingKey(
-				leftRecord.state.layerPriority,
+				leftRecord.state.rootLayer,
 				leftRecord.styleCache.presentationStyle.zIndex,
 				leftRecord.order,
 				leftRecord.order,
-				0,
-				0,
-				leftRecord.state.computedStackingOrder);
+				leftRecord.state.stackingContextId,
+				leftRecord.state.stackingContextDepth,
+				leftRecord.state.computedStackingOrder,
+				leftRecord.state.stackingContextZIndex,
+				leftRecord.state.stackingContextActivationOrder,
+				leftRecord.state.stackingContextTreeOrder);
 			const SdStackingKey rightKey = SdMakeStackingKey(
-				rightRecord.state.layerPriority,
+				rightRecord.state.rootLayer,
 				rightRecord.styleCache.presentationStyle.zIndex,
 				rightRecord.order,
 				rightRecord.order,
-				0,
-				0,
-				rightRecord.state.computedStackingOrder);
+				rightRecord.state.stackingContextId,
+				rightRecord.state.stackingContextDepth,
+				rightRecord.state.computedStackingOrder,
+				rightRecord.state.stackingContextZIndex,
+				rightRecord.state.stackingContextActivationOrder,
+				rightRecord.state.stackingContextTreeOrder);
 			if (SdLessStackingKey(leftKey, rightKey))
 				return true;
 			if (SdLessStackingKey(rightKey, leftKey))
@@ -299,6 +381,8 @@ namespace Sodium
 			drawRecord.paintOrder = paintOrder;
 			drawRecord.key = stackingKey;
 			drawRecord.bounds = record.state.animatedRect;
+			drawRecord.escapesParentClip = record.state.escapesParentClip;
+			drawRecord.portalRoot = record.state.portalRoot;
 			context.layerSystem.AddDrawRecord(drawRecord);
 
 			SdHitTestRecord hitRecord = {};
@@ -309,6 +393,7 @@ namespace Sodium
 			hitRecord.paintOrder = paintOrder++;
 			hitRecord.inputEnabled = record.state.inputEnabled && record.state.lifePhase != SdWidgetLifePhase::Leaving;
 			hitRecord.key = stackingKey;
+			hitRecord.portalRoot = record.state.portalRoot;
 			context.layerSystem.AddHitTestRecord(hitRecord);
 		}
 		context.layerSystem.Finalize();

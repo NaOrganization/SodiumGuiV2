@@ -3225,6 +3225,108 @@ namespace
 			"layer direct draw channels are built after sorting by root layer");
 	}
 
+	void TestStackingContextAndPortalRoot()
+	{
+		SdInstance windowInstance;
+		SdWidgetRootStyle highChildStyle = {};
+		highChildStyle.zIndex = 999;
+		bool firstOpen = true;
+		bool secondOpen = true;
+		SdWindowOptions firstOptions = {};
+		firstOptions.position = { 40.0f, 40.0f };
+		firstOptions.size = { 180.0f, 120.0f };
+		SdWindowOptions secondOptions = {};
+		secondOptions.position = { 84.0f, 64.0f };
+		secondOptions.size = { 180.0f, 120.0f };
+		windowInstance.BeginFrame({ 360.0f, 260.0f });
+		windowInstance.ui.DeclareKeyed<SdWindow>("first-window", "First", firstOpen, firstOptions, [&](SdUi& ui)
+		{
+			ui.DeclareStyled<TestDrawWidget>(&highChildStyle, "High child");
+		});
+		windowInstance.ui.DeclareKeyed<SdWindow>("second-window", "Second", secondOpen, secondOptions, [](SdUi& ui)
+		{
+			ui.Declare<TestDrawWidget>("Second child");
+		});
+		PumpFrame(windowInstance);
+
+		SdWidgetId firstWindowId = 0;
+		SdWidgetId firstChildId = 0;
+		SdWidgetId secondWindowId = 0;
+		for (const auto& [id, record] : windowInstance.GetStateStorage().GetWidgetRecords())
+		{
+			(void)id;
+			if (record.debugKey == "first-window")
+				firstWindowId = record.state.id;
+			if (record.debugKey == "second-window")
+				secondWindowId = record.state.id;
+		}
+		for (const auto& [id, record] : windowInstance.GetStateStorage().GetWidgetRecords())
+		{
+			(void)id;
+			if (record.parentId == firstWindowId && record.widgetType == std::type_index(typeid(TestDrawWidget)))
+				firstChildId = record.state.id;
+		}
+
+		const auto findDrawIndex = [&windowInstance](SdWidgetId widgetId)
+		{
+			const std::vector<SdLayerDrawRecord>& records = windowInstance.GetLayerSystem().GetDrawRecords();
+			for (SdSize index = 0; index < records.size(); ++index)
+			{
+				if (records[index].widgetId == widgetId)
+					return index;
+			}
+			return SdInvalidIndex<SdSize>;
+		};
+		const std::vector<SdStackingContextNode>& contexts = windowInstance.GetLayerSystem().GetStackingContexts();
+		Check(contexts.size() >= 2, "windows create stacking context nodes");
+		Check(firstWindowId != 0 && firstChildId != 0 && secondWindowId != 0, "stacking context test resolves window and child ids");
+		Check(findDrawIndex(firstChildId) < findDrawIndex(secondWindowId), "child z-index remains inside parent stacking context");
+
+		SdInstance portalInstance;
+		portalInstance.GetStyleSystem().RootRule(TestOverflowContainer::TargetTypeId)
+			.Set(&SdBoxStyle::overflowX, SdOverflow::Hidden)
+			.Set(&SdBoxStyle::overflowY, SdOverflow::Hidden)
+			.Set(&SdBoxStyle::width, SdLength::Pixels(80.0f))
+			.Set(&SdBoxStyle::height, SdLength::Pixels(60.0f));
+		portalInstance.BeginFrame({ 320.0f, 200.0f });
+		portalInstance.ui.Declare<TestOverflowContainer>([](SdUi& ui)
+		{
+			ui.Declare<SdPopup>(true, SdVec2{ 140.0f, 76.0f }, [](SdUi& popupUi)
+			{
+				popupUi.Declare<TestDrawWidget>("Popup child");
+			});
+		});
+		PumpFrame(portalInstance);
+
+		SdWidgetId popupId = 0;
+		SdWidgetId popupChildId = 0;
+		for (const auto& [id, record] : portalInstance.GetStateStorage().GetWidgetRecords())
+		{
+			(void)id;
+			if (record.widgetType == std::type_index(typeid(SdPopup)))
+				popupId = record.state.id;
+		}
+		for (const auto& [id, record] : portalInstance.GetStateStorage().GetWidgetRecords())
+		{
+			(void)id;
+			if (record.parentId == popupId && record.widgetType == std::type_index(typeid(TestDrawWidget)))
+				popupChildId = record.state.id;
+		}
+
+		bool popupEscapesClip = false;
+		bool popupChildEscapesClip = false;
+		for (const SdLayerDrawRecord& drawRecord : portalInstance.GetLayerSystem().GetDrawRecords())
+		{
+			if (drawRecord.widgetId == popupId)
+				popupEscapesClip = drawRecord.escapesParentClip && drawRecord.portalRoot == SdPortalRoot::Popup;
+			if (drawRecord.widgetId == popupChildId)
+				popupChildEscapesClip = drawRecord.escapesParentClip && drawRecord.portalRoot == SdPortalRoot::Popup;
+		}
+		Check(!portalInstance.GetLayerSystem().GetPortalRecords().empty(), "portal root records are registered");
+		Check(popupId != 0 && popupChildId != 0, "portal root test resolves popup and child ids");
+		Check(popupEscapesClip && popupChildEscapesClip, "popup portal root escapes parent clipping");
+	}
+
 	void TestRenderListBatchingDirect()
 	{
 		SdRenderStats stats = {};
@@ -3266,6 +3368,7 @@ int main()
 	TestBuiltInWidgetInteraction();
 	TestAnimationSystemDirect();
 	TestLayerSystemDirect();
+	TestStackingContextAndPortalRoot();
 	TestRenderListBatchingDirect();
 
 	if (gFailedChecks != 0)

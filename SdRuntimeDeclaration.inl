@@ -26,6 +26,11 @@ namespace Sodium
 		}
 
 		instance.MarkSubmitted(record, id, parentId, resolvedKey, debugKey);
+		const SdPortalFrame portalFrame = CurrentPortalFrame();
+		record.state.portalRoot = portalFrame.root;
+		record.state.portalOwnerWidgetId = portalFrame.ownerWidgetId;
+		record.state.portalAnchorWidgetId = portalFrame.anchorWidgetId;
+		record.state.escapesParentClip = portalFrame.root != SdPortalRoot::None;
 		std::forward<TConfigureStyle>(configureStyle)(record);
 		T& widget = *instance.context.stateStorage.GetWidgetObject<T>(record);
 

@@ -36,6 +36,7 @@ namespace Sodium
 		SdWidgetId id = 0;
 		SdWidgetLifePhase lifePhase = SdWidgetLifePhase::Entering;
 		SdLayerPriority layerPriority = SdLayerPriority::Content;
+		SdRootLayer rootLayer = SdRootLayer::Content;
 		SdStyleId targetTypeId = SdWidgetTargetIds::Default;
 		bool submittedThisFrame = false;
 		bool inputEnabled = true;
@@ -56,6 +57,17 @@ namespace Sodium
 		float opacity = 0.0f;
 		SdUInt32 stackingOrder = 0;
 		SdUInt32 computedStackingOrder = 0;
+		SdUInt32 stackingContextId = 0;
+		SdUInt32 parentStackingContextId = 0;
+		SdUInt16 stackingContextDepth = 0;
+		SdInt32 stackingContextZIndex = 0;
+		SdUInt32 stackingContextActivationOrder = 0;
+		SdUInt32 stackingContextTreeOrder = 0;
+		bool createsStackingContext = false;
+		SdPortalRoot portalRoot = SdPortalRoot::None;
+		SdWidgetId portalOwnerWidgetId = 0;
+		SdWidgetId portalAnchorWidgetId = 0;
+		bool escapesParentClip = false;
 		SdFrameIndex lastSubmittedFrame = 0;
 	};
 
