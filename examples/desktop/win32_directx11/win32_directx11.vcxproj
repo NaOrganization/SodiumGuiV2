@@ -184,7 +184,6 @@
     <ClInclude Include="..\..\..\SdDrawList.h" />
     <ClInclude Include="..\..\..\SdInput.h" />
     <ClInclude Include="..\..\..\SdLayer.h" />
-    <ClInclude Include="..\..\..\SdLayout.h" />
     <ClInclude Include="..\..\..\SdRender.h" />
     <ClInclude Include="..\..\..\SdRenderStats.h" />
     <ClInclude Include="..\..\..\SdRuntime.h" />

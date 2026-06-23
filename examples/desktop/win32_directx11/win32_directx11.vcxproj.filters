@@ -80,9 +80,6 @@
     <ClInclude Include="..\..\..\SdLayer.h">
       <Filter>SodiumGUI\UI</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\SdLayout.h">
-      <Filter>SodiumGUI\UI</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\SdStyle.h">
       <Filter>SodiumGUI\UI</Filter>
     </ClInclude>

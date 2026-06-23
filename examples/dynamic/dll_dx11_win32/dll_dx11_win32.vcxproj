@@ -213,7 +213,6 @@
     <ClInclude Include="..\..\..\SdHandle.h" />
     <ClInclude Include="..\..\..\SdInput.h" />
     <ClInclude Include="..\..\..\SdLayer.h" />
-    <ClInclude Include="..\..\..\SdLayout.h" />
     <ClInclude Include="..\..\..\SdMath.h" />
     <ClInclude Include="..\..\..\SdRender.h" />
     <ClInclude Include="..\..\..\SdRenderStats.h" />

@@ -3,7 +3,7 @@
 #include "SdAnimation.h"
 #include "SdInput.h"
 #include "SdLayer.h"
-#include "SdLayout.h"
+#include "SdBoxLayout.h"
 #include "SdRenderCore.h"
 #include "SdRuntimeStorage.h"
 #include "SdStyle.h"
@@ -22,7 +22,6 @@ namespace Sodium
 		SdUInt32 leavingWidgetCount = 0;
 		SdUInt32 deadWidgetCount = 0;
 		SdUInt32 removedWidgetCount = 0;
-		SdUInt32 layoutNodeCount = 0;
 		SdUInt32 boxNodeCount = 0;
 		SdUInt32 hitTestRecordCount = 0;
 		SdUInt32 layerDrawChannelCount = 0;
@@ -61,7 +60,6 @@ namespace Sodium
 			leavingWidgetCount = 0;
 			deadWidgetCount = 0;
 			removedWidgetCount = 0;
-			layoutNodeCount = 0;
 			boxNodeCount = 0;
 			hitTestRecordCount = 0;
 			layerDrawChannelCount = 0;
@@ -110,7 +108,6 @@ namespace Sodium
 		SdAnimationSystem animationSystem = {};
 		SdStyleAnimationChannels presentationChannels = {};
 		SdStyleSystem styling = {};
-		SdLayoutSystem layoutSystem = {};
 		SdBoxTree boxTree = {};
 		SdLayerSystem layerSystem = {};
 		SdInteractionSystem interactionSystem = {};
@@ -235,7 +232,6 @@ namespace Sodium
 		SdRenderSharedData& GetRenderSharedData() noexcept { return context.renderSharedData; }
 		const SdRenderSharedData& GetRenderSharedData() const noexcept { return context.renderSharedData; }
 		const SdInteractionSystem& GetInteractionSystem() const noexcept { return context.interactionSystem; }
-		const SdLayoutSystem& GetLayoutSystem() const noexcept { return context.layoutSystem; }
 		const SdBoxTree& GetBoxTree() const noexcept { return context.boxTree; }
 		const SdLayerSystem& GetLayerSystem() const noexcept { return context.layerSystem; }
 		const SdAnimationSystem& GetAnimationSystem() const noexcept { return context.animationSystem; }

@@ -103,13 +103,10 @@ namespace Sodium
 			return result;
 		};
 
-		context.layoutSystem.BeginFrame(liveIds.size());
 		context.boxTree.Clear();
 		std::unordered_map<SdWidgetId, SdUInt32> boxIndexByWidgetId = {};
-		std::unordered_map<SdWidgetId, SdUInt32> layoutNodeIndexByWidgetId = {};
 		std::unordered_map<SdWidgetId, bool> displayHiddenByWidgetId = {};
 		boxIndexByWidgetId.reserve(liveIds.size());
-		layoutNodeIndexByWidgetId.reserve(liveIds.size());
 		displayHiddenByWidgetId.reserve(liveIds.size());
 		for (SdWidgetId id : liveIds)
 		{
@@ -152,32 +149,6 @@ namespace Sodium
 
 			ResolveWidgetStyle(record, styleInteraction, record.state.layerPriority);
 			record.state.measuredSize = result.desiredSize;
-			const SdResolvedBoxStyle rootUsedStyle = SdResolveBoxStyle(record.styleCache.resolvedStyle, constraints.maxSize, result.desiredSize);
-			const SdResolvedBoxEdges rootBorder = SdResolveBorderEdges(record.styleCache.resolvedStyle.border, record.state.measuredSize);
-			const bool styleArrangesChildren = rootUsedStyle.display == SdDisplay::Flex;
-			const bool styleClipsChildren = overflowClipsChildren(rootUsedStyle.overflowX)
-				|| overflowClipsChildren(rootUsedStyle.overflowY);
-
-			const SdUInt32 layoutNodeIndex = context.layoutSystem.AddNode({
-				id,
-				record.parentId,
-				constraints,
-				result,
-				record.state.manualRect,
-				{ rootBorder.left, rootBorder.top, rootBorder.right, rootBorder.bottom },
-				{
-					rootUsedStyle.padding.left,
-					rootUsedStyle.padding.top,
-					rootUsedStyle.padding.right,
-					rootUsedStyle.padding.bottom
-				},
-				record.state.layoutWeight,
-				std::max(0.0f, rootUsedStyle.gap),
-				record.state.manualLayout,
-				record.state.arrangeChildren || styleArrangesChildren,
-				record.state.clipChildren || styleClipsChildren
-			});
-			layoutNodeIndexByWidgetId[id] = layoutNodeIndex;
 
 			SdUInt32 parentBoxIndex = SdInvalidIndex<SdUInt32>;
 			const auto parentBoxIt = boxIndexByWidgetId.find(record.parentId);
@@ -195,23 +166,16 @@ namespace Sodium
 		}
 
 		context.boxTree.Layout(displayRect);
-		context.layoutSystem.Measure(displaySize);
-		context.layoutSystem.Arrange(displayRect);
-		std::vector<SdLayoutNode>& layoutNodes = context.layoutSystem.GetNodes();
-		for (SdLayoutNode& node : layoutNodes)
+		for (SdWidgetId id : liveIds)
 		{
-			SdWidgetRecord& record = widgets[node.widgetId];
+			SdWidgetRecord& record = widgets[id];
 			const SdBoxNode* box = context.boxTree.FindBoxByStyleNodeId(record.rootStyleNodeId);
 			const SdRect targetRect = box ? box->borderBox : SdRect{};
 			const SdRect childContentRect = box ? box->contentBox : SdRect{};
 			const SdUsedBox layoutBox = box ? SdUsedBoxFromNode(*box) : SdUsedBox{};
-			node.targetRect = targetRect;
-			node.result.finalRect = targetRect;
-			node.childContentRect = childContentRect;
-			record.state.measuredSize = node.result.desiredSize;
 			record.state.targetRect = targetRect;
 			record.state.childContentRect = childContentRect;
-			record.layoutCache.measuredSize = node.result.desiredSize;
+			record.layoutCache.measuredSize = record.state.measuredSize;
 			record.layoutCache.targetRect = targetRect;
 			if (SdStyleNode* rootNode = context.stateStorage.FindStyleNodeById(record.rootStyleNodeId))
 			{
@@ -246,9 +210,6 @@ namespace Sodium
 				clipRect = {};
 			record.state.computedClipRect = clipRect;
 			record.layoutCache.clipRect = clipRect;
-			const auto layoutNodeIt = layoutNodeIndexByWidgetId.find(id);
-			if (layoutNodeIt != layoutNodeIndexByWidgetId.end() && layoutNodeIt->second < layoutNodes.size())
-				layoutNodes[layoutNodeIt->second].computedClipRect = clipRect;
 			ResolveWidgetStyle(record, resolveStyleInteraction(record.state.id), record.state.layerPriority);
 			if (record.arrangeCallback)
 			{

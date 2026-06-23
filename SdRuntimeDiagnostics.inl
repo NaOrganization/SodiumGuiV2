@@ -37,7 +37,6 @@ namespace Sodium
 		}
 
 		const SdDrawData& drawData = renderList.GetDrawData();
-		diagnostics.layoutNodeCount = static_cast<SdUInt32>(context.layoutSystem.GetNodes().size());
 		diagnostics.boxNodeCount = static_cast<SdUInt32>(context.boxTree.GetBoxCount());
 		diagnostics.hitTestRecordCount = static_cast<SdUInt32>(context.layerSystem.GetHitTestRecords().size());
 		diagnostics.layerDrawChannelCount = static_cast<SdUInt32>(context.layerSystem.GetDrawChannels().size());

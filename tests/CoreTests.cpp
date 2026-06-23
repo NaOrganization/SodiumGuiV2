@@ -2258,9 +2258,7 @@ namespace
 		PumpFrame(instance);
 
 		Check(instance.GetDiagnostics().submittedWidgetCount == 3, "nested declaration submits container children");
-		Check(instance.GetLayoutSystem().GetNodes().size() == 3, "layout node exists for each declared widget");
 		Check(instance.GetBoxTree().GetBoxCount() == 3, "box tree node exists for each declared widget");
-		Check(instance.GetDiagnostics().layoutNodeCount == 3, "diagnostics expose layout node count");
 		Check(instance.GetDiagnostics().boxNodeCount == 3, "diagnostics expose box node count");
 		Check(instance.GetDiagnostics().activeAnimationChannelCount > 0, "enter animation channels are active");
 		bool hasLayoutCache = false;
@@ -2645,7 +2643,6 @@ namespace
 		const SdContext& context = instance.GetContext();
 		Check(static_cast<const void*>(&context.stateStorage) == static_cast<const void*>(&instance.GetStateStorage()), "context owns state storage");
 		Check(static_cast<const void*>(&context.styling) == static_cast<const void*>(&instance.GetStyleSystem()), "context owns style system");
-		Check(static_cast<const void*>(&context.layoutSystem) == static_cast<const void*>(&instance.GetLayoutSystem()), "context owns layout system");
 		Check(static_cast<const void*>(&context.boxTree) == static_cast<const void*>(&instance.GetBoxTree()), "context owns box tree");
 		Check(static_cast<const void*>(&context.renderSystem) == static_cast<const void*>(&instance.GetRenderSystem()), "context owns render system");
 		Check(static_cast<const void*>(&context.renderStats) == static_cast<const void*>(&instance.GetRenderStats()), "context owns render stats");
@@ -2914,63 +2911,6 @@ namespace
 		}
 	}
 
-	void TestLayoutSystemDirect()
-	{
-		SdLayoutSystem layout;
-		layout.BeginFrame(3);
-		layout.AddNode({
-			1,
-			0,
-			{},
-			SdLayoutResult{ { 120.0f, 120.0f } },
-			{ 10.0f, 10.0f, 130.0f, 130.0f },
-			{},
-			{ 4.0f, 6.0f, 4.0f, 6.0f },
-			1.0f,
-			5.0f,
-			true,
-			true,
-			true
-		});
-		layout.AddNode({
-			2,
-			1,
-			{},
-			SdLayoutResult{ { 50.0f, 20.0f } },
-			{},
-			{},
-			{},
-			1.0f,
-			0.0f,
-			false,
-			false,
-			false
-		});
-		layout.AddNode({
-			3,
-			1,
-			{},
-			SdLayoutResult{ { 50.0f, 40.0f } },
-			{},
-			{},
-			{},
-			0.5f,
-			0.0f,
-			false,
-			false,
-			false
-		});
-
-		layout.Measure({ 320.0f, 240.0f });
-		layout.Arrange({ 0.0f, 0.0f, 320.0f, 240.0f });
-		const std::vector<SdLayoutNode>& nodes = layout.GetNodes();
-		Check(nodes.size() == 3, "layout direct stores frame-local nodes");
-		Check(nodes[0].firstChildIndex == 1 && nodes[1].nextSiblingIndex == 2, "layout direct links parent children by index");
-		Check(nodes[1].targetRect.min.x == 14.0f && nodes[1].targetRect.min.y == 16.0f, "layout direct applies content padding");
-		Check(nodes[2].targetRect.min.y == 41.0f, "layout direct applies spacing and previous layoutWeight");
-		Check(nodes[2].layoutWeight == 0.5f, "layout direct preserves leaving layout weight");
-	}
-
 	void TestAnimationSystemDirect()
 	{
 		SdAnimationSystem animation;
@@ -3183,7 +3123,6 @@ int main()
 	TestInputSystemTextState();
 	TestBuiltInWidgetDeclarations();
 	TestBuiltInWidgetInteraction();
-	TestLayoutSystemDirect();
 	TestAnimationSystemDirect();
 	TestLayerSystemDirect();
 	TestRenderListBatchingDirect();
