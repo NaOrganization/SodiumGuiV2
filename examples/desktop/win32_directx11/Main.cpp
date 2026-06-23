@@ -416,11 +416,11 @@ namespace
 				ui.Declare<Sodium::SdButton>("Second command");
 			});
 
-			//gui.ui.DeclareKeyed<Sodium::SdTooltip>(
-			//	"sample_builtin_tooltip",
-			//	demoControls.tooltipVisible,
-			//	gui.GetInput().GetMousePosition(),
-			//	"SdTooltip follows the overlay layer");
+			gui.ui.DeclareKeyed<Sodium::SdTooltip>(
+				"sample_builtin_tooltip",
+				demoControls.tooltipVisible,
+				gui.GetInput().GetMousePosition(),
+				"SdTooltip follows the overlay layer");
 		}
 
 		void ConfigureStyleSystem()
