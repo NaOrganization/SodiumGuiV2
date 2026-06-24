@@ -27,34 +27,34 @@
     <ClCompile Include="Main.cpp">
       <Filter>Main</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\SdInput.cpp">
+    <ClCompile Include="..\..\..\Input\SdInput.cpp">
       <Filter>SodiumGUI\Core</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\SdDefaultFont.cpp">
+    <ClCompile Include="..\..\..\Core\SdDefaultFont.cpp">
       <Filter>SodiumGUI\Core</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\SdDrawList.cpp">
+    <ClCompile Include="..\..\..\Render\SdDrawList.cpp">
       <Filter>SodiumGUI\Render</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\SdDrawListPath.cpp">
+    <ClCompile Include="..\..\..\Render\SdDrawListPath.cpp">
       <Filter>SodiumGUI\Render</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\SdDrawListPrimitives.cpp">
+    <ClCompile Include="..\..\..\Render\SdDrawListPrimitives.cpp">
       <Filter>SodiumGUI\Render</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\SdDrawListText.cpp">
+    <ClCompile Include="..\..\..\Render\SdDrawListText.cpp">
       <Filter>SodiumGUI\Render</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\SdRenderStats.cpp">
+    <ClCompile Include="..\..\..\Render\SdRenderStats.cpp">
       <Filter>SodiumGUI\Render</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\backends\SdWin32Platform.cpp">
+    <ClCompile Include="..\..\..\Backends\Win32\SdWin32Platform.cpp">
       <Filter>SodiumGUI\Backends</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\backends\SdDx11Renderer.cpp">
+    <ClCompile Include="..\..\..\Backends\Dx11\SdDx11Renderer.cpp">
       <Filter>SodiumGUI\Backends</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\backends\FreeTypeFontBackend.cpp">
+    <ClCompile Include="..\..\..\Backends\FreeType\FreeTypeFontBackend.cpp">
       <Filter>SodiumGUI\Backends</Filter>
     </ClCompile>
   </ItemGroup>
@@ -62,82 +62,82 @@
     <ClInclude Include="..\..\..\SodiumGUI.h">
       <Filter>SodiumGUI</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\SdCore.h">
+    <ClInclude Include="..\..\..\Core\SdCore.h">
       <Filter>SodiumGUI\Core</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\SdText.h">
+    <ClInclude Include="..\..\..\Core\SdText.h">
       <Filter>SodiumGUI\Core</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\SdInput.h">
+    <ClInclude Include="..\..\..\Input\SdInput.h">
       <Filter>SodiumGUI\Core</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\SdDefaultFont.h">
+    <ClInclude Include="..\..\..\Core\SdDefaultFont.h">
       <Filter>SodiumGUI\Core</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\SdUiCore.h">
+    <ClInclude Include="..\..\..\Widget\SdUiCore.h">
       <Filter>SodiumGUI\UI</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\SdLayer.h">
+    <ClInclude Include="..\..\..\Layer\SdLayer.h">
       <Filter>SodiumGUI\UI</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\SdStyle.h">
+    <ClInclude Include="..\..\..\Style\SdStyle.h">
       <Filter>SodiumGUI\UI</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\SdAnimation.h">
+    <ClInclude Include="..\..\..\Animation\SdAnimation.h">
       <Filter>SodiumGUI\UI</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\SdRuntime.h">
+    <ClInclude Include="..\..\..\Core\SdRuntime.h">
       <Filter>SodiumGUI\UI</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\SdRuntime.inl">
+    <ClInclude Include="..\..\..\Core\SdRuntime.inl">
       <Filter>SodiumGUI\UI</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\SdWidgetContext.h">
+    <ClInclude Include="..\..\..\Widget\SdWidgetContext.h">
       <Filter>SodiumGUI\UI</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\SdRuntimeStorage.h">
+    <ClInclude Include="..\..\..\Core\SdRuntimeStorage.h">
       <Filter>SodiumGUI\UI</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\SdIdStack.h">
+    <ClInclude Include="..\..\..\Core\SdIdStack.h">
       <Filter>SodiumGUI\UI</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\SdUi.h">
+    <ClInclude Include="..\..\..\Widget\SdUi.h">
       <Filter>SodiumGUI\UI</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\SdInstance.h">
+    <ClInclude Include="..\..\..\Core\SdInstance.h">
       <Filter>SodiumGUI\UI</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\SdRenderCore.h">
+    <ClInclude Include="..\..\..\Render\SdRenderCore.h">
       <Filter>SodiumGUI\Render</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\SdDrawData.h">
+    <ClInclude Include="..\..\..\Render\SdDrawData.h">
       <Filter>SodiumGUI\Render</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\SdDrawList.h">
+    <ClInclude Include="..\..\..\Render\SdDrawList.h">
       <Filter>SodiumGUI\Render</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\SdRender.h">
+    <ClInclude Include="..\..\..\Render\SdRender.h">
       <Filter>SodiumGUI\Render</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\SdRenderStats.h">
+    <ClInclude Include="..\..\..\Render\SdRenderStats.h">
       <Filter>SodiumGUI\Render</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\SdBackendContracts.h">
+    <ClInclude Include="..\..\..\Core\SdBackendContracts.h">
       <Filter>SodiumGUI\Render</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\backends\SdWin32Platform.h">
+    <ClInclude Include="..\..\..\Backends\Win32\SdWin32Platform.h">
       <Filter>SodiumGUI\Backends</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\backends\SdDx11Renderer.h">
+    <ClInclude Include="..\..\..\Backends\Dx11\SdDx11Renderer.h">
       <Filter>SodiumGUI\Backends</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\backends\SdDx11PrecompiledShaders.h">
+    <ClInclude Include="..\..\..\Backends\Dx11\SdDx11PrecompiledShaders.h">
       <Filter>SodiumGUI\Backends</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\backends\FreeTypeFontBackend.h">
+    <ClInclude Include="..\..\..\Backends\FreeType\FreeTypeFontBackend.h">
       <Filter>SodiumGUI\Backends</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\SdBasicWidgets.h">
+    <ClInclude Include="..\..\..\Widget\SdBasicWidgets.h">
       <Filter>SodiumGUI\UI\Widgets</Filter>
     </ClInclude>
   </ItemGroup>

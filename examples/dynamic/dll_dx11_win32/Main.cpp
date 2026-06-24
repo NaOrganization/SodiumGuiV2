@@ -1,4 +1,4 @@
-﻿#include <Windows.h>
+#include <Windows.h>
 #include <d3d11.h>
 #include <dxgi.h>
 #include <wrl/client.h>
@@ -9,11 +9,11 @@
 #include <thread>
 
 #include <SodiumGUI.h>
-#include <backends/FreeTypeFontBackend.h>
-#include <backends/SdDx11Renderer.h>
-#include <backends/SdWin32Platform.h>
+#include <Backends/FreeType/FreeTypeFontBackend.h>
+#include <Backends/Dx11/SdDx11Renderer.h>
+#include <Backends/Win32/SdWin32Platform.h>
 
-#include <SdBasicWidgets.h>
+#include <Widget/SdBasicWidgets.h>
 
 #include <detours/detours.h>
 

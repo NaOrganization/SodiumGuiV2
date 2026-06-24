@@ -37,12 +37,12 @@ New-Item -ItemType Directory -Force -Path $testOutDir, $testObjDir | Out-Null
 $testExe = Join-Path $testOutDir "SdCoreTests.exe"
 $sources = @(
 	"tests\CoreTests.cpp",
-	"SdInput.cpp",
-	"SdDrawList.cpp",
-	"SdDrawListPath.cpp",
-	"SdDrawListPrimitives.cpp",
-	"SdDrawListText.cpp",
-	"SdRenderStats.cpp"
+	"Input\SdInput.cpp",
+	"Render\SdDrawList.cpp",
+	"Render\SdDrawListPath.cpp",
+	"Render\SdDrawListPrimitives.cpp",
+	"Render\SdDrawListText.cpp",
+	"Render\SdRenderStats.cpp"
 ) | ForEach-Object { Join-Path $root $_ }
 
 $quotedSources = ($sources | ForEach-Object { "`"$_`"" }) -join " "
