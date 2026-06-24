@@ -5,6 +5,7 @@
 #include "SdWidgetContext.h"
 
 #include <cassert>
+#include <cstddef>
 #include <memory>
 #include <new>
 #include <string>
@@ -15,6 +16,225 @@
 
 namespace Sodium::Detail
 {
+	template<class T, SdSize InlineCapacity>
+	class SdSmallVector final
+	{
+	private:
+		static constexpr SdSize kInlineStorageCount = InlineCapacity == 0 ? 1 : InlineCapacity;
+
+		alignas(T) std::byte inlineStorage[sizeof(T) * kInlineStorageCount] = {};
+		T* items = InlineData();
+		SdSize itemCount = 0;
+		SdSize itemCapacity = InlineCapacity;
+		std::allocator<T> allocator = {};
+
+		T* InlineData() noexcept
+		{
+			return std::launder(reinterpret_cast<T*>(inlineStorage));
+		}
+
+		const T* InlineData() const noexcept
+		{
+			return std::launder(reinterpret_cast<const T*>(inlineStorage));
+		}
+
+		bool IsInline() const noexcept
+		{
+			return items == InlineData();
+		}
+
+		void DestroyRange(T* beginValue, T* endValue) noexcept
+		{
+			while (beginValue != endValue)
+			{
+				--endValue;
+				std::destroy_at(endValue);
+			}
+		}
+
+		void Reallocate(SdSize newCapacity)
+		{
+			assert(newCapacity >= itemCount);
+			T* newItems = std::allocator_traits<std::allocator<T>>::allocate(allocator, newCapacity);
+			SdSize movedCount = 0;
+			try
+			{
+				for (; movedCount < itemCount; ++movedCount)
+					std::construct_at(newItems + movedCount, std::move_if_noexcept(items[movedCount]));
+			}
+			catch (...)
+			{
+				DestroyRange(newItems, newItems + movedCount);
+				std::allocator_traits<std::allocator<T>>::deallocate(allocator, newItems, newCapacity);
+				throw;
+			}
+
+			DestroyRange(items, items + itemCount);
+			if (!IsInline())
+				std::allocator_traits<std::allocator<T>>::deallocate(allocator, items, itemCapacity);
+			items = newItems;
+			itemCapacity = newCapacity;
+		}
+
+		void EnsureCapacity(SdSize requiredCapacity)
+		{
+			if (requiredCapacity <= itemCapacity)
+				return;
+			SdSize newCapacity = itemCapacity == 0 ? 1 : itemCapacity * 2;
+			if (newCapacity < requiredCapacity)
+				newCapacity = requiredCapacity;
+			Reallocate(newCapacity);
+		}
+
+	public:
+		using iterator = T*;
+		using const_iterator = const T*;
+
+		SdSmallVector() = default;
+
+		SdSmallVector(const SdSmallVector& other)
+		{
+			EnsureCapacity(other.itemCount);
+			for (; itemCount < other.itemCount; ++itemCount)
+				std::construct_at(items + itemCount, other.items[itemCount]);
+		}
+
+		SdSmallVector& operator=(const SdSmallVector& other)
+		{
+			if (this == &other)
+				return *this;
+			clear();
+			EnsureCapacity(other.itemCount);
+			for (; itemCount < other.itemCount; ++itemCount)
+				std::construct_at(items + itemCount, other.items[itemCount]);
+			return *this;
+		}
+
+		SdSmallVector(SdSmallVector&& other) noexcept
+		{
+			if (other.IsInline())
+			{
+				for (; itemCount < other.itemCount; ++itemCount)
+					std::construct_at(items + itemCount, std::move(other.items[itemCount]));
+				other.clear();
+			}
+			else
+			{
+				items = other.items;
+				itemCount = other.itemCount;
+				itemCapacity = other.itemCapacity;
+				other.items = other.InlineData();
+				other.itemCount = 0;
+				other.itemCapacity = InlineCapacity;
+			}
+		}
+
+		SdSmallVector& operator=(SdSmallVector&& other) noexcept
+		{
+			if (this == &other)
+				return *this;
+			clear();
+			if (!IsInline())
+				std::allocator_traits<std::allocator<T>>::deallocate(allocator, items, itemCapacity);
+			items = InlineData();
+			itemCapacity = InlineCapacity;
+
+			if (other.IsInline())
+			{
+				for (; itemCount < other.itemCount; ++itemCount)
+					std::construct_at(items + itemCount, std::move(other.items[itemCount]));
+				other.clear();
+			}
+			else
+			{
+				items = other.items;
+				itemCount = other.itemCount;
+				itemCapacity = other.itemCapacity;
+				other.items = other.InlineData();
+				other.itemCount = 0;
+				other.itemCapacity = InlineCapacity;
+			}
+			return *this;
+		}
+
+		~SdSmallVector()
+		{
+			clear();
+			if (!IsInline())
+				std::allocator_traits<std::allocator<T>>::deallocate(allocator, items, itemCapacity);
+		}
+
+		template<class... TArgs>
+		T& emplace_back(TArgs&&... args)
+		{
+			EnsureCapacity(itemCount + 1);
+			T* item = items + itemCount;
+			std::construct_at(item, std::forward<TArgs>(args)...);
+			++itemCount;
+			return *item;
+		}
+
+		void push_back(const T& item)
+		{
+			emplace_back(item);
+		}
+
+		void push_back(T&& item)
+		{
+			emplace_back(std::move(item));
+		}
+
+		iterator erase(const_iterator position)
+		{
+			assert(position >= begin() && position < end());
+			const SdSize index = static_cast<SdSize>(position - begin());
+			std::destroy_at(items + index);
+			for (SdSize moveIndex = index; moveIndex + 1 < itemCount; ++moveIndex)
+			{
+				std::construct_at(items + moveIndex, std::move(items[moveIndex + 1]));
+				std::destroy_at(items + moveIndex + 1);
+			}
+			--itemCount;
+			return items + index;
+		}
+
+		void clear() noexcept
+		{
+			DestroyRange(items, items + itemCount);
+			itemCount = 0;
+		}
+
+		void pop_back() noexcept
+		{
+			assert(itemCount != 0);
+			--itemCount;
+			std::destroy_at(items + itemCount);
+		}
+
+		bool empty() const noexcept { return itemCount == 0; }
+		SdSize size() const noexcept { return itemCount; }
+		SdSize capacity() const noexcept { return itemCapacity; }
+
+		T& operator[](SdSize index) noexcept
+		{
+			assert(index < itemCount);
+			return items[index];
+		}
+
+		const T& operator[](SdSize index) const noexcept
+		{
+			assert(index < itemCount);
+			return items[index];
+		}
+
+		iterator begin() noexcept { return items; }
+		const_iterator begin() const noexcept { return items; }
+		const_iterator cbegin() const noexcept { return items; }
+		iterator end() noexcept { return items + itemCount; }
+		const_iterator end() const noexcept { return items + itemCount; }
+		const_iterator cend() const noexcept { return items + itemCount; }
+	};
+
 	struct SdObjectHandle final
 	{
 		SdTypeId type = 0;
@@ -282,6 +502,18 @@ namespace Sodium
 		bool valid = false;
 	};
 
+	struct SdTypedObjectSlot final
+	{
+		SdTypeId type = 0;
+		Detail::SdObjectHandle object = {};
+	};
+
+	struct SdTypedStyleSlot final
+	{
+		SdTypeId type = 0;
+		SdTypedStyleRecord record = {};
+	};
+
 	struct SdWidgetRecord final
 	{
 		SdWidgetState state = {};
@@ -292,8 +524,8 @@ namespace Sodium
 		SdStyleCache styleCache = {};
 		SdAnimationWidgetState animation = {};
 		Detail::SdObjectHandle widgetObject = {};
-		std::unordered_map<SdTypeId, Detail::SdObjectHandle> userStates = {};
-		std::unordered_map<SdTypeId, SdTypedStyleRecord> typedStyles = {};
+		Detail::SdSmallVector<SdTypedObjectSlot, 2> userStates = {};
+		Detail::SdSmallVector<SdTypedStyleSlot, 1> typedStyles = {};
 		SdTypeId widgetType = 0;
 		std::vector<SdStyleClassId> styleClasses = {};
 		SdStyleScopeId styleScope = 0;
@@ -319,6 +551,18 @@ namespace Sodium
 		Detail::SdObjectHandle object = {};
 		SdModelLifetime lifetime = SdModelLifetime::Manual;
 		SdWidgetId ownerWidgetId = 0;
+	};
+
+	struct SdModelSlot final
+	{
+		SdTypeId type = 0;
+		SdModelRecord record = {};
+	};
+
+	struct SdModelBucket final
+	{
+		SdResolvedKey resolvedKey = 0;
+		Detail::SdSmallVector<SdModelSlot, 2> models = {};
 	};
 
 	struct SdStateStorageStats final
@@ -355,13 +599,97 @@ namespace Sodium
 	private:
 		std::unordered_map<SdWidgetId, SdWidgetRecord> widgetRecords = {};
 		std::unordered_map<SdResolvedKey, SdWidgetId> widgetIdByResolvedKey = {};
-		std::unordered_map<SdResolvedKey, std::unordered_map<SdTypeId, SdModelRecord>> keyedModels = {};
+		std::unordered_map<SdResolvedKey, SdSize> modelBucketByResolvedKey = {};
+		std::vector<SdModelBucket> modelBuckets = {};
 #ifndef NDEBUG
 		std::unordered_map<SdWidgetId, SdSubmittedIdInfo> submittedIdsThisFrame = {};
 #endif
 		std::vector<SdStyleNode> styleNodes = {};
 		Detail::SdObjectStore objectStore = {};
 		SdStateStorageStats stats = {};
+
+		static Detail::SdObjectHandle* FindTypedObject(Detail::SdSmallVector<SdTypedObjectSlot, 2>& slots, SdTypeId type) noexcept
+		{
+			for (SdTypedObjectSlot& slot : slots)
+			{
+				if (slot.type == type)
+					return &slot.object;
+			}
+			return nullptr;
+		}
+
+		static const Detail::SdObjectHandle* FindTypedObject(const Detail::SdSmallVector<SdTypedObjectSlot, 2>& slots, SdTypeId type) noexcept
+		{
+			for (const SdTypedObjectSlot& slot : slots)
+			{
+				if (slot.type == type)
+					return &slot.object;
+			}
+			return nullptr;
+		}
+
+		static SdTypedStyleRecord* FindTypedStyle(Detail::SdSmallVector<SdTypedStyleSlot, 1>& slots, SdTypeId type) noexcept
+		{
+			for (SdTypedStyleSlot& slot : slots)
+			{
+				if (slot.type == type)
+					return &slot.record;
+			}
+			return nullptr;
+		}
+
+		static const SdTypedStyleRecord* FindTypedStyle(const Detail::SdSmallVector<SdTypedStyleSlot, 1>& slots, SdTypeId type) noexcept
+		{
+			for (const SdTypedStyleSlot& slot : slots)
+			{
+				if (slot.type == type)
+					return &slot.record;
+			}
+			return nullptr;
+		}
+
+		static SdModelRecord* FindModelRecord(SdModelBucket& bucket, SdTypeId type) noexcept
+		{
+			for (SdModelSlot& slot : bucket.models)
+			{
+				if (slot.type == type)
+					return &slot.record;
+			}
+			return nullptr;
+		}
+
+		SdModelBucket* FindModelBucket(SdResolvedKey resolvedKey) noexcept
+		{
+			auto it = modelBucketByResolvedKey.find(resolvedKey);
+			if (it == modelBucketByResolvedKey.end() || it->second >= modelBuckets.size())
+				return nullptr;
+			return &modelBuckets[it->second];
+		}
+
+		SdModelBucket& GetOrCreateModelBucket(SdResolvedKey resolvedKey)
+		{
+			if (SdModelBucket* bucket = FindModelBucket(resolvedKey))
+				return *bucket;
+			const SdSize index = modelBuckets.size();
+			SdModelBucket& bucket = modelBuckets.emplace_back();
+			bucket.resolvedKey = resolvedKey;
+			modelBucketByResolvedKey[resolvedKey] = index;
+			return bucket;
+		}
+
+		void EraseModelBucket(SdSize bucketIndex)
+		{
+			assert(bucketIndex < modelBuckets.size());
+			const SdResolvedKey erasedKey = modelBuckets[bucketIndex].resolvedKey;
+			const SdSize lastIndex = modelBuckets.size() - 1;
+			if (bucketIndex != lastIndex)
+			{
+				modelBuckets[bucketIndex] = std::move(modelBuckets[lastIndex]);
+				modelBucketByResolvedKey[modelBuckets[bucketIndex].resolvedKey] = bucketIndex;
+			}
+			modelBuckets.pop_back();
+			modelBucketByResolvedKey.erase(erasedKey);
+		}
 
 		SdStyleNode& CreateStyleNode(SdWidgetRecord& record, SdWidgetId widgetId, SdStylePart part, SdStyleNodeKind kind)
 		{
@@ -405,11 +733,12 @@ namespace Sodium
 		{
 			ReleaseStyleNodes(record);
 			objectStore.Destroy(record.widgetObject);
-			for (auto& [type, handle] : record.userStates)
-				objectStore.Destroy(handle);
+			for (SdTypedObjectSlot& slot : record.userStates)
+				objectStore.Destroy(slot.object);
 			record.userStates.clear();
-			for (auto& [type, styleRecord] : record.typedStyles)
+			for (SdTypedStyleSlot& slot : record.typedStyles)
 			{
+				SdTypedStyleRecord& styleRecord = slot.record;
 				objectStore.Destroy(styleRecord.resolvedStyle);
 				objectStore.Destroy(styleRecord.presentationStyle);
 				objectStore.Destroy(styleRecord.inlineStyle);
@@ -417,11 +746,11 @@ namespace Sodium
 			record.typedStyles.clear();
 		}
 
-		void DestroyModelMap(std::unordered_map<SdTypeId, SdModelRecord>& modelMap)
+		void DestroyModelBucket(SdModelBucket& bucket)
 		{
-			for (auto& [type, modelRecord] : modelMap)
-				objectStore.Destroy(modelRecord.object);
-			modelMap.clear();
+			for (SdModelSlot& slot : bucket.models)
+				objectStore.Destroy(slot.record.object);
+			bucket.models.clear();
 		}
 
 		void UpdateModelOwnership(SdModelRecord& modelRecord, SdModelLifetime lifetime, SdWidgetId ownerWidgetId) noexcept
@@ -434,11 +763,12 @@ namespace Sodium
 
 		void BindWidgetModelOwner(SdResolvedKey resolvedKey, SdWidgetId widgetId) noexcept
 		{
-			auto keyIt = keyedModels.find(resolvedKey);
-			if (keyIt == keyedModels.end())
+			SdModelBucket* bucket = FindModelBucket(resolvedKey);
+			if (!bucket)
 				return;
-			for (auto& [type, modelRecord] : keyIt->second)
+			for (SdModelSlot& slot : bucket->models)
 			{
+				SdModelRecord& modelRecord = slot.record;
 				if (modelRecord.lifetime == SdModelLifetime::Widget && modelRecord.ownerWidgetId == 0)
 					modelRecord.ownerWidgetId = widgetId;
 			}
@@ -449,11 +779,12 @@ namespace Sodium
 		{
 			for (auto& [id, record] : widgetRecords)
 				DestroyWidgetRecordObjects(record);
-			for (auto& [resolvedKey, modelMap] : keyedModels)
-				DestroyModelMap(modelMap);
+			for (SdModelBucket& bucket : modelBuckets)
+				DestroyModelBucket(bucket);
 			widgetRecords.clear();
 			widgetIdByResolvedKey.clear();
-			keyedModels.clear();
+			modelBucketByResolvedKey.clear();
+			modelBuckets.clear();
 #ifndef NDEBUG
 			submittedIdsThisFrame.clear();
 #endif
@@ -468,7 +799,7 @@ namespace Sodium
 			submittedIdsThisFrame.clear();
 #endif
 			stats.ResetFrameTransient();
-			stats.modelCount = static_cast<SdUInt32>(keyedModels.size());
+			stats.modelCount = static_cast<SdUInt32>(modelBuckets.size());
 			stats.styleNodeCount = CountLiveStyleNodes();
 			stats.liveObjectCount = objectStore.GetLiveObjectCount();
 		}
@@ -645,7 +976,15 @@ namespace Sodium
 			auto recordIt = widgetRecords.find(widgetId);
 			assert(recordIt != widgetRecords.end());
 			SdWidgetRecord& record = recordIt->second;
-			Detail::SdObjectHandle& object = record.userStates[SdStableTypeId<T>()];
+			const SdTypeId type = SdStableTypeId<T>();
+			Detail::SdObjectHandle* objectSlot = FindTypedObject(record.userStates, type);
+			if (!objectSlot)
+			{
+				SdTypedObjectSlot& slot = record.userStates.emplace_back();
+				slot.type = type;
+				objectSlot = &slot.object;
+			}
+			Detail::SdObjectHandle& object = *objectSlot;
 			if (!object.IsValid())
 			{
 				object = objectStore.Create<T>();
@@ -664,15 +1003,23 @@ namespace Sodium
 		T& GetOrCreateModel(SdResolvedKey resolvedKey, SdModelLifetime lifetime = SdModelLifetime::Manual, SdWidgetId ownerWidgetId = 0)
 		{
 			assert(resolvedKey != 0);
-			std::unordered_map<SdTypeId, SdModelRecord>& modelMap = keyedModels[resolvedKey];
-			SdModelRecord& modelRecord = modelMap[SdStableTypeId<T>()];
+			SdModelBucket& bucket = GetOrCreateModelBucket(resolvedKey);
+			const SdTypeId type = SdStableTypeId<T>();
+			SdModelRecord* foundRecord = FindModelRecord(bucket, type);
+			if (!foundRecord)
+			{
+				SdModelSlot& slot = bucket.models.emplace_back();
+				slot.type = type;
+				foundRecord = &slot.record;
+			}
+			SdModelRecord& modelRecord = *foundRecord;
 			UpdateModelOwnership(modelRecord, lifetime, ownerWidgetId);
 			if (!modelRecord.object.IsValid())
 			{
 				modelRecord.object = objectStore.Create<T>();
 				modelRecord.lifetime = lifetime;
 				modelRecord.ownerWidgetId = ownerWidgetId;
-				stats.modelCount = static_cast<SdUInt32>(keyedModels.size());
+				stats.modelCount = static_cast<SdUInt32>(modelBuckets.size());
 				stats.liveObjectCount = objectStore.GetLiveObjectCount();
 				return *objectStore.Get<T>(modelRecord.object);
 			}
@@ -686,12 +1033,12 @@ namespace Sodium
 
 		bool RemoveModel(SdResolvedKey resolvedKey)
 		{
-			auto it = keyedModels.find(resolvedKey);
-			if (it == keyedModels.end())
+			auto it = modelBucketByResolvedKey.find(resolvedKey);
+			if (it == modelBucketByResolvedKey.end() || it->second >= modelBuckets.size())
 				return false;
-			DestroyModelMap(it->second);
-			keyedModels.erase(it);
-			stats.modelCount = static_cast<SdUInt32>(keyedModels.size());
+			DestroyModelBucket(modelBuckets[it->second]);
+			EraseModelBucket(it->second);
+			stats.modelCount = static_cast<SdUInt32>(modelBuckets.size());
 			stats.liveObjectCount = objectStore.GetLiveObjectCount();
 			return true;
 		}
@@ -699,16 +1046,16 @@ namespace Sodium
 		SdUInt32 RemoveOwnedModels(SdWidgetId ownerWidgetId)
 		{
 			SdUInt32 removedCount = 0;
-			for (auto keyIt = keyedModels.begin(); keyIt != keyedModels.end();)
+			for (SdSize bucketIndex = 0; bucketIndex < modelBuckets.size();)
 			{
-				auto& modelMap = keyIt->second;
-				for (auto modelIt = modelMap.begin(); modelIt != modelMap.end();)
+				SdModelBucket& bucket = modelBuckets[bucketIndex];
+				for (auto modelIt = bucket.models.begin(); modelIt != bucket.models.end();)
 				{
-					SdModelRecord& modelRecord = modelIt->second;
+					SdModelRecord& modelRecord = modelIt->record;
 					if (modelRecord.lifetime != SdModelLifetime::Manual && modelRecord.ownerWidgetId == ownerWidgetId)
 					{
 						objectStore.Destroy(modelRecord.object);
-						modelIt = modelMap.erase(modelIt);
+						modelIt = bucket.models.erase(modelIt);
 						++removedCount;
 					}
 					else
@@ -717,12 +1064,12 @@ namespace Sodium
 					}
 				}
 
-				if (modelMap.empty())
-					keyIt = keyedModels.erase(keyIt);
+				if (bucket.models.empty())
+					EraseModelBucket(bucketIndex);
 				else
-					++keyIt;
+					++bucketIndex;
 			}
-			stats.modelCount = static_cast<SdUInt32>(keyedModels.size());
+			stats.modelCount = static_cast<SdUInt32>(modelBuckets.size());
 			stats.liveObjectCount = objectStore.GetLiveObjectCount();
 			return removedCount;
 		}
@@ -749,7 +1096,7 @@ namespace Sodium
 				}
 			}
 			stats.removedWidgetCount = removedCount;
-			stats.modelCount = static_cast<SdUInt32>(keyedModels.size());
+			stats.modelCount = static_cast<SdUInt32>(modelBuckets.size());
 			stats.liveObjectCount = objectStore.GetLiveObjectCount();
 			return removedCount;
 		}
@@ -788,9 +1135,17 @@ namespace Sodium
 		template<class TStyle>
 		SdTypedStyleRecord& GetOrCreateTypedStyleRecord(SdWidgetRecord& record)
 		{
-			SdTypedStyleRecord& styleRecord = record.typedStyles[SdStableTypeId<TStyle>()];
+			const SdTypeId type = SdStableTypeId<TStyle>();
+			SdTypedStyleRecord* foundRecord = FindTypedStyle(record.typedStyles, type);
+			if (!foundRecord)
+			{
+				SdTypedStyleSlot& slot = record.typedStyles.emplace_back();
+				slot.type = type;
+				foundRecord = &slot.record;
+			}
+			SdTypedStyleRecord& styleRecord = *foundRecord;
 			if (styleRecord.styleType == 0)
-				styleRecord.styleType = SdStableTypeId<TStyle>();
+				styleRecord.styleType = type;
 			return styleRecord;
 		}
 
@@ -829,19 +1184,19 @@ namespace Sodium
 		template<class TStyle>
 		TStyle* FindResolvedStyle(SdWidgetRecord& record) noexcept
 		{
-			auto it = record.typedStyles.find(SdStableTypeId<TStyle>());
-			if (it == record.typedStyles.end())
+			SdTypedStyleRecord* styleRecord = FindTypedStyle(record.typedStyles, SdStableTypeId<TStyle>());
+			if (!styleRecord)
 				return nullptr;
-			return objectStore.Get<TStyle>(it->second.resolvedStyle);
+			return objectStore.Get<TStyle>(styleRecord->resolvedStyle);
 		}
 
 		template<class TStyle>
 		TStyle* FindPresentationStyle(SdWidgetRecord& record) noexcept
 		{
-			auto it = record.typedStyles.find(SdStableTypeId<TStyle>());
-			if (it == record.typedStyles.end())
+			SdTypedStyleRecord* styleRecord = FindTypedStyle(record.typedStyles, SdStableTypeId<TStyle>());
+			if (!styleRecord)
 				return nullptr;
-			return objectStore.Get<TStyle>(it->second.presentationStyle);
+			return objectStore.Get<TStyle>(styleRecord->presentationStyle);
 		}
 
 		template<class TStyle>
@@ -853,15 +1208,13 @@ namespace Sodium
 		template<class TStyle>
 		SdTypedStyleRecord* FindTypedStyleRecord(SdWidgetRecord& record) noexcept
 		{
-			auto it = record.typedStyles.find(SdStableTypeId<TStyle>());
-			return it == record.typedStyles.end() ? nullptr : &it->second;
+			return FindTypedStyle(record.typedStyles, SdStableTypeId<TStyle>());
 		}
 
 		template<class TStyle>
 		const SdTypedStyleRecord* FindTypedStyleRecord(const SdWidgetRecord& record) const noexcept
 		{
-			auto it = record.typedStyles.find(SdStableTypeId<TStyle>());
-			return it == record.typedStyles.end() ? nullptr : &it->second;
+			return FindTypedStyle(record.typedStyles, SdStableTypeId<TStyle>());
 		}
 
 		template<class TStyle>
@@ -915,14 +1268,14 @@ namespace Sodium
 		template<class TStyle>
 		bool ClearInlineStyle(SdWidgetRecord& record)
 		{
-			auto it = record.typedStyles.find(SdStableTypeId<TStyle>());
-			if (it == record.typedStyles.end() || !it->second.inlineStyle.IsValid())
+			SdTypedStyleRecord* styleRecord = FindTypedStyle(record.typedStyles, SdStableTypeId<TStyle>());
+			if (!styleRecord || !styleRecord->inlineStyle.IsValid())
 				return false;
 
-			objectStore.Destroy(it->second.inlineStyle);
-			++it->second.inlineStyleRevision;
-			if (it->second.inlineStyleRevision == 0)
-				it->second.inlineStyleRevision = 1;
+			objectStore.Destroy(styleRecord->inlineStyle);
+			++styleRecord->inlineStyleRevision;
+			if (styleRecord->inlineStyleRevision == 0)
+				styleRecord->inlineStyleRevision = 1;
 			stats.liveObjectCount = objectStore.GetLiveObjectCount();
 			return true;
 		}

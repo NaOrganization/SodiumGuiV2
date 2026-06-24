@@ -511,11 +511,10 @@ namespace Sodium
 		if constexpr (requires { typename TWidget::Style; })
 		{
 			using Style = typename TWidget::Style;
-			auto styleIt = record.typedStyles.find(SdStableTypeId<Style>());
-			if (styleIt == record.typedStyles.end())
+			SdTypedStyleRecord* styleRecord = context.stateStorage.FindTypedStyleRecord<Style>(record);
+			if (!styleRecord)
 				return;
 
-			SdTypedStyleRecord& styleRecord = styleIt->second;
 			Style* presentationStyle = context.stateStorage.FindPresentationStyle<Style>(record);
 			if (!presentationStyle)
 				return;

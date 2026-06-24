@@ -349,22 +349,22 @@ namespace Sodium::Backends
 		return true;
 	}
 
-	bool SdDx11Renderer::UploadBuffers(const SdDrawData& data)
+	bool SdDx11Renderer::UploadBuffers(const SdDrawPacket& packet)
 	{
-		if (!EnsureBuffers(static_cast<SdUInt32>(data.vertices.size()), static_cast<SdUInt32>(data.indices.size())))
+		if (!EnsureBuffers(static_cast<SdUInt32>(packet.vertices.size()), static_cast<SdUInt32>(packet.indices.size())))
 			return false;
-		if (data.vertices.empty() || data.indices.empty())
+		if (packet.vertices.empty() || packet.indices.empty())
 			return true;
 
 		D3D11_MAPPED_SUBRESOURCE mapped = {};
 		if (FAILED(deviceContext->Map(vertexBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped)))
 			return false;
-		std::memcpy(mapped.pData, data.vertices.data(), data.vertices.size() * sizeof(SdVertex));
+		std::memcpy(mapped.pData, packet.vertices.data(), packet.vertices.size() * sizeof(SdVertex));
 		deviceContext->Unmap(vertexBuffer.Get(), 0);
 
 		if (FAILED(deviceContext->Map(indexBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped)))
 			return false;
-		std::memcpy(mapped.pData, data.indices.data(), data.indices.size() * sizeof(SdUInt32));
+		std::memcpy(mapped.pData, packet.indices.data(), packet.indices.size() * sizeof(SdUInt32));
 		deviceContext->Unmap(indexBuffer.Get(), 0);
 		return true;
 	}
@@ -536,29 +536,22 @@ namespace Sodium::Backends
 
 	void SdDx11Renderer::Render(const SdRendererFrameInfo& frameInfo, const SdDrawPacket& packet)
 	{
-		SdDrawData data = {};
-		data.AssignPacket(packet);
-		Render(data, frameInfo.displaySize);
-	}
-
-	void SdDx11Renderer::Render(const SdDrawData& data, SdVec2 displaySize)
-	{
 		if (!deviceContext)
 			return;
-		for (const SdUploadRequest& upload : data.uploads)
+		for (const SdUploadRequest& upload : packet.resourceUpdates)
 			UploadTexture(upload);
-		if (data.vertices.empty() || data.indices.empty())
+		if (packet.vertices.empty() || packet.indices.empty())
 			return;
-		if (!UploadBuffers(data))
+		if (!UploadBuffers(packet))
 			return;
 
 		Dx11PipelineStateSnapshot pipelineState(deviceContext.Get());
-		BindPipeline(displaySize);
-		for (const SdDrawCommand& command : data.commands)
+		BindPipeline(frameInfo.displaySize);
+		for (const SdDrawCommand& command : packet.commands)
 		{
-			if (command.kind != SdDrawCommandKind::OwnedBatch || command.index >= data.batches.size())
+			if (command.kind != SdDrawCommandKind::OwnedBatch || command.index >= packet.batches.size())
 				continue;
-			const SdRenderBatch& batch = data.batches[command.index];
+			const SdRenderBatch& batch = packet.batches[command.index];
 			if (batch.indexCount == 0)
 				continue;
 
@@ -572,8 +565,8 @@ namespace Sodium::Backends
 			D3D11_RECT scissor = {};
 			scissor.left = static_cast<LONG>(std::floor(std::max(0.0f, batch.clipRect.min.x)));
 			scissor.top = static_cast<LONG>(std::floor(std::max(0.0f, batch.clipRect.min.y)));
-			scissor.right = static_cast<LONG>(std::ceil(std::min(displaySize.x, batch.clipRect.max.x)));
-			scissor.bottom = static_cast<LONG>(std::ceil(std::min(displaySize.y, batch.clipRect.max.y)));
+			scissor.right = static_cast<LONG>(std::ceil(std::min(frameInfo.displaySize.x, batch.clipRect.max.x)));
+			scissor.bottom = static_cast<LONG>(std::ceil(std::min(frameInfo.displaySize.y, batch.clipRect.max.y)));
 			if (scissor.left >= scissor.right || scissor.top >= scissor.bottom)
 				continue;
 			deviceContext->RSSetScissorRects(1, &scissor);

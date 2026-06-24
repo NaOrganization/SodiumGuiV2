@@ -20,6 +20,38 @@ namespace Sodium::Backends
 		constexpr SdUInt32 kAtlasLineStartY = 2;
 		constexpr SdUInt32 kAtlasLineRegionWidth = SdRenderSharedData::BakedLineTextureCount + 2;
 		constexpr SdUInt32 kAtlasReservedHeight = kAtlasLineStartY + SdRenderSharedData::BakedLineTextureCount + 2;
+
+		SdUInt32 AlphaBlendColor(SdUInt32 destination, const FT_Color& sourceColor, SdUInt8 coverage)
+		{
+			const SdUInt32 sourceAlpha = (static_cast<SdUInt32>(sourceColor.alpha) * coverage + 127u) / 255u;
+			if (sourceAlpha == 0)
+				return destination;
+			if (sourceAlpha == 255)
+				return SdColor(sourceColor.red, sourceColor.green, sourceColor.blue, 255).Pack();
+
+			const SdUInt32 destinationRed = destination & 0xFFu;
+			const SdUInt32 destinationGreen = (destination >> 8) & 0xFFu;
+			const SdUInt32 destinationBlue = (destination >> 16) & 0xFFu;
+			const SdUInt32 destinationAlpha = (destination >> 24) & 0xFFu;
+			const SdUInt32 inverseAlpha = 255u - sourceAlpha;
+			const SdUInt32 outputAlpha = sourceAlpha + ((destinationAlpha * inverseAlpha + 127u) / 255u);
+			if (outputAlpha == 0)
+				return 0;
+
+			const SdUInt32 sourceRedPremultiplied = static_cast<SdUInt32>(sourceColor.red) * sourceAlpha;
+			const SdUInt32 sourceGreenPremultiplied = static_cast<SdUInt32>(sourceColor.green) * sourceAlpha;
+			const SdUInt32 sourceBluePremultiplied = static_cast<SdUInt32>(sourceColor.blue) * sourceAlpha;
+			const SdUInt32 destinationRedPremultiplied = destinationRed * destinationAlpha;
+			const SdUInt32 destinationGreenPremultiplied = destinationGreen * destinationAlpha;
+			const SdUInt32 destinationBluePremultiplied = destinationBlue * destinationAlpha;
+			const SdUInt32 outputRedPremultiplied = sourceRedPremultiplied + ((destinationRedPremultiplied * inverseAlpha + 127u) / 255u);
+			const SdUInt32 outputGreenPremultiplied = sourceGreenPremultiplied + ((destinationGreenPremultiplied * inverseAlpha + 127u) / 255u);
+			const SdUInt32 outputBluePremultiplied = sourceBluePremultiplied + ((destinationBluePremultiplied * inverseAlpha + 127u) / 255u);
+			const SdUInt8 outputRed = static_cast<SdUInt8>((outputRedPremultiplied + outputAlpha / 2u) / outputAlpha);
+			const SdUInt8 outputGreen = static_cast<SdUInt8>((outputGreenPremultiplied + outputAlpha / 2u) / outputAlpha);
+			const SdUInt8 outputBlue = static_cast<SdUInt8>((outputBluePremultiplied + outputAlpha / 2u) / outputAlpha);
+			return SdColor(outputRed, outputGreen, outputBlue, static_cast<SdUInt8>(outputAlpha)).Pack();
+		}
 	}
 
 	SdSize SdFreeTypeFontBackend::GlyphKeyHash::operator()(const GlyphKey& key) const noexcept
@@ -578,10 +610,118 @@ namespace Sodium::Backends
 		info.bearing = { static_cast<float>(slot->bitmap_left), static_cast<float>(slot->bitmap_top) };
 		info.advanceX = static_cast<float>(slot->advance.x) / 64.0f;
 
-		if (FT_Render_Glyph(slot, FT_RENDER_MODE_NORMAL) != 0)
+		FT_Color* palette = nullptr;
+		FT_LayerIterator iterator = {};
+		FT_UInt layerGlyphIndex = 0;
+		FT_UInt layerColorIndex = 0;
+		if (FT_Palette_Select(face->face, 0, &palette) == 0
+			&& palette
+			&& FT_Get_Color_Glyph_Layer(face->face, glyphIndex, &layerGlyphIndex, &layerColorIndex, &iterator))
+		{
+			struct RenderedLayer final
+			{
+				std::vector<SdUInt8> coverage = {};
+				FT_Color color = {};
+				SdInt32 left = 0;
+				SdInt32 top = 0;
+				SdUInt32 width = 0;
+				SdUInt32 height = 0;
+			};
+
+			std::vector<RenderedLayer> layers = {};
+			SdInt32 minX = std::numeric_limits<SdInt32>::max();
+			SdInt32 minY = std::numeric_limits<SdInt32>::max();
+			SdInt32 maxX = std::numeric_limits<SdInt32>::min();
+			SdInt32 maxY = std::numeric_limits<SdInt32>::min();
+			do
+			{
+				if (FT_Load_Glyph(face->face, layerGlyphIndex, FT_LOAD_DEFAULT) != 0)
+					continue;
+				if (FT_Render_Glyph(face->face->glyph, FT_RENDER_MODE_NORMAL) != 0)
+					continue;
+
+				const FT_GlyphSlot layerSlot = face->face->glyph;
+				const FT_Bitmap& layerBitmap = layerSlot->bitmap;
+				if (layerBitmap.width == 0 || layerBitmap.rows == 0 || !layerBitmap.buffer || layerBitmap.pixel_mode != FT_PIXEL_MODE_GRAY)
+					continue;
+
+				RenderedLayer layer = {};
+				layer.left = layerSlot->bitmap_left;
+				layer.top = layerSlot->bitmap_top;
+				layer.width = layerBitmap.width;
+				layer.height = layerBitmap.rows;
+				layer.color = layerColorIndex == 0xFFFFu ? FT_Color{ 255, 255, 255, 255 } : palette[layerColorIndex];
+				layer.coverage.resize(static_cast<SdSize>(layer.width) * layer.height);
+				const SdSize sourcePitch = static_cast<SdSize>(std::abs(layerBitmap.pitch));
+				for (SdUInt32 y = 0; y < layer.height; ++y)
+				{
+					std::memcpy(
+						layer.coverage.data() + static_cast<SdSize>(y) * layer.width,
+						layerBitmap.buffer + static_cast<SdSize>(y) * sourcePitch,
+						layer.width);
+				}
+
+				minX = std::min(minX, layer.left);
+				minY = std::min(minY, layer.top - static_cast<SdInt32>(layer.height));
+				maxX = std::max(maxX, layer.left + static_cast<SdInt32>(layer.width));
+				maxY = std::max(maxY, layer.top);
+				layers.push_back(std::move(layer));
+			} while (FT_Get_Color_Glyph_Layer(face->face, glyphIndex, &layerGlyphIndex, &layerColorIndex, &iterator));
+
+			if (!layers.empty() && minX < maxX && minY < maxY)
+			{
+				const SdUInt32 width = static_cast<SdUInt32>(maxX - minX);
+				const SdUInt32 height = static_cast<SdUInt32>(maxY - minY);
+				SdUInt32 atlasX = 0;
+				SdUInt32 atlasY = 0;
+				if (!AllocateAtlasRegion(width, height, atlasX, atlasY))
+					return nullptr;
+
+				info.bearing = { static_cast<float>(minX), static_cast<float>(maxY) };
+				info.size = { static_cast<float>(width), static_cast<float>(height) };
+				info.visible = true;
+				info.colored = true;
+				info.atlasX = atlasX;
+				info.atlasY = atlasY;
+				info.atlasWidth = width;
+				info.atlasHeight = height;
+
+				for (const RenderedLayer& layer : layers)
+				{
+					const SdUInt32 destinationX = static_cast<SdUInt32>(layer.left - minX);
+					const SdUInt32 destinationY = static_cast<SdUInt32>(maxY - layer.top);
+					for (SdUInt32 y = 0; y < layer.height; ++y)
+					{
+						for (SdUInt32 x = 0; x < layer.width; ++x)
+						{
+							const SdUInt8 coverage = layer.coverage[static_cast<SdSize>(y) * layer.width + x];
+							SdUInt32& destination = atlas.pixels[static_cast<SdSize>(atlasY + destinationY + y) * atlas.width + atlasX + destinationX + x];
+							destination = AlphaBlendColor(destination, layer.color, coverage);
+						}
+					}
+				}
+
+				info.uvRect = {
+					static_cast<float>(atlasX) / static_cast<float>(atlas.width),
+					static_cast<float>(atlasY) / static_cast<float>(atlas.height),
+					static_cast<float>(atlasX + width) / static_cast<float>(atlas.width),
+					static_cast<float>(atlasY + height) / static_cast<float>(atlas.height)
+				};
+				atlas.dirty = true;
+				auto [it, inserted] = glyphCache.emplace(key, info);
+				paragraphCache.clear();
+				return &it->second;
+			}
+		}
+
+		if (FT_Load_Glyph(face->face, glyphIndex, FT_LOAD_DEFAULT) != 0)
 			return nullptr;
 
-		const FT_Bitmap& bitmap = slot->bitmap;
+		const FT_GlyphSlot monochromeSlot = face->face->glyph;
+		if (FT_Render_Glyph(monochromeSlot, FT_RENDER_MODE_NORMAL) != 0)
+			return nullptr;
+
+		const FT_Bitmap& bitmap = monochromeSlot->bitmap;
 		info.size = { static_cast<float>(bitmap.width), static_cast<float>(bitmap.rows) };
 		info.visible = bitmap.width > 0 && bitmap.rows > 0 && bitmap.buffer;
 		if (info.visible)
@@ -816,7 +956,8 @@ namespace Sodium::Backends
 				textGlyph.font = font;
 				textGlyph.texture = glyph->texture;
 				textGlyph.uvRect = glyph->uvRect;
-				textGlyph.color = color;
+				textGlyph.color = glyph->colored ? SdColorWhite : color;
+				textGlyph.colored = glyph->colored;
 				textGlyph.codepoint = codepoint;
 				textGlyph.rect = {
 					penX + glyph->bearing.x,

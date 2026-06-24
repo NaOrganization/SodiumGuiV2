@@ -4,6 +4,7 @@
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
+#include FT_COLOR_H
 
 #include <unordered_map>
 
@@ -60,6 +61,7 @@ namespace Sodium::Backends
 			SdUInt32 atlasHeight = 0;
 			float advanceX = 0.0f;
 			bool visible = false;
+			bool colored = false;
 		};
 
 		struct SkylineNode final

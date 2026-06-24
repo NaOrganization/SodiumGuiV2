@@ -1072,12 +1072,12 @@ namespace
 		const SdWidgetRootStyle windowDefault = styleSystem.ResolveRootStyle(SdWindow::TargetTypeId, SdStyleInteractionState::Normal, SdRootLayer::Floating);
 		Check(windowDefault.width.unit == SdLengthUnit::Pixels && windowDefault.width.value == 420.0f, "window default width resolves through root style");
 		Check(windowDefault.height.unit == SdLengthUnit::Pixels && windowDefault.height.value == 260.0f, "window default height resolves through root style");
-		Check(windowDefault.padding.top.value == 40.0f, "window default title padding resolves through root style");
+		Check(windowDefault.padding.top.value == 30.0f, "window default title padding resolves through root style");
 		Check(SdResolveLength(windowDefault.gap, 0.0f) == styleSystem.GetTheme().GetMetricVariable(SdThemeVariableIds::SpacingSmall), "window default gap resolves through root gap");
 		const SdWidgetPartStyle windowContentDefault = styleSystem.ResolvePartStyle(SdWindow::TargetTypeId, SdWindow::Parts::Content, windowDefault, SdStyleInteractionState::Normal, SdRootLayer::Floating);
 		const SdWidgetPartStyle windowTitlebarDefault = styleSystem.ResolvePartStyle(SdWindow::TargetTypeId, SdWindow::Parts::Titlebar, windowDefault, SdStyleInteractionState::Normal, SdRootLayer::Floating);
-		Check(windowContentDefault.backgroundColor == styleSystem.GetTheme().GetColorVariable(SdThemeVariableIds::WindowBg), "window content default background resolves through part style");
-		Check(windowTitlebarDefault.backgroundColor == styleSystem.GetTheme().GetColorVariable(SdThemeVariableIds::ButtonBg), "window titlebar default background resolves through part style");
+		Check(windowContentDefault.backgroundColor == SdColor(23, 31, 42, 224), "window content default background resolves through part style");
+		Check(windowTitlebarDefault.backgroundColor == SdColor(31, 43, 57, 236), "window titlebar default background resolves through part style");
 
 		const SdWidgetRootStyle buttonDefault = styleSystem.ResolveRootStyle(SdButton::TargetTypeId, SdStyleInteractionState::Normal);
 		Check(buttonDefault.minWidth.unit == SdLengthUnit::Pixels && buttonDefault.minWidth.value == 82.0f, "button default min width resolves through root style");

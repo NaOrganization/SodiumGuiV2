@@ -238,26 +238,6 @@ namespace
 				state.mouse = context.input.GetMousePosition();
 				liveFps = std::max(0.0, liveFps);
 
-				const bool warningPhase = ((frameCount / 120) % 2) != 0;
-				const Sodium::SdStyleClassId statusClasses[] =
-				{
-					warningPhase ? kExampleWarningTextClass : kExampleAccentTextClass
-				};
-				const Sodium::SdStyleIdentity statusIdentity{
-					Sodium::SdSpan<const Sodium::SdStyleClassId>(statusClasses, 1),
-					kExampleDemoTextScope
-				};
-				char styledStatus[160] = {};
-				std::snprintf(styledStatus, sizeof(styledStatus), "Class/scope style text - %.1f FPS", liveFps);
-				context.ui.DeclareStyledKeyed<Sodium::SdText>("style_status", statusIdentity, styledStatus);
-
-				const Sodium::SdStyleClassId paddedTextClasses[] = { kExamplePaddedTextClass };
-				const Sodium::SdStyleIdentity paddedTextIdentity{
-					Sodium::SdSpan<const Sodium::SdStyleClassId>(paddedTextClasses, 1),
-					kExampleDemoTextScope
-				};
-				context.ui.DeclareStyledKeyed<Sodium::SdText>("style_padded", paddedTextIdentity, "Class/scope padded style text");
-
 				if (!context.input.IsKeyHeld(Sodium::SdKeyCode::W))
 					context.ui.DeclareKeyed<Sodium::SdText>("test_text", "中文");
 
@@ -546,11 +526,8 @@ namespace
 			const Sodium::SdFontRequest fontRequests[] =
 			{
 				{ L"C:\\Windows\\Fonts\\segoeui.ttf", "Segoe UI" },
-				{ L"C:\\Windows\\Fonts\\arial.ttf", "Arial" },
+				{ L"C:\\Windows\\Fonts\\seguiemj.ttf", "Segoe UI Emoji" },
 				{ L"C:\\Windows\\Fonts\\msyh.ttc", "Microsoft YaHei" },
-				{ L"C:\\Windows\\Fonts\\simhei.ttf", "SimHei" },
-				{ L"C:\\Windows\\Fonts\\simsun.ttc", "SimSun" },
-				{ L"C:\\Windows\\Fonts\\Deng.ttf", "DengXian" }
 			};
 			for (const Sodium::SdFontRequest& request : fontRequests)
 			{
