@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Core/SdRuntime.h"
 #include "Core/SdText.h"
@@ -1135,6 +1135,11 @@ namespace Sodium
 	{
 		SdVec2 position = { 64.0f, 54.0f };
 		SdVec2 size = { 420.0f, 260.0f };
+		float backgroundBlurRadius = 16.0f;
+		SdVec2 shadowOffset = { 0.0f, 0.0f };
+		SdColor shadowColor = { 0, 0, 0, 144 };
+		float shadowRadius = 20.0f;
+		float shadowSpread = 0.0f;
 		bool closable = true;
 		bool draggable = true;
 	};
@@ -1328,6 +1333,21 @@ namespace Sodium
 			const float radius = SdResolveLength(contentPresentation.radius, paintRect.Width(), SdResolveLength(presentation.radius, paintRect.Width()));
 			const float titlebarRadius = SdResolveLength(titlebarPresentation.radius, paintRect.Width(), radius);
 
+			if (state.options.backgroundBlurRadius > 0.0f)
+				context.renderList.AddBackdropBlur(paintRect, context.clipRect, state.options.backgroundBlurRadius, radius);
+			if (state.options.shadowRadius > 0.0f && state.options.shadowColor.a != 0)
+			{
+				const float shadowPadding = std::ceil(std::max(0.0f, state.options.shadowRadius)
+					+ std::max(0.0f, state.options.shadowSpread)
+					+ std::max(std::abs(state.options.shadowOffset.x), std::abs(state.options.shadowOffset.y)));
+				const SdRect shadowClipRect = {
+					context.clipRect.min.x - shadowPadding,
+					context.clipRect.min.y - shadowPadding,
+					context.clipRect.max.x + shadowPadding,
+					context.clipRect.max.y + shadowPadding
+				};
+				context.renderList.AddDropShadow(paintRect, shadowClipRect, state.options.shadowOffset, state.options.shadowColor, state.options.shadowRadius, state.options.shadowSpread, radius);
+			}
 			context.renderList.AddRectFilled(paintRect, background, context.clipRect, radius);
 			context.renderList.AddRectFilled(titleRect, titleColor, context.clipRect, titlebarRadius);
 			context.renderList.AddRect(paintRect, border, context.clipRect, 1.0f, radius);

@@ -32,6 +32,7 @@ namespace Sodium
 			? static_cast<SdUInt32>(ListFlag::UseAntiAliasing)
 			: static_cast<SdUInt32>(ListFlag::None);
 		currentClipRect = {};
+		forceNewBatch = false;
 		if (stats)
 		{
 			stats->maxVertexCapacity = std::max(stats->maxVertexCapacity, static_cast<SdUInt32>(drawData.vertices.capacity()));
@@ -143,7 +144,7 @@ namespace Sodium
 		if (!CanAddVertices(vertexReserve))
 			return false;
 
-		if (!drawData.batches.empty())
+		if (!forceNewBatch && !drawData.batches.empty())
 		{
 			SdRenderBatch& current = drawData.batches.back();
 			if (current.texture == texture && RectEquals(current.clipRect, clipRect))
@@ -163,6 +164,7 @@ namespace Sodium
 			SdDrawCommandKind::OwnedBatch,
 			static_cast<SdUInt32>(drawData.batches.size() - 1)
 		});
+		forceNewBatch = false;
 		return true;
 	}
 
@@ -171,5 +173,46 @@ namespace Sodium
 		if (requestedSegmentCount != 0)
 			return std::clamp<SdUInt32>(requestedSegmentCount, 3, 256);
 		return std::clamp<SdUInt32>(static_cast<SdUInt32>(std::ceil(radius * 0.35f)) + 10u, 12, 128);
+	}
+
+	void SdRenderList::AddBackdropBlur(const SdRect& rect, const SdRect& clipRect, float radius, float cornerRadius)
+	{
+		if (radius <= 0.0f || rect.Width() <= 0.0f || rect.Height() <= 0.0f)
+			return;
+
+		const SdUInt32 index = static_cast<SdUInt32>(drawData.backdropBlurs.size());
+		drawData.backdropBlurs.push_back({
+			rect,
+			clipRect,
+			radius,
+			cornerRadius
+		});
+		drawData.commands.push_back({
+			SdDrawCommandKind::BackdropBlur,
+			index
+		});
+		forceNewBatch = true;
+	}
+
+	void SdRenderList::AddDropShadow(const SdRect& rect, const SdRect& clipRect, const SdVec2& offset, const SdColor& color, float radius, float spread, float cornerRadius)
+	{
+		if (color.a == 0 || radius <= 0.0f || rect.Width() <= 0.0f || rect.Height() <= 0.0f)
+			return;
+
+		const SdUInt32 index = static_cast<SdUInt32>(drawData.dropShadows.size());
+		drawData.dropShadows.push_back({
+			rect,
+			clipRect,
+			offset,
+			color,
+			radius,
+			spread,
+			cornerRadius
+		});
+		drawData.commands.push_back({
+			SdDrawCommandKind::DropShadow,
+			index
+		});
+		forceNewBatch = true;
 	}
 }

@@ -1,4 +1,4 @@
-#include <Windows.h>
+﻿#include <Windows.h>
 #include <d3d11.h>
 #include <dxgi.h>
 #include <wrl/client.h>
@@ -372,6 +372,7 @@ namespace SodiumDynamicExample
 			Sodium::SdWindowOptions windowOptions = {};
 			windowOptions.position = { 566.0f, 52.0f };
 			windowOptions.size = { 330.0f, 176.0f };
+			windowOptions.shadowRadius = 0.f;
 			gui.ui.DeclareKeyed<Sodium::SdWindow>("overlay_builtin_window", "SdWindow", controls.mediaWindowOpen, windowOptions, [](Sodium::SdUi& ui)
 			{
 				ui.Declare<Sodium::SdText>("Floating window in overlay");
@@ -459,7 +460,7 @@ namespace SodiumDynamicExample
 				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::Text, { 28, 34, 42, 255 });
 				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::ButtonText, { 28, 34, 42, 255 });
 				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::Background, { 236, 241, 246, 255 });
-				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::WindowBg, { 250, 252, 255, 245 });
+				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::WindowBg, { 250, 252, 255, 0 });
 				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::PanelBg, { 226, 234, 242, 242 });
 				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::ButtonBg, { 214, 228, 241, 255 });
 				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::ButtonBgHover, { 190, 215, 238, 255 });
@@ -475,7 +476,7 @@ namespace SodiumDynamicExample
 				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::Text, Sodium::SdColorWhite);
 				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::ButtonText, Sodium::SdColorWhite);
 				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::Background, { 24, 30, 39, 242 });
-				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::WindowBg, { 24, 30, 39, 242 });
+				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::WindowBg, { 24, 30, 39, 0 });
 				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::PanelBg, { 35, 42, 52, 235 });
 				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::ButtonBg, { 48, 72, 96, 255 });
 				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::ButtonBgHover, { 62, 100, 138, 255 });
@@ -487,9 +488,9 @@ namespace SodiumDynamicExample
 				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::Selection, { 82, 170, 128, 96 });
 			}
 
-			styleSystem.SetMetricVariable(Sodium::SdThemeVariableIds::SpacingSmall, controls.compactTheme ? 4.0f : 6.0f);
-			styleSystem.SetMetricVariable(Sodium::SdThemeVariableIds::SpacingMedium, controls.compactTheme ? 7.0f : 10.0f);
-			styleSystem.SetMetricVariable(Sodium::SdThemeVariableIds::RadiusSmall, controls.compactTheme ? 3.0f : 5.0f);
+			styleSystem.SetMetricVariable(Sodium::SdThemeVariableIds::SpacingSmall, controls.compactTheme ? 4.0f : 20.0f);
+			styleSystem.SetMetricVariable(Sodium::SdThemeVariableIds::SpacingMedium, controls.compactTheme ? 7.0f : 20.0f);
+			styleSystem.SetMetricVariable(Sodium::SdThemeVariableIds::RadiusSmall, controls.compactTheme ? 3.0f : 20.0f);
 			styleSystem.SetMetricVariable(Sodium::SdThemeVariableIds::DurationFast, 0.36f);
 			appliedLightTheme = controls.lightTheme;
 			appliedCompactTheme = controls.compactTheme;
@@ -541,13 +542,13 @@ namespace SodiumDynamicExample
 			ApplyGlobalTheme();
 			gui.BeginFrame();
 			const Sodium::SdStyleClassId overlayWindowClasses[] = { kOverlayWindowClass };
-			gui.ui.DeclareStyled<OverlayWindow>(
-				{ Sodium::SdSpan<const Sodium::SdStyleClassId>(overlayWindowClasses, 1), kOverlayWindowScope },
-				overlayWindowOpen,
-				controls,
-				frameCount,
-				liveFps,
-				fontBackend.GetAtlasTexture());
+			//gui.ui.DeclareStyled<OverlayWindow>(
+			//	{ Sodium::SdSpan<const Sodium::SdStyleClassId>(overlayWindowClasses, 1), kOverlayWindowScope },
+			//	overlayWindowOpen,
+			//	controls,
+			//	frameCount,
+			//	liveFps,
+			//	fontBackend.GetAtlasTexture());
 			DeclareFloatingBuiltInWidgets();
 			gui.EndFrame();
 

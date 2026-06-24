@@ -48,7 +48,7 @@ namespace Sodium
 		{
 			colorVariables["text"_SdId] = SdColorWhite;
 			colorVariables["background"_SdId] = { 24, 30, 39, 242 };
-			colorVariables["window.bg"_SdId] = { 24, 30, 39, 242 };
+			colorVariables["window.bg"_SdId] = { 24, 30, 39, 178 };
 			colorVariables["panel.bg"_SdId] = { 35, 42, 52, 235 };
 			colorVariables["button.bg"_SdId] = { 48, 72, 96, 255 };
 			colorVariables["button.bg.hover"_SdId] = { 62, 100, 138, 255 };

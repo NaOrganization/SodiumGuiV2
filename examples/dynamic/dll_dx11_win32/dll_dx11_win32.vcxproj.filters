@@ -22,6 +22,12 @@
     <Filter Include="SodiumGUI\Backends">
       <UniqueIdentifier>{67da6ab6-f800-4c08-8b7a-83bb121aad01}</UniqueIdentifier>
     </Filter>
+    <Filter Include="SodiumGUI\Rhi">
+      <UniqueIdentifier>{6db42e72-bb30-4df2-bbb3-0ad277de9854}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SodiumGUI\Effects">
+      <UniqueIdentifier>{620217a7-ee4e-4eb5-86f5-1ef3e7541045}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Main.cpp">
@@ -128,6 +134,9 @@
     <ClInclude Include="..\..\..\Render\SdRenderStats.h">
       <Filter>SodiumGUI\Render</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\Render\SdLayerResolver.h">
+      <Filter>SodiumGUI\Render</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\..\Core\SdBackendContracts.h">
       <Filter>SodiumGUI\Render</Filter>
     </ClInclude>
@@ -135,6 +144,12 @@
       <Filter>SodiumGUI\Backends</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\Backends\Dx11\SdDx11Renderer.h">
+      <Filter>SodiumGUI\Backends</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Backends\Dx11\SdDx11Rhi.h">
+      <Filter>SodiumGUI\Backends</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Backends\Dx11\SdDx11EffectResources.h">
       <Filter>SodiumGUI\Backends</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\Backends\Dx11\SdDx11PrecompiledShaders.h">
@@ -148,6 +163,72 @@
     </ClInclude>
     <ClInclude Include="..\..\..\third_party\stb\stb_truetype.h">
       <Filter>SodiumGUI\Backends</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Rhi\SdRhi.h">
+      <Filter>SodiumGUI\Rhi</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Rhi\SdGpuHandle.hpp">
+      <Filter>SodiumGUI\Rhi</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Rhi\SdGpuCaps.hpp">
+      <Filter>SodiumGUI\Rhi</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Rhi\SdTexture.hpp">
+      <Filter>SodiumGUI\Rhi</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Rhi\SdBuffer.hpp">
+      <Filter>SodiumGUI\Rhi</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Rhi\SdShader.hpp">
+      <Filter>SodiumGUI\Rhi</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Rhi\SdSampler.hpp">
+      <Filter>SodiumGUI\Rhi</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Rhi\SdPipeline.hpp">
+      <Filter>SodiumGUI\Rhi</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Rhi\SdResourceSet.hpp">
+      <Filter>SodiumGUI\Rhi</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Rhi\SdRenderPass.hpp">
+      <Filter>SodiumGUI\Rhi</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Rhi\SdCommandEncoder.hpp">
+      <Filter>SodiumGUI\Rhi</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Rhi\SdGpuDevice.hpp">
+      <Filter>SodiumGUI\Rhi</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Rhi\SdTransientTexturePool.hpp">
+      <Filter>SodiumGUI\Rhi</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Rhi\SdRenderGraph.hpp">
+      <Filter>SodiumGUI\Rhi</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Rhi\SdFullscreenPass.hpp">
+      <Filter>SodiumGUI\Rhi</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Effects\SdEffect.hpp">
+      <Filter>SodiumGUI\Effects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Effects\SdBlurEffect.hpp">
+      <Filter>SodiumGUI\Effects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Effects\SdBackdropBlurEffect.hpp">
+      <Filter>SodiumGUI\Effects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Effects\SdMaskEffect.hpp">
+      <Filter>SodiumGUI\Effects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Effects\SdShadowEffect.hpp">
+      <Filter>SodiumGUI\Effects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Effects\SdCustomEffect.hpp">
+      <Filter>SodiumGUI\Effects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Effects\SdEffectPipeline.hpp">
+      <Filter>SodiumGUI\Effects</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

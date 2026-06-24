@@ -1,4 +1,4 @@
-#include <Windows.h>
+﻿#include <Windows.h>
 #include <d3d11.h>
 #include <dxgi.h>
 #include <wrl/client.h>
@@ -353,6 +353,7 @@ namespace
 			Sodium::SdWindowOptions mediaWindowOptions = {};
 			mediaWindowOptions.position = { 594.0f, 54.0f };
 			mediaWindowOptions.size = { 360.0f, 190.0f };
+			mediaWindowOptions.backgroundBlurRadius = 12.0f;
 			gui.ui.DeclareKeyed<Sodium::SdWindow>("sample_media_window", "Media Window", demoControls.mediaWindowOpen, mediaWindowOptions, [fontAtlasTexture](Sodium::SdUi& ui)
 			{
 				ui.Declare<Sodium::SdText>("Floating built-in window");
@@ -364,6 +365,7 @@ namespace
 			Sodium::SdWindowOptions metricsWindowOptions = {};
 			metricsWindowOptions.position = { 638.0f, 118.0f };
 			metricsWindowOptions.size = { 330.0f, 172.0f };
+			metricsWindowOptions.backgroundBlurRadius = 12.0f;
 			gui.ui.DeclareKeyed<Sodium::SdWindow>("sample_metrics_window", "Metrics Window", demoControls.metricsWindowOpen, metricsWindowOptions, [this](Sodium::SdUi& ui)
 			{
 				char frameLine[96] = {};
@@ -462,7 +464,7 @@ namespace
 				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::Text, { 28, 34, 42, 255 });
 				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::ButtonText, { 28, 34, 42, 255 });
 				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::Background, { 236, 241, 246, 255 });
-				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::WindowBg, { 250, 252, 255, 245 });
+				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::WindowBg, { 250, 252, 255, 100 });
 				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::PanelBg, { 226, 234, 242, 242 });
 				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::ButtonBg, { 214, 228, 241, 255 });
 				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::ButtonBgHover, { 190, 215, 238, 255 });
@@ -478,7 +480,7 @@ namespace
 				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::Text, Sodium::SdColorWhite);
 				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::ButtonText, Sodium::SdColorWhite);
 				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::Background, { 24, 30, 39, 242 });
-				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::WindowBg, { 24, 30, 39, 242 });
+				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::WindowBg, { 24, 30, 39, 100 });
 				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::PanelBg, { 35, 42, 52, 235 });
 				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::ButtonBg, { 48, 72, 96, 255 });
 				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::ButtonBgHover, { 62, 100, 138, 255 });

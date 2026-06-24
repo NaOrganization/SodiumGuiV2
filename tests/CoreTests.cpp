@@ -3627,6 +3627,32 @@ namespace
 
 		list.AddRectFilled({ 40.0f, 0.0f, 50.0f, 10.0f }, SdColorWhite, { 0.0f, 0.0f, 50.0f, 50.0f });
 		Check(list.GetDrawData().commands.size() == 2, "render list splits batch by clip");
+
+		list.Reset();
+		list.AddRectFilled({ 0.0f, 0.0f, 10.0f, 10.0f }, SdColorWhite, clip);
+		list.AddBackdropBlur({ 20.0f, 0.0f, 50.0f, 30.0f }, clip, 12.0f);
+		list.AddRectFilled({ 60.0f, 0.0f, 70.0f, 10.0f }, SdColorWhite, clip);
+		const SdDrawData& blurData = list.GetDrawData();
+		Check(blurData.batches.size() == 2, "backdrop blur prevents geometry from merging across effect command");
+		Check(
+			blurData.commands.size() == 3
+			&& blurData.commands[0].kind == SdDrawCommandKind::OwnedBatch
+			&& blurData.commands[1].kind == SdDrawCommandKind::BackdropBlur
+			&& blurData.commands[2].kind == SdDrawCommandKind::OwnedBatch,
+			"backdrop blur preserves draw command order");
+
+		list.Reset();
+		list.AddRectFilled({ 0.0f, 0.0f, 10.0f, 10.0f }, SdColorWhite, clip);
+		list.AddDropShadow({ 20.0f, 0.0f, 50.0f, 30.0f }, clip, { 0.0f, 8.0f }, { 0, 0, 0, 128 }, 16.0f);
+		list.AddRectFilled({ 60.0f, 0.0f, 70.0f, 10.0f }, SdColorWhite, clip);
+		const SdDrawData& shadowData = list.GetDrawData();
+		Check(shadowData.batches.size() == 2, "drop shadow prevents geometry from merging across effect command");
+		Check(
+			shadowData.commands.size() == 3
+			&& shadowData.commands[0].kind == SdDrawCommandKind::OwnedBatch
+			&& shadowData.commands[1].kind == SdDrawCommandKind::DropShadow
+			&& shadowData.commands[2].kind == SdDrawCommandKind::OwnedBatch,
+			"drop shadow preserves draw command order");
 	}
 }
 

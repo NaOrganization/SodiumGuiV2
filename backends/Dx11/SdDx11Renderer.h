@@ -1,10 +1,14 @@
 #pragma once
 
+#include "backends/Dx11/SdDx11EffectResources.h"
+#include "backends/Dx11/SdDx11Rhi.h"
 #include "Render/SdRenderCore.h"
 
 #include <Windows.h>
 #include <d3d11.h>
 #include <wrl/client.h>
+
+#include <memory>
 
 namespace Sodium::Backends
 {
@@ -19,8 +23,8 @@ namespace Sodium::Backends
 	private:
 		struct TextureEntry final
 		{
-			Microsoft::WRL::ComPtr<ID3D11Texture2D> resource = {};
-			Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> view = {};
+			Rhi::SdTextureHandle texture = {};
+			Rhi::SdResourceSetHandle resourceSet = {};
 			SdUInt32 width = 0;
 			SdUInt32 height = 0;
 			SdUInt32 generation = 0;
@@ -29,16 +33,18 @@ namespace Sodium::Backends
 
 		Microsoft::WRL::ComPtr<ID3D11Device> device = {};
 		Microsoft::WRL::ComPtr<ID3D11DeviceContext> deviceContext = {};
-		Microsoft::WRL::ComPtr<ID3D11Buffer> vertexBuffer = {};
-		Microsoft::WRL::ComPtr<ID3D11Buffer> indexBuffer = {};
-		Microsoft::WRL::ComPtr<ID3D11Buffer> frameConstantBuffer = {};
-		Microsoft::WRL::ComPtr<ID3D11VertexShader> vertexShader = {};
-		Microsoft::WRL::ComPtr<ID3D11PixelShader> pixelShader = {};
-		Microsoft::WRL::ComPtr<ID3D11InputLayout> inputLayout = {};
-		Microsoft::WRL::ComPtr<ID3D11BlendState> blendState = {};
-		Microsoft::WRL::ComPtr<ID3D11RasterizerState> rasterizerState = {};
-		Microsoft::WRL::ComPtr<ID3D11DepthStencilState> depthStencilState = {};
-		Microsoft::WRL::ComPtr<ID3D11SamplerState> samplerState = {};
+		SdDx11GpuDevice rhiDevice = {};
+		Rhi::SdBufferHandle vertexBuffer = {};
+		Rhi::SdBufferHandle indexBuffer = {};
+		Rhi::SdBufferHandle frameConstantBuffer = {};
+		Rhi::SdShaderHandle vertexShader = {};
+		Rhi::SdShaderHandle pixelShader = {};
+		Rhi::SdVertexLayoutHandle vertexLayout = {};
+		Rhi::SdSamplerHandle sampler = {};
+		Rhi::SdResourceSetLayoutHandle resourceSetLayout = {};
+		Rhi::SdPipelineHandle pipeline = {};
+		SdEffectResourceCache effectResources = {};
+		std::unique_ptr<Rhi::SdTransientTexturePool> transientTexturePool = {};
 		std::vector<TextureEntry> textures = {};
 		SdUInt32 vertexCapacity = 0;
 		SdUInt32 indexCapacity = 0;
@@ -48,6 +54,9 @@ namespace Sodium::Backends
 		bool EnsureBuffers(SdUInt32 vertexCount, SdUInt32 indexCount);
 		bool UploadBuffers(const SdDrawPacket& packet);
 		bool UploadTexture(const SdUploadRequest& request);
+		bool RebuildTextureResourceSet(TextureEntry& entry);
+		bool RenderBackdropBlur(const SdBackdropBlurDraw& blur, const SdRendererFrameInfo& frameInfo);
+		bool RenderDropShadow(const SdDropShadowDraw& shadow, const SdRendererFrameInfo& frameInfo);
 		TextureEntry& EnsureTextureEntry(SdTextureHandle texture);
 		void BindPipeline(SdVec2 displaySize);
 		TextureEntry* TryGetTexture(SdTextureHandle texture) noexcept;
@@ -57,7 +66,9 @@ namespace Sodium::Backends
 
 		bool Initialize(const Config& config);
 		void Shutdown();
-		bool IsInitialized() const noexcept override { return device.Get() && deviceContext.Get() && vertexShader.Get() && pixelShader.Get() && inputLayout.Get(); }
+		bool IsInitialized() const noexcept override { return rhiDevice.IsInitialized() && pipeline.IsValid(); }
+		SdDx11GpuDevice& GetRhiDevice() noexcept { return rhiDevice; }
+		const SdDx11GpuDevice& GetRhiDevice() const noexcept { return rhiDevice; }
 		SdTextureHandle CreateTexture(SdUInt32 width, SdUInt32 height, const void* rgbaPixels);
 		SdTextureHandle CreateTexture(const SdTextureDesc& desc) override;
 		void DestroyTexture(SdTextureHandle texture) override;
