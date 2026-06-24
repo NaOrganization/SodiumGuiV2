@@ -57,6 +57,9 @@
     <ClCompile Include="..\..\..\Backends\FreeType\FreeTypeFontBackend.cpp">
       <Filter>SodiumGUI\Backends</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\Backends\Stb\StbFontBackend.cpp">
+      <Filter>SodiumGUI\Backends</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\SodiumGUI.h">
@@ -135,6 +138,12 @@
       <Filter>SodiumGUI\Backends</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\Backends\FreeType\FreeTypeFontBackend.h">
+      <Filter>SodiumGUI\Backends</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Backends\Stb\StbFontBackend.h">
+      <Filter>SodiumGUI\Backends</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\third_party\stb\stb_truetype.h">
       <Filter>SodiumGUI\Backends</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\Widget\SdBasicWidgets.h">
