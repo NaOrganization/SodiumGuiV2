@@ -132,3 +132,7 @@ SodiumGUI 的外部模型是 typed declaration API，内部模型是 persistent 
 Copyright 2026 SodiumGUI contributors.
 
 本项目采用 Apache License 2.0 协议发布。详见 `LICENSE`。
+
+## 致谢
+
+感谢 GPT 在项目开发过程中提供的辅助，包括架构梳理、文档编写、代码组织建议和日常开发问题分析。
