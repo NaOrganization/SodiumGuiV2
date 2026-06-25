@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Rhi/SdRhi.h"
 
@@ -166,7 +166,7 @@ namespace Sodium::Backends
 			Entry& entry = entries[index];
 			entry.generation = entry.generation == 0 ? 1 : entry.generation + 1;
 			entry.occupied = true;
-			return { index, entry.generation };
+			return Rhi::SdGpuHandle(index, entry.generation);
 		}
 
 		template<typename Entry>

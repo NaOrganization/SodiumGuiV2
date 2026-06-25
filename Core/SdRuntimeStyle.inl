@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 namespace Sodium
 {
@@ -478,7 +478,7 @@ namespace Sodium
 							false,
 							field.expensiveTransition);
 						if (!propertyChannel.active)
-							field.writeValue(field, &presentationStyle, propertyChannel.currentValue, context.styling.GetTheme());
+							field.writeValue(field, &presentationStyle, propertyChannel.currentValue, context.styling.GetDesignTokenSet());
 						Detail::MarkTypedStyleFieldImpact(record, field.impact, propertyChannel.active);
 					}
 					else
@@ -529,12 +529,12 @@ namespace Sodium
 				if (!propertyChannel)
 					continue;
 
-				field.writeValue(field, presentationStyle, propertyChannel->currentValue, context.styling.GetTheme());
+				field.writeValue(field, presentationStyle, propertyChannel->currentValue, context.styling.GetDesignTokenSet());
 				const bool active = propertyChannel->active
 					&& !Detail::StyleValuesEqual(propertyChannel->currentValue, propertyChannel->targetValue);
 				if (!active)
 				{
-					field.writeValue(field, presentationStyle, propertyChannel->targetValue, context.styling.GetTheme());
+					field.writeValue(field, presentationStyle, propertyChannel->targetValue, context.styling.GetDesignTokenSet());
 					propertyChannel->active = false;
 					propertyChannel->currentValue = propertyChannel->targetValue;
 				}

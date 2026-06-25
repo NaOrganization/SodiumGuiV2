@@ -311,7 +311,7 @@ namespace
 				context.widgetState.manualRect = { 48.0f, 42.0f, 568.0f, 702.0f };
 				context.widgetState.arrangeChildren = true;
 				context.widgetState.clipChildren = true;
-				context.widgetState.targetTypeId = Sodium::SdWidgetTargetIds::Panel;
+				context.widgetState.targetTypeId = Sodium::SdPanel::TargetTypeId;
 			}
 
 			void OnPaint(Sodium::SdPaintContext& context)
@@ -411,7 +411,7 @@ namespace
 		{
 			Sodium::SdStyleSystem& styleSystem = gui.GetStyleSystem();
 			ConfigureBuiltInThemeTransitions(styleSystem);
-			styleSystem.RootRule(Sodium::SdWidgetTargetIds::Panel)
+			styleSystem.RootRule(Sodium::SdPanel::TargetTypeId)
 				.Scope(kExampleDemoWindowScope)
 				.Class(kExampleDemoWindowClass)
 				.Set(&Sodium::SdBoxStyle::padding, Sodium::SdStyleValue::FromSpacing({ 14.0f, 108.0f, 14.0f, 12.0f }))
@@ -424,7 +424,7 @@ namespace
 			styleSystem.RootRule(Sodium::SdText::TargetTypeId)
 				.Scope(kExampleDemoTextScope)
 				.Class(kExampleAccentTextClass)
-				.Set(&Sodium::SdBoxStyle::color, Sodium::ThemeColor(Sodium::SdThemeVariableIds::Accent));
+				.Set(&Sodium::SdBoxStyle::color, Sodium::DesignColor(Sodium::SdDesignTokenIds::Accent));
 			styleSystem.RootRule(Sodium::SdText::TargetTypeId)
 				.Scope(kExampleDemoTextScope)
 				.Class(kExampleWarningTextClass)
@@ -461,41 +461,41 @@ namespace
 			Sodium::SdStyleSystem& styleSystem = gui.GetStyleSystem();
 			if (demoControls.lightTheme)
 			{
-				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::Text, { 28, 34, 42, 255 });
-				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::ButtonText, { 28, 34, 42, 255 });
-				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::Background, { 236, 241, 246, 255 });
-				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::WindowBg, { 250, 252, 255, 100 });
-				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::PanelBg, { 226, 234, 242, 242 });
-				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::ButtonBg, { 214, 228, 241, 255 });
-				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::ButtonBgHover, { 190, 215, 238, 255 });
-				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::ButtonBgPressed, { 158, 198, 230, 255 });
-				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::Accent, { 30, 132, 112, 255 });
-				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::Border, { 126, 145, 164, 255 });
-				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::BorderStrong, { 82, 102, 122, 255 });
-				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::Danger, { 180, 70, 76, 255 });
-				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::Selection, { 30, 132, 112, 90 });
+				styleSystem.SetColor(Sodium::SdDesignTokenIds::Text, { 28, 34, 42, 255 });
+				styleSystem.SetColor(Sodium::SdDesignTokenIds::ButtonText, { 28, 34, 42, 255 });
+				styleSystem.SetColor(Sodium::SdDesignTokenIds::Background, { 236, 241, 246, 255 });
+				styleSystem.SetColor(Sodium::SdDesignTokenIds::WindowBg, { 250, 252, 255, 100 });
+				styleSystem.SetColor(Sodium::SdDesignTokenIds::PanelBg, { 226, 234, 242, 242 });
+				styleSystem.SetColor(Sodium::SdDesignTokenIds::ButtonBg, { 214, 228, 241, 255 });
+				styleSystem.SetColor(Sodium::SdDesignTokenIds::ButtonBgHover, { 190, 215, 238, 255 });
+				styleSystem.SetColor(Sodium::SdDesignTokenIds::ButtonBgPressed, { 158, 198, 230, 255 });
+				styleSystem.SetColor(Sodium::SdDesignTokenIds::Accent, { 30, 132, 112, 255 });
+				styleSystem.SetColor(Sodium::SdDesignTokenIds::Border, { 126, 145, 164, 255 });
+				styleSystem.SetColor(Sodium::SdDesignTokenIds::BorderStrong, { 82, 102, 122, 255 });
+				styleSystem.SetColor(Sodium::SdDesignTokenIds::Danger, { 180, 70, 76, 255 });
+				styleSystem.SetColor(Sodium::SdDesignTokenIds::Selection, { 30, 132, 112, 90 });
 			}
 			else
 			{
-				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::Text, Sodium::SdColorWhite);
-				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::ButtonText, Sodium::SdColorWhite);
-				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::Background, { 24, 30, 39, 242 });
-				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::WindowBg, { 24, 30, 39, 100 });
-				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::PanelBg, { 35, 42, 52, 235 });
-				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::ButtonBg, { 48, 72, 96, 255 });
-				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::ButtonBgHover, { 62, 100, 138, 255 });
-				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::ButtonBgPressed, { 68, 118, 160, 255 });
-				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::Accent, { 82, 170, 128, 255 });
-				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::Border, { 91, 109, 128, 255 });
-				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::BorderStrong, { 128, 154, 180, 255 });
-				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::Danger, { 164, 66, 66, 255 });
-				styleSystem.SetColorVariable(Sodium::SdThemeVariableIds::Selection, { 82, 170, 128, 96 });
+				styleSystem.SetColor(Sodium::SdDesignTokenIds::Text, Sodium::SdColorWhite);
+				styleSystem.SetColor(Sodium::SdDesignTokenIds::ButtonText, Sodium::SdColorWhite);
+				styleSystem.SetColor(Sodium::SdDesignTokenIds::Background, { 24, 30, 39, 242 });
+				styleSystem.SetColor(Sodium::SdDesignTokenIds::WindowBg, { 24, 30, 39, 100 });
+				styleSystem.SetColor(Sodium::SdDesignTokenIds::PanelBg, { 35, 42, 52, 235 });
+				styleSystem.SetColor(Sodium::SdDesignTokenIds::ButtonBg, { 48, 72, 96, 255 });
+				styleSystem.SetColor(Sodium::SdDesignTokenIds::ButtonBgHover, { 62, 100, 138, 255 });
+				styleSystem.SetColor(Sodium::SdDesignTokenIds::ButtonBgPressed, { 68, 118, 160, 255 });
+				styleSystem.SetColor(Sodium::SdDesignTokenIds::Accent, { 82, 170, 128, 255 });
+				styleSystem.SetColor(Sodium::SdDesignTokenIds::Border, { 91, 109, 128, 255 });
+				styleSystem.SetColor(Sodium::SdDesignTokenIds::BorderStrong, { 128, 154, 180, 255 });
+				styleSystem.SetColor(Sodium::SdDesignTokenIds::Danger, { 164, 66, 66, 255 });
+				styleSystem.SetColor(Sodium::SdDesignTokenIds::Selection, { 82, 170, 128, 96 });
 			}
 
-			styleSystem.SetMetricVariable(Sodium::SdThemeVariableIds::SpacingSmall, demoControls.compactTheme ? 4.0f : 6.0f);
-			styleSystem.SetMetricVariable(Sodium::SdThemeVariableIds::SpacingMedium, demoControls.compactTheme ? 7.0f : 10.0f);
-			styleSystem.SetMetricVariable(Sodium::SdThemeVariableIds::RadiusSmall, demoControls.compactTheme ? 3.0f : 5.0f);
-			styleSystem.SetMetricVariable(Sodium::SdThemeVariableIds::DurationFast, 0.36f);
+			styleSystem.SetMetric(Sodium::SdDesignTokenIds::SpacingSmall, demoControls.compactTheme ? 4.0f : 10.0f);
+			styleSystem.SetMetric(Sodium::SdDesignTokenIds::SpacingMedium, demoControls.compactTheme ? 7.0f : 20.0f);
+			styleSystem.SetMetric(Sodium::SdDesignTokenIds::RadiusSmall, demoControls.compactTheme ? 3.0f : 10.0f);
+			styleSystem.SetMetric(Sodium::SdDesignTokenIds::DurationFast, 0.36f);
 			appliedLightTheme = demoControls.lightTheme;
 			appliedCompactTheme = demoControls.compactTheme;
 			themeInitialized = true;

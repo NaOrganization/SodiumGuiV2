@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Widget/SdUiCore.h"
 
@@ -25,7 +25,7 @@ namespace Sodium
 	{
 		SdLengthUnit unit = SdLengthUnit::Auto;
 		float value = 0.0f;
-		SdThemeVariableId variableId = 0;
+		SdDesignTokenId variableId = 0;
 
 		static constexpr SdLength Auto() noexcept
 		{
@@ -64,7 +64,7 @@ namespace Sodium
 			return result;
 		}
 
-		static constexpr SdLength Variable(SdThemeVariableId variableId) noexcept
+		static constexpr SdLength Variable(SdDesignTokenId variableId) noexcept
 		{
 			SdLength result = {};
 			result.unit = SdLengthUnit::Variable;
@@ -224,14 +224,14 @@ namespace Sodium
 		SdLength radius = SdLength::Pixels(0.0f);
 		SdColor color = SdColorWhite;
 		SdColor backgroundColor = SdColorTransparent;
-		SdThemeVariableId colorVariable = 0;
-		SdThemeVariableId backgroundColorVariable = 0;
-		SdThemeVariableId borderColorVariable = 0;
+		SdDesignTokenId colorVariable = 0;
+		SdDesignTokenId backgroundColorVariable = 0;
+		SdDesignTokenId borderColorVariable = 0;
 		float opacity = 1.0f;
 		float fontSize = 16.0f;
 		float lineHeight = 0.0f;
-		SdThemeVariableId fontSizeVariable = 0;
-		SdThemeVariableId lineHeightVariable = 0;
+		SdDesignTokenId fontSizeVariable = 0;
+		SdDesignTokenId lineHeightVariable = 0;
 		SdFlexDirection flexDirection = SdFlexDirection::Column;
 		SdJustifyContent justifyContent = SdJustifyContent::FlexStart;
 		SdAlignItems alignItems = SdAlignItems::Stretch;
@@ -257,9 +257,15 @@ namespace Sodium
 		friend bool operator==(const SdWidgetPartStyle&, const SdWidgetPartStyle&) = default;
 	};
 
-	struct SdStylePart final
+	struct SdStylePartTag final {};
+
+	struct SdStylePart final : SdId<SdStylePartTag>
 	{
-		SdUInt64 value = 0;
+		constexpr SdStylePart() noexcept = default;
+		constexpr SdStylePart(SdUInt64 value) noexcept
+			: SdId<SdStylePartTag>(value)
+		{
+		}
 
 		static constexpr SdStylePart Root() noexcept
 		{
@@ -277,6 +283,7 @@ namespace Sodium
 		}
 
 		friend constexpr bool operator==(const SdStylePart&, const SdStylePart&) = default;
+		friend constexpr bool operator!=(const SdStylePart&, const SdStylePart&) = default;
 	};
 
 	namespace SdWidgetPartIds

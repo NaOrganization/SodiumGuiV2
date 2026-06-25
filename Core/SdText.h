@@ -1,6 +1,7 @@
-#pragma once
+﻿#pragma once
 
-#include "Core/SdCore.h"
+#include <Core/SdCore.h>
+#include <Rhi/SdRhi.h>
 
 #include <memory_resource>
 #include <vector>

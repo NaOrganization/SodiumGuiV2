@@ -1,10 +1,11 @@
-#pragma once
+﻿#pragma once
 
 #include "Core/SdHash.h"
 
 namespace Sodium
 {
-	using SdTypeId = SdUInt64;
+	struct SdTypeTag final {};
+	using SdTypeId = SdId<SdTypeTag>;
 
 	namespace Detail
 	{
@@ -20,11 +21,11 @@ namespace Sodium
 	}
 
 	template<class T>
-	consteval SdTypeId SdStableTypeId()
+	consteval SdUInt64 SdStableTypeId()
 	{
 		if constexpr (requires { T::TypeId; })
-			return static_cast<SdTypeId>(T::TypeId);
+			return static_cast<SdTypeId>(T::TypeId).value;
 		else
-			return Detail::SdCompilerTypeNameHash<T>();
+			return Detail::SdCompilerTypeNameHash<T>().value;
 	}
 }

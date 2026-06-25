@@ -1,7 +1,8 @@
-#pragma once
+﻿#pragma once
 
-#include "Core/SdCore.h"
-#include "Core/SdText.h"
+#include <Core/SdCore.h>
+#include <Core/SdText.h>
+#include <Rhi/SdRhi.h>
 
 #include <cmath>
 #include <unordered_map>

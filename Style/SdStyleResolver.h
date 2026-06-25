@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Style/SdStyleSheet.h"
 
@@ -6,7 +6,7 @@ namespace Sodium
 {
 	struct SdStyleResolveRequest final
 	{
-		SdStyleId targetTag = SdWidgetTargetIds::Default;
+		SdTypeId targetTag = SdWidgetTargetIds::Default;
 		SdStylePart part = SdStylePart::Root();
 		SdPseudoState pseudoState = {};
 		SdRootLayer rootLayer = SdRootLayer::Content;

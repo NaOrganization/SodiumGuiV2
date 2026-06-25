@@ -230,5 +230,8 @@
     <ClInclude Include="..\..\..\Effects\SdEffectPipeline.hpp">
       <Filter>SodiumGUI\Effects</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\Style\SdStyleCore.h">
+      <Filter>SodiumGUI\UI</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

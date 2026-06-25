@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Render/SdDrawList.h"
 #include "Input/SdInput.h"
@@ -44,7 +44,7 @@ namespace Sodium
 		SdWidgetId id = 0;
 		SdWidgetLifePhase lifePhase = SdWidgetLifePhase::Entering;
 		SdRootLayer rootLayer = SdRootLayer::Content;
-		SdStyleId targetTypeId = SdWidgetTargetIds::Default;
+		SdTypeId targetTypeId = SdWidgetTargetIds::Default;
 		bool submittedThisFrame = false;
 		bool inputEnabled = true;
 		bool manualLayout = false;

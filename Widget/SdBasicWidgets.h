@@ -272,7 +272,7 @@ namespace Sodium
 	struct SdText final : SdWidgetTag
 	{
 		static constexpr SdTypeId TypeId = "Sodium.Widget.Text"_SdId;
-		static constexpr SdStyleId TargetTypeId = SdWidgetTargetIds::Text;
+		static constexpr SdTypeId TargetTypeId = SdWidgetTargetIds::Text;
 		using Style = SdWidgetRootStyle;
 
 		struct Model final
@@ -368,7 +368,7 @@ namespace Sodium
 	struct SdPanel final : SdWidgetTag
 	{
 		static constexpr SdTypeId TypeId = "Sodium.Widget.Panel"_SdId;
-		static constexpr SdStyleId TargetTypeId = SdWidgetTargetIds::Panel;
+		static constexpr SdTypeId TargetTypeId = SdWidgetTargetIds::Panel;
 		using Style = SdWidgetRootStyle;
 
 		void OnUpdate(SdUpdateContext& context)
@@ -426,7 +426,7 @@ namespace Sodium
 	struct SdButton final : SdWidgetTag
 	{
 		static constexpr SdTypeId TypeId = "Sodium.Widget.Button"_SdId;
-		static constexpr SdStyleId TargetTypeId = SdWidgetTargetIds::Button;
+		static constexpr SdTypeId TargetTypeId = SdWidgetTargetIds::Button;
 
 		struct Parts final
 		{
@@ -532,7 +532,7 @@ namespace Sodium
 	struct SdCheckBox final : SdWidgetTag
 	{
 		static constexpr SdTypeId TypeId = "Sodium.Widget.CheckBox"_SdId;
-		static constexpr SdStyleId TargetTypeId = SdWidgetTargetIds::CheckBox;
+		static constexpr SdTypeId TargetTypeId = SdWidgetTargetIds::CheckBox;
 
 		struct Parts final
 		{
@@ -711,8 +711,8 @@ namespace Sodium
 
 	struct SdSliderFloat final : SdWidgetTag
 	{
-		static constexpr SdTypeId TypeId = "Sodium.Widget.SliderFloat"_SdId;
-		static constexpr SdStyleId TargetTypeId = SdWidgetTargetIds::Slider;
+		static constexpr SdTypeId TypeId = "Sodium.Widget.Slider"_SdId;
+		static constexpr SdTypeId TargetTypeId = SdWidgetTargetIds::Slider;
 
 		struct Parts final
 		{
@@ -937,7 +937,7 @@ namespace Sodium
 	struct SdTextInput final : SdWidgetTag
 	{
 		static constexpr SdTypeId TypeId = "Sodium.Widget.TextInput"_SdId;
-		static constexpr SdStyleId TargetTypeId = SdWidgetTargetIds::TextInput;
+		static constexpr SdTypeId TargetTypeId = SdWidgetTargetIds::TextInput;
 
 		struct Parts final
 		{
@@ -1136,6 +1136,7 @@ namespace Sodium
 		SdVec2 position = { 64.0f, 54.0f };
 		SdVec2 size = { 420.0f, 260.0f };
 		float backgroundBlurRadius = 16.0f;
+		bool shadowEnabled = false;
 		SdVec2 shadowOffset = { 0.0f, 0.0f };
 		SdColor shadowColor = { 0, 0, 0, 144 };
 		float shadowRadius = 20.0f;
@@ -1147,7 +1148,7 @@ namespace Sodium
 	struct SdWindow final : SdWidgetTag
 	{
 		static constexpr SdTypeId TypeId = "Sodium.Widget.Window"_SdId;
-		static constexpr SdStyleId TargetTypeId = SdWidgetTargetIds::Window;
+		static constexpr SdTypeId TargetTypeId = SdWidgetTargetIds::Window;
 
 		struct Parts final
 		{
@@ -1335,7 +1336,7 @@ namespace Sodium
 
 			if (state.options.backgroundBlurRadius > 0.0f)
 				context.renderList.AddBackdropBlur(paintRect, context.clipRect, state.options.backgroundBlurRadius, radius);
-			if (state.options.shadowRadius > 0.0f && state.options.shadowColor.a != 0)
+			if (state.options.shadowEnabled && state.options.shadowRadius > 0.0f && state.options.shadowColor.a != 0)
 			{
 				const float shadowPadding = std::ceil(std::max(0.0f, state.options.shadowRadius)
 					+ std::max(0.0f, state.options.shadowSpread)
@@ -1458,7 +1459,7 @@ namespace Sodium
 	struct SdImageViewer final : SdWidgetTag
 	{
 		static constexpr SdTypeId TypeId = "Sodium.Widget.ImageViewer"_SdId;
-		static constexpr SdStyleId TargetTypeId = SdWidgetTargetIds::ImageViewer;
+		static constexpr SdTypeId TargetTypeId = SdWidgetTargetIds::ImageViewer;
 		using Style = SdWidgetRootStyle;
 
 		struct State final
@@ -1531,7 +1532,7 @@ namespace Sodium
 	struct SdScrollView final : SdWidgetTag
 	{
 		static constexpr SdTypeId TypeId = "Sodium.Widget.ScrollView"_SdId;
-		static constexpr SdStyleId TargetTypeId = SdWidgetTargetIds::ScrollView;
+		static constexpr SdTypeId TargetTypeId = SdWidgetTargetIds::ScrollView;
 
 		struct Parts final
 		{
@@ -1652,7 +1653,7 @@ namespace Sodium
 	struct SdPopup final : SdWidgetTag
 	{
 		static constexpr SdTypeId TypeId = "Sodium.Widget.Popup"_SdId;
-		static constexpr SdStyleId TargetTypeId = SdWidgetTargetIds::Popup;
+		static constexpr SdTypeId TargetTypeId = SdWidgetTargetIds::Popup;
 		using Style = SdWidgetRootStyle;
 
 		struct State final
@@ -1733,7 +1734,7 @@ namespace Sodium
 	struct SdContextMenu final : SdWidgetTag
 	{
 		static constexpr SdTypeId TypeId = "Sodium.Widget.ContextMenu"_SdId;
-		static constexpr SdStyleId TargetTypeId = SdWidgetTargetIds::ContextMenu;
+		static constexpr SdTypeId TargetTypeId = SdWidgetTargetIds::ContextMenu;
 		using Style = SdWidgetRootStyle;
 
 		struct State final
@@ -1801,7 +1802,7 @@ namespace Sodium
 	struct SdTooltip final : SdWidgetTag
 	{
 		static constexpr SdTypeId TypeId = "Sodium.Widget.Tooltip"_SdId;
-		static constexpr SdStyleId TargetTypeId = SdWidgetTargetIds::Tooltip;
+		static constexpr SdTypeId TargetTypeId = SdWidgetTargetIds::Tooltip;
 		using Style = SdWidgetRootStyle;
 
 		struct State final

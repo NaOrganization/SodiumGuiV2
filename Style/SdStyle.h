@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Style/SdStyleResolver.h"
 
@@ -11,33 +11,33 @@
 
 namespace Sodium
 {
-	struct SdTheme final
+	struct SdDesignTokenSet final
 	{
-		std::unordered_map<SdThemeVariableId, SdColor> colorVariables = {};
-		std::unordered_map<SdThemeVariableId, float> metricVariables = {};
+		std::unordered_map<SdDesignTokenId, SdColor> colorVariables = {};
+		std::unordered_map<SdDesignTokenId, float> metricVariables = {};
 
-		SdTheme()
+		SdDesignTokenSet()
 		{
 			SetDefaultVariables();
 		}
 
-		void SetColorVariable(SdThemeVariableId variableId, SdColor color)
+		void SetColor(SdDesignTokenId variableId, SdColor color)
 		{
 			colorVariables[variableId] = color;
 		}
 
-		void SetMetricVariable(SdThemeVariableId variableId, float value)
+		void SetMetric(SdDesignTokenId variableId, float value)
 		{
 			metricVariables[variableId] = value;
 		}
 
-		SdColor GetColorVariable(SdThemeVariableId variableId, SdColor fallback = SdColorTransparent) const noexcept
+		SdColor GetColor(SdDesignTokenId variableId, SdColor fallback = SdColorTransparent) const noexcept
 		{
 			auto it = colorVariables.find(variableId);
 			return it == colorVariables.end() ? fallback : it->second;
 		}
 
-		float GetMetricVariable(SdThemeVariableId variableId, float fallback = 0.0f) const noexcept
+		float GetMetric(SdDesignTokenId variableId, float fallback = 0.0f) const noexcept
 		{
 			auto it = metricVariables.find(variableId);
 			return it == metricVariables.end() ? fallback : it->second;
@@ -69,7 +69,7 @@ namespace Sodium
 
 	struct SdStyleContext final
 	{
-		const SdTheme& theme;
+		const SdDesignTokenSet& tokenSet;
 	};
 }
 
@@ -77,13 +77,12 @@ namespace Sodium
 
 namespace Sodium
 {
-
 	struct SdStyleFieldDescriptor final
 	{
 		using EqualsFn = bool(*)(const SdStyleFieldDescriptor&, const void*, const void*);
 		using CopyFn = void(*)(const SdStyleFieldDescriptor&, void*, const void*);
 		using ReadValueFn = SdStyleValue(*)(const SdStyleFieldDescriptor&, const void*);
-		using WriteValueFn = void(*)(const SdStyleFieldDescriptor&, void*, const SdStyleValue&, const SdTheme&);
+		using WriteValueFn = void(*)(const SdStyleFieldDescriptor&, void*, const SdStyleValue&, const SdDesignTokenSet&);
 
 		static constexpr SdSize kMemberPointerStorageSize = sizeof(void*) * 4;
 
@@ -166,7 +165,7 @@ namespace Sodium
 		}
 
 		template<class TField>
-		bool TryResolveStyleValue(const SdStyleValue& value, const SdTheme& theme, TField& outValue)
+		bool TryResolveStyleValue(const SdStyleValue& value, const SdDesignTokenSet& tokenSet, TField& outValue)
 		{
 			if constexpr (std::is_same_v<TField, SdColor>)
 			{
@@ -177,7 +176,7 @@ namespace Sodium
 				}
 				if (value.kind == SdStyleValueKind::ColorVariable)
 				{
-					outValue = theme.GetColorVariable(value.variableId);
+					outValue = tokenSet.GetColor(value.variableId);
 					return true;
 				}
 			}
@@ -190,7 +189,7 @@ namespace Sodium
 				}
 				if (value.kind == SdStyleValueKind::MetricVariable)
 				{
-					outValue = theme.GetMetricVariable(value.variableId);
+					outValue = tokenSet.GetMetric(value.variableId);
 					return true;
 				}
 			}
@@ -203,7 +202,7 @@ namespace Sodium
 				}
 				if (value.kind == SdStyleValueKind::MetricVariable)
 				{
-					outValue = static_cast<SdInt32>(theme.GetMetricVariable(value.variableId));
+					outValue = static_cast<SdInt32>(tokenSet.GetMetric(value.variableId));
 					return true;
 				}
 			}
@@ -277,11 +276,11 @@ namespace Sodium
 		}
 
 		template<class TStyle, class TField>
-		void StyleFieldWriteValue(const SdStyleFieldDescriptor& descriptor, void* style, const SdStyleValue& value, const SdTheme& theme)
+		void StyleFieldWriteValue(const SdStyleFieldDescriptor& descriptor, void* style, const SdStyleValue& value, const SdDesignTokenSet& tokenSet)
 		{
 			TField TStyle::* member = LoadStyleFieldMember<TStyle, TField>(descriptor);
 			TField resolvedValue = {};
-			if (TryResolveStyleValue(value, theme, resolvedValue))
+			if (TryResolveStyleValue(value, tokenSet, resolvedValue))
 				static_cast<TStyle*>(style)->*member = resolvedValue;
 		}
 
@@ -669,7 +668,7 @@ namespace Sodium
 		};
 
 	private:
-		SdTheme theme = {};
+		SdDesignTokenSet tokenSet = {};
 		SdStyleSheet typedStyleSheet = {};
 		SdCompiledStyleSheet compiledStyleSheet = {};
 		SdPropertyRegistry propertyRegistry = {};
@@ -682,9 +681,9 @@ namespace Sodium
 			InstallDefaultUserAgentStyleSheet();
 		}
 
-		const SdTheme& GetTheme() const noexcept
+		const SdDesignTokenSet& GetDesignTokenSet() const noexcept
 		{
-			return theme;
+			return tokenSet;
 		}
 
 		SdUInt64 GetRevision() const noexcept
@@ -692,15 +691,15 @@ namespace Sodium
 			return revision;
 		}
 
-		void SetColorVariable(SdThemeVariableId variableId, SdColor color)
+		void SetColor(SdDesignTokenId variableId, SdColor color)
 		{
-			theme.SetColorVariable(variableId, color);
+			tokenSet.SetColor(variableId, color);
 			Touch();
 		}
 
-		void SetMetricVariable(SdThemeVariableId variableId, float value)
+		void SetMetric(SdDesignTokenId variableId, float value)
 		{
-			theme.SetMetricVariable(variableId, value);
+			tokenSet.SetMetric(variableId, value);
 			Touch();
 		}
 
@@ -715,7 +714,7 @@ namespace Sodium
 		template<class TWidget>
 		SdStyleRuleBuilder<TWidget> Rule();
 
-		SdStyleSystemSheetRuleBuilder<SdWidgetRootStyle> RootRule(SdStyleId targetTypeId)
+		SdStyleSystemSheetRuleBuilder<SdWidgetRootStyle> RootRule(SdTypeId targetTypeId)
 		{
 			return SdStyleSystemSheetRuleBuilder<SdWidgetRootStyle>(*this, typedStyleSheet.RuleForTarget<SdWidgetRootStyle>(targetTypeId));
 		}
@@ -726,13 +725,13 @@ namespace Sodium
 			return SdStyleSystemSheetRuleBuilder<SdWidgetPartStyle>(*this, typedStyleSheet.Part<TWidget>(part));
 		}
 
-		SdStyleSystemSheetRuleBuilder<SdWidgetPartStyle> PartRule(SdStyleId targetTypeId, SdStylePart part)
+		SdStyleSystemSheetRuleBuilder<SdWidgetPartStyle> PartRule(SdTypeId targetTypeId, SdStylePart part)
 		{
 			return SdStyleSystemSheetRuleBuilder<SdWidgetPartStyle>(*this, typedStyleSheet.PartForTarget(targetTypeId, part));
 		}
 
 		SdWidgetRootStyle ResolveRootStyle(
-			SdStyleId targetTypeId,
+			SdTypeId targetTypeId,
 			SdStyleInteractionState interactionState,
 			SdRootLayer rootLayer = SdRootLayer::Content,
 			SdSpan<const SdStyleClassId> styleClasses = {},
@@ -750,7 +749,7 @@ namespace Sodium
 		}
 
 		SdStyleResolveResult ResolveRootNode(
-			SdStyleId targetTypeId,
+			SdTypeId targetTypeId,
 			SdStyleInteractionState interactionState,
 			SdRootLayer rootLayer = SdRootLayer::Content,
 			SdSpan<const SdStyleClassId> styleClasses = {},
@@ -789,7 +788,7 @@ namespace Sodium
 		}
 
 		SdWidgetPartStyle ResolvePartStyle(
-			SdStyleId targetTypeId,
+			SdTypeId targetTypeId,
 			SdStylePart part,
 			const SdWidgetRootStyle& rootStyle,
 			SdStyleInteractionState interactionState,
@@ -809,7 +808,7 @@ namespace Sodium
 		}
 
 		SdStyleResolveResult ResolvePartNode(
-			SdStyleId targetTypeId,
+			SdTypeId targetTypeId,
 			SdStylePart part,
 			const SdWidgetRootStyle& rootStyle,
 			SdStyleInteractionState interactionState,
@@ -876,7 +875,7 @@ namespace Sodium
 			SdTransition& transition) const;
 
 		bool TryResolveRootTransition(
-			SdStyleId targetTypeId,
+			SdTypeId targetTypeId,
 			SdPropertyId propertyId,
 			SdStyleInteractionState interactionState,
 			SdRootLayer rootLayer,
@@ -897,7 +896,7 @@ namespace Sodium
 		}
 
 		bool TryResolvePartTransition(
-			SdStyleId targetTypeId,
+			SdTypeId targetTypeId,
 			SdStylePart part,
 			SdPropertyId propertyId,
 			SdStyleInteractionState interactionState,
@@ -933,7 +932,7 @@ namespace Sodium
 
 	private:
 		template<class TWidget>
-		static constexpr SdStyleId GetTargetTag() noexcept
+		static constexpr SdTypeId GetTargetTag() noexcept
 		{
 			if constexpr (requires { TWidget::TargetTypeId; })
 				return TWidget::TargetTypeId;
@@ -945,7 +944,7 @@ namespace Sodium
 		typename TWidget::Style BuildDefaultStyle() const
 		{
 			using Style = typename TWidget::Style;
-			const SdStyleContext styleContext{ theme };
+			const SdStyleContext styleContext{ tokenSet };
 			if constexpr (requires(const SdStyleContext& context) { { Style::Default(context) } -> std::same_as<Style>; })
 				return Style::Default(styleContext);
 			else
@@ -955,10 +954,10 @@ namespace Sodium
 		SdWidgetRootStyle BuildDefaultRootStyle() const
 		{
 			SdWidgetRootStyle style = {};
-			style.color = theme.GetColorVariable("text"_SdId);
-			style.backgroundColor = theme.GetColorVariable("background"_SdId);
-			style.border = SdBorder::All(SdLength::Pixels(1.0f), theme.GetColorVariable("border"_SdId));
-			style.radius = SdLength::Pixels(theme.GetMetricVariable("radius.small"_SdId));
+			style.color = tokenSet.GetColor("text"_SdId);
+			style.backgroundColor = tokenSet.GetColor("background"_SdId);
+			style.border = SdBorder::All(SdLength::Pixels(1.0f), tokenSet.GetColor("border"_SdId));
+			style.radius = SdLength::Pixels(tokenSet.GetMetric("radius.small"_SdId));
 			style.opacity = 1.0f;
 			return style;
 		}
@@ -998,7 +997,7 @@ namespace Sodium
 		template<class TStyle>
 		TStyle ApplyCompiledTypedRules(
 			TStyle style,
-			SdStyleId targetTag,
+			SdTypeId targetTag,
 			SdStylePart part,
 			SdStyleInteractionState interactionState,
 			SdRootLayer rootLayer,
@@ -1084,9 +1083,9 @@ namespace Sodium
 					continue;
 				}
 
-				const SdStyleFieldDescriptor* field = contract.Find(declaration.propertyId);
+				const SdStyleFieldDescriptor* field = contract.Find(declaration.propertyId.value);
 				if (field && field->writeValue)
-					field->writeValue(*field, &style, declaration.value, theme);
+					field->writeValue(*field, &style, declaration.value, tokenSet);
 			}
 			return style;
 		}
@@ -1125,7 +1124,7 @@ namespace Sodium
 			}
 		}
 
-		bool WriteColorDeclaration(SdColor& color, SdThemeVariableId& variableId, const SdStyleValue& value, bool resolveValues) const
+		bool WriteColorDeclaration(SdColor& color, SdDesignTokenId& variableId, const SdStyleValue& value, bool resolveValues) const
 		{
 			if (!resolveValues && value.kind == SdStyleValueKind::ColorVariable)
 			{
@@ -1159,7 +1158,7 @@ namespace Sodium
 			return true;
 		}
 
-		bool WriteMetricDeclaration(float& metric, SdThemeVariableId& variableId, const SdStyleValue& value, bool resolveValues) const
+		bool WriteMetricDeclaration(float& metric, SdDesignTokenId& variableId, const SdStyleValue& value, bool resolveValues) const
 		{
 			if (!resolveValues && value.kind == SdStyleValueKind::MetricVariable)
 			{
@@ -1189,7 +1188,7 @@ namespace Sodium
 		{
 			if (length.unit != SdLengthUnit::Variable)
 				return;
-			length = SdLength::Pixels(theme.GetMetricVariable(length.variableId));
+			length = SdLength::Pixels(tokenSet.GetMetric(length.variableId));
 		}
 
 		void ResolveBoxEdges(SdBoxEdges& edges) const noexcept
@@ -1212,27 +1211,27 @@ namespace Sodium
 		{
 			if (style.colorVariable != 0)
 			{
-				style.color = theme.GetColorVariable(style.colorVariable);
+				style.color = tokenSet.GetColor(style.colorVariable);
 				style.colorVariable = 0;
 			}
 			if (style.backgroundColorVariable != 0)
 			{
-				style.backgroundColor = theme.GetColorVariable(style.backgroundColorVariable);
+				style.backgroundColor = tokenSet.GetColor(style.backgroundColorVariable);
 				style.backgroundColorVariable = 0;
 			}
 			if (style.borderColorVariable != 0)
 			{
-				style.border = SdBorder::All(style.border.left.width, theme.GetColorVariable(style.borderColorVariable));
+				style.border = SdBorder::All(style.border.left.width, tokenSet.GetColor(style.borderColorVariable));
 				style.borderColorVariable = 0;
 			}
 			if (style.fontSizeVariable != 0)
 			{
-				style.fontSize = theme.GetMetricVariable(style.fontSizeVariable);
+				style.fontSize = tokenSet.GetMetric(style.fontSizeVariable);
 				style.fontSizeVariable = 0;
 			}
 			if (style.lineHeightVariable != 0)
 			{
-				style.lineHeight = theme.GetMetricVariable(style.lineHeightVariable);
+				style.lineHeight = tokenSet.GetMetric(style.lineHeightVariable);
 				style.lineHeightVariable = 0;
 			}
 			ResolveLengthVariable(style.width);
@@ -1256,7 +1255,7 @@ namespace Sodium
 
 		bool TryResolveCompiledTransition(
 			std::type_index styleType,
-			SdStyleId targetTypeId,
+			SdTypeId targetTypeId,
 			SdStylePart part,
 			SdPropertyId propertyId,
 			SdStyleInteractionState interactionState,
@@ -1431,7 +1430,7 @@ namespace Sodium
 
 		void InstallDefaultUserAgentStyleSheet(bool touchRevision = true)
 		{
-			typedStyleSheet = SdDefaultUserAgentStyleSheet(theme);
+			typedStyleSheet = SdDefaultUserAgentStyleSheet(tokenSet);
 			compiledStyleSheet = typedStyleSheet.Compile();
 			if (touchRevision)
 				Touch();
@@ -1442,14 +1441,14 @@ namespace Sodium
 			switch (value.kind)
 			{
 			case SdStyleValueKind::ColorVariable:
-				return SdStyleValue::FromColor(theme.GetColorVariable(value.variableId));
+				return SdStyleValue::FromColor(tokenSet.GetColor(value.variableId));
 			case SdStyleValueKind::MetricVariable:
-				return SdStyleValue::FromFloat(theme.GetMetricVariable(value.variableId));
+				return SdStyleValue::FromFloat(tokenSet.GetMetric(value.variableId));
 			case SdStyleValueKind::Length:
 				if (value.lengthUnit == static_cast<SdUInt8>(SdLengthUnit::Variable))
 					return SdStyleValue::FromLength(
 						static_cast<SdUInt8>(SdLengthUnit::Pixels),
-						theme.GetMetricVariable(value.lengthVariableId));
+						tokenSet.GetMetric(value.lengthVariableId));
 				return value;
 			default:
 				return value;

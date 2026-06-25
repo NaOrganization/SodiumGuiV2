@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Animation/SdAnimation.h"
 #include "Style/SdStyleCore.h"
@@ -477,7 +477,7 @@ namespace Sodium
 		SdWidgetRootStyle resolvedStyle = {};
 		SdWidgetRootStyle presentationStyle = {};
 		SdStyleNodeId rootStyleNodeId = SdInvalidStyleNodeId;
-		SdStyleId targetTypeId = SdWidgetTargetIds::Default;
+		SdTypeId targetTypeId = SdWidgetTargetIds::Default;
 		SdStyleInteractionState interactionState = SdStyleInteractionState::Normal;
 		SdRootLayer rootLayer = SdRootLayer::Content;
 		SdUInt64 styleIdentityRevision = 0;
@@ -492,7 +492,7 @@ namespace Sodium
 		Detail::SdObjectHandle presentationStyle = {};
 		Detail::SdObjectHandle inlineStyle = {};
 		SdTypeId styleType = 0;
-		SdStyleId targetTypeId = SdWidgetTargetIds::Default;
+		SdTypeId targetTypeId = SdWidgetTargetIds::Default;
 		SdStyleInteractionState interactionState = SdStyleInteractionState::Normal;
 		SdRootLayer rootLayer = SdRootLayer::Content;
 		SdUInt64 styleIdentityRevision = 0;

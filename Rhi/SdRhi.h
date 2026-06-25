@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Core/SdCore.h"
 
@@ -15,18 +15,8 @@ namespace Sodium::Rhi
 	using SdTextureFormatFlags = SdUInt32;
 	using SdShaderLanguageFlags = SdUInt32;
 
-	struct SdGpuHandle final
-	{
-		SdUInt32 index = 0;
-		SdUInt32 generation = 0;
-
-		constexpr SdGpuHandle() = default;
-		constexpr SdGpuHandle(SdUInt32 indexValue, SdUInt32 generationValue)
-			: index(indexValue), generation(generationValue) {}
-
-		constexpr bool IsValid() const noexcept { return index != 0 && generation != 0; }
-		friend constexpr bool operator==(const SdGpuHandle&, const SdGpuHandle&) = default;
-	};
+	struct SdGpuResourceTag final {};
+	using SdGpuHandle = SdHandle<SdGpuResourceTag>;
 
 	using SdTextureHandle = SdGpuHandle;
 	using SdBufferHandle = SdGpuHandle;
@@ -484,4 +474,25 @@ namespace Sodium::Rhi
 		virtual SdPipelineHandle CreateGraphicsPipeline(const SdGraphicsPipelineDesc& desc) = 0;
 		virtual void DestroyPipeline(SdPipelineHandle pipeline) = 0;
 	};
+}
+
+namespace Sodium
+{
+	using Rhi::SdGpuHandle;
+	using Rhi::SdTextureHandle;
+	using Rhi::SdBufferHandle;
+	using Rhi::SdShaderHandle;
+	using Rhi::SdSamplerHandle;
+	using Rhi::SdPipelineHandle;
+	using Rhi::SdResourceSetHandle;
+	using Rhi::SdResourceSetLayoutHandle;
+	using Rhi::SdVertexLayoutHandle;
+	using Rhi::SdTextureFormat;
+	using Rhi::SdTextureUsage;
+	using Rhi::SdMemoryUsage;
+	using Rhi::SdShaderStage;
+	using Rhi::SdShaderStageFlag;
+	using Rhi::SdFilterMode;
+	using Rhi::SdAddressMode;
+	using Rhi::SdVertexFormat;
 }

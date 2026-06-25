@@ -182,6 +182,7 @@
     <ClInclude Include="..\..\..\Backends\Win32\SdWin32Platform.h" />
     <ClInclude Include="..\..\..\Animation\SdAnimation.h" />
     <ClInclude Include="..\..\..\Core\SdBackendContracts.h" />
+    <ClInclude Include="..\..\..\Style\SdStyleCore.h" />
     <ClInclude Include="..\..\..\Widget\SdBasicWidgets.h" />
     <ClInclude Include="..\..\..\Core\SdDefaultFont.h" />
     <ClInclude Include="..\..\..\Render\SdDrawData.h" />

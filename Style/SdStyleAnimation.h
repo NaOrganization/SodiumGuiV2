@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Style/SdStyleProperty.h"
 
@@ -72,7 +72,7 @@ namespace Sodium
 			SdSize operator()(const ChannelKey& key) const noexcept
 			{
 				SdSize hash = static_cast<SdSize>(key.styleNodeId);
-				hash ^= static_cast<SdSize>(key.propertyId + 0x9e3779b97f4a7c15ull + (hash << 6) + (hash >> 2));
+				hash ^= static_cast<SdSize>(key.propertyId.value + 0x9e3779b97f4a7c15ull + (hash << 6) + (hash >> 2));
 				return hash;
 			}
 		};

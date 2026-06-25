@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Core/SdStableTypeId.h"
 
@@ -76,30 +76,27 @@ namespace Sodium
 		float baseline = 0.0f;
 	};
 
-	using SdStyleId = SdUInt64;
-	using SdStyleClassId = SdUInt64;
-	using SdStyleScopeId = SdUInt64;
-	using SdPropertyId = SdUInt64;
-	using SdThemeVariableId = SdUInt64;
+	struct SdStyleClassTag final {};
+	struct SdStyleScopeTag final{};
+	struct SdPropertyTag final {};
+	struct SdDesignTokenTag final {};
 
-	constexpr SdStyleId SdStyleIdLiteral(const char* text, std::size_t length) noexcept
-	{
-		SdUInt64 hash = 14695981039346656037ull;
-
-		for (std::size_t i = 0; i < length; ++i)
-		{
-			hash ^= static_cast<SdUInt8>(text[i]);
-			hash *= 1099511628211ull;
-		}
-
-		return SdStyleId{ hash };
-	}
+	using SdStyleClassId = SdId<SdStyleClassTag>;
+	using SdStyleScopeId = SdId<SdStyleScopeTag>;
+	using SdPropertyId = SdId<SdPropertyTag>;
+	using SdDesignTokenId = SdId<SdDesignTokenTag>;
 
 	namespace Literals
 	{
-		inline constexpr SdStyleId operator""_SdId(const char* text, std::size_t length) noexcept
+		constexpr SdUInt64 operator"" _SdId(const char* text, std::size_t length) noexcept
 		{
-			return SdStyleIdLiteral(text, length);
+			SdUInt64 hash = 14695981039346656037ull;
+			for (std::size_t i = 0; i < length; ++i)
+			{
+				hash ^= static_cast<SdUInt8>(text[i]);
+				hash *= 1099511628211ull;
+			}
+			return hash;
 		}
 	}
 
@@ -122,42 +119,42 @@ namespace Sodium
 
 	namespace SdWidgetTargetIds
 	{
-		inline constexpr SdStyleId Global = "Sodium.Style.Target.Global"_SdId;
-		inline constexpr SdStyleId Default = "Sodium.Style.Target.Default"_SdId;
-		inline constexpr SdStyleId Text = "Sodium.Style.Target.Text"_SdId;
-		inline constexpr SdStyleId Panel = "Sodium.Style.Target.Panel"_SdId;
-		inline constexpr SdStyleId Button = "Sodium.Style.Target.Button"_SdId;
-		inline constexpr SdStyleId CheckBox = "Sodium.Style.Target.CheckBox"_SdId;
-		inline constexpr SdStyleId Window = "Sodium.Style.Target.Window"_SdId;
-		inline constexpr SdStyleId ImageViewer = "Sodium.Style.Target.ImageViewer"_SdId;
-		inline constexpr SdStyleId Slider = "Sodium.Style.Target.Slider"_SdId;
-		inline constexpr SdStyleId TextInput = "Sodium.Style.Target.TextInput"_SdId;
-		inline constexpr SdStyleId ScrollView = "Sodium.Style.Target.ScrollView"_SdId;
-		inline constexpr SdStyleId Popup = "Sodium.Style.Target.Popup"_SdId;
-		inline constexpr SdStyleId ContextMenu = "Sodium.Style.Target.ContextMenu"_SdId;
-		inline constexpr SdStyleId Tooltip = "Sodium.Style.Target.Tooltip"_SdId;
+		inline constexpr SdTypeId Global = "Sodium.Style.Target.Global"_SdId;
+		inline constexpr SdTypeId Default = "Sodium.Style.Target.Default"_SdId;
+		inline constexpr SdTypeId Text = "Sodium.Style.Target.Text"_SdId;
+		inline constexpr SdTypeId Panel = "Sodium.Style.Target.Panel"_SdId;
+		inline constexpr SdTypeId Button = "Sodium.Style.Target.Button"_SdId;
+		inline constexpr SdTypeId CheckBox = "Sodium.Style.Target.CheckBox"_SdId;
+		inline constexpr SdTypeId Window = "Sodium.Style.Target.Window"_SdId;
+		inline constexpr SdTypeId ImageViewer = "Sodium.Style.Target.ImageViewer"_SdId;
+		inline constexpr SdTypeId Slider = "Sodium.Style.Target.Slider"_SdId;
+		inline constexpr SdTypeId TextInput = "Sodium.Style.Target.TextInput"_SdId;
+		inline constexpr SdTypeId ScrollView = "Sodium.Style.Target.ScrollView"_SdId;
+		inline constexpr SdTypeId Popup = "Sodium.Style.Target.Popup"_SdId;
+		inline constexpr SdTypeId ContextMenu = "Sodium.Style.Target.ContextMenu"_SdId;
+		inline constexpr SdTypeId Tooltip = "Sodium.Style.Target.Tooltip"_SdId;
 	}
 
-	namespace SdThemeVariableIds
+	namespace SdDesignTokenIds
 	{
-		inline constexpr SdThemeVariableId Text = "text"_SdId;
-		inline constexpr SdThemeVariableId Background = "background"_SdId;
-		inline constexpr SdThemeVariableId WindowBg = "window.bg"_SdId;
-		inline constexpr SdThemeVariableId PanelBg = "panel.bg"_SdId;
-		inline constexpr SdThemeVariableId ButtonBg = "button.bg"_SdId;
-		inline constexpr SdThemeVariableId ButtonBgHover = "button.bg.hover"_SdId;
-		inline constexpr SdThemeVariableId ButtonBgPressed = "button.bg.pressed"_SdId;
-		inline constexpr SdThemeVariableId ButtonText = "button.text"_SdId;
-		inline constexpr SdThemeVariableId Accent = "accent"_SdId;
-		inline constexpr SdThemeVariableId Border = "border"_SdId;
-		inline constexpr SdThemeVariableId BorderStrong = "border.strong"_SdId;
-		inline constexpr SdThemeVariableId Danger = "danger"_SdId;
-		inline constexpr SdThemeVariableId Selection = "selection"_SdId;
-		inline constexpr SdThemeVariableId SpacingSmall = "spacing.small"_SdId;
-		inline constexpr SdThemeVariableId SpacingMedium = "spacing.medium"_SdId;
-		inline constexpr SdThemeVariableId FontButton = "font.button"_SdId;
-		inline constexpr SdThemeVariableId RadiusSmall = "radius.small"_SdId;
-		inline constexpr SdThemeVariableId DurationFast = "duration.fast"_SdId;
+		inline constexpr SdDesignTokenId Text = "text"_SdId;
+		inline constexpr SdDesignTokenId Background = "background"_SdId;
+		inline constexpr SdDesignTokenId WindowBg = "window.bg"_SdId;
+		inline constexpr SdDesignTokenId PanelBg = "panel.bg"_SdId;
+		inline constexpr SdDesignTokenId ButtonBg = "button.bg"_SdId;
+		inline constexpr SdDesignTokenId ButtonBgHover = "button.bg.hover"_SdId;
+		inline constexpr SdDesignTokenId ButtonBgPressed = "button.bg.pressed"_SdId;
+		inline constexpr SdDesignTokenId ButtonText = "button.text"_SdId;
+		inline constexpr SdDesignTokenId Accent = "accent"_SdId;
+		inline constexpr SdDesignTokenId Border = "border"_SdId;
+		inline constexpr SdDesignTokenId BorderStrong = "border.strong"_SdId;
+		inline constexpr SdDesignTokenId Danger = "danger"_SdId;
+		inline constexpr SdDesignTokenId Selection = "selection"_SdId;
+		inline constexpr SdDesignTokenId SpacingSmall = "spacing.small"_SdId;
+		inline constexpr SdDesignTokenId SpacingMedium = "spacing.medium"_SdId;
+		inline constexpr SdDesignTokenId FontButton = "font.button"_SdId;
+		inline constexpr SdDesignTokenId RadiusSmall = "radius.small"_SdId;
+		inline constexpr SdDesignTokenId DurationFast = "duration.fast"_SdId;
 	}
 
 	enum class SdStyleInteractionState : SdUInt8
@@ -214,8 +211,8 @@ namespace Sodium
 		SdVec2 vec2 = {};
 		SdUInt8 lengthUnit = 0;
 		float lengthValue = 0.0f;
-		SdThemeVariableId lengthVariableId = 0;
-		SdThemeVariableId variableId = 0;
+		SdDesignTokenId lengthVariableId = 0;
+		SdDesignTokenId variableId = 0;
 
 		static constexpr SdStyleValue FromColor(SdColor value) noexcept
 		{
@@ -249,7 +246,7 @@ namespace Sodium
 			return result;
 		}
 
-		static constexpr SdStyleValue FromLength(SdUInt8 unit, float value, SdThemeVariableId variableId = 0) noexcept
+		static constexpr SdStyleValue FromLength(SdUInt8 unit, float value, SdDesignTokenId variableId = 0) noexcept
 		{
 			SdStyleValue result = {};
 			result.kind = SdStyleValueKind::Length;
@@ -259,7 +256,7 @@ namespace Sodium
 			return result;
 		}
 
-		static constexpr SdStyleValue FromColorVariable(SdThemeVariableId value) noexcept
+		static constexpr SdStyleValue FromColorVariable(SdDesignTokenId value) noexcept
 		{
 			SdStyleValue result = {};
 			result.kind = SdStyleValueKind::ColorVariable;
@@ -267,7 +264,7 @@ namespace Sodium
 			return result;
 		}
 
-		static constexpr SdStyleValue FromMetricVariable(SdThemeVariableId value) noexcept
+		static constexpr SdStyleValue FromMetricVariable(SdDesignTokenId value) noexcept
 		{
 			SdStyleValue result = {};
 			result.kind = SdStyleValueKind::MetricVariable;
@@ -276,12 +273,12 @@ namespace Sodium
 		}
 	};
 
-	inline constexpr SdStyleValue ThemeColor(SdThemeVariableId id) noexcept
+	inline constexpr SdStyleValue DesignColor(SdDesignTokenId id) noexcept
 	{
 		return SdStyleValue::FromColorVariable(id);
 	}
 
-	inline constexpr SdStyleValue ThemeMetric(SdThemeVariableId id) noexcept
+	inline constexpr SdStyleValue DesignMetric(SdDesignTokenId id) noexcept
 	{
 		return SdStyleValue::FromMetricVariable(id);
 	}

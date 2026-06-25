@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <array>
 #include <cassert>
@@ -280,19 +280,38 @@ namespace Sodium
 		friend constexpr bool operator==(const SdHandle&, const SdHandle&) = default;
 	};
 
-	struct SdTextureTag final {};
+	template<typename TTag>
+	struct SdId
+	{
+		SdUInt64 value = 0;
+		constexpr SdId() noexcept = default;
+		constexpr SdId(SdUInt64 value) noexcept : value(value) {}
+
+		constexpr bool IsValid() const noexcept { return value != 0; }
+		friend constexpr bool operator==(const SdId&, const SdId&) = default;
+		friend constexpr bool operator!=(const SdId&, const SdId&) = default;
+
+	};
+
+	template <typename TTag>
+	struct SdIdHash final
+	{
+		[[nodiscard]]
+		constexpr std::size_t operator()(const SdId<TTag>& id) const noexcept
+		{
+			return std::hash<SdUInt64>{}(id.value);
+		}
+	};
+
 	struct SdFontTag final {};
 	struct SdFontFamilyTag final {};
 	struct SdImageTag final {};
-	struct SdShaderTag final {};
 	struct SdStateTag final {};
 	struct SdWidgetHandleTag final {};
 
-	using SdTextureHandle = SdHandle<SdTextureTag>;
 	using SdFontHandle = SdHandle<SdFontTag>;
 	using SdFontFamilyHandle = SdHandle<SdFontFamilyTag>;
 	using SdImageHandle = SdHandle<SdImageTag>;
-	using SdShaderHandle = SdHandle<SdShaderTag>;
 	using SdStateHandle = SdHandle<SdStateTag>;
 	using SdWidgetHandle = SdHandle<SdWidgetHandleTag>;
 }
@@ -402,4 +421,17 @@ namespace Sodium::Utf8
 		}
 		return codepoints;
 	}
+}
+
+namespace std
+{
+	template <typename TTag>
+	struct hash<Sodium::SdId<TTag>>
+	{
+		[[nodiscard]]
+		std::size_t operator()(const Sodium::SdId<TTag>& id) const noexcept
+		{
+			return Sodium::SdIdHash<TTag>{}(id);
+		}
+	};
 }
