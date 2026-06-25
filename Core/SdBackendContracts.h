@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Render/SdDrawData.h"
 
@@ -36,7 +36,7 @@ namespace Sodium
 		// - Applies resource updates carried by the draw packet before drawing.
 		// - Treats SdTextureHandle as backend-owned; handles become invalid
 		//   after DestroyTexture or when their generation no longer matches.
-		virtual void Render(const SdRendererFrameInfo& frameInfo, const SdDrawPacket& packet) = 0;
+		virtual void Render(const SdRendererFrameInfo& frameInfo, const SdRenderPacket& packet) = 0;
 
 		// Creates a backend-owned texture handle. The caller owns the source
 		// pixel memory; the backend owns GPU resource lifetime after creation.
@@ -48,7 +48,7 @@ namespace Sodium
 	};
 
 	template<class T>
-	concept SdRendererBackend = requires(T renderer, SdRendererFrameInfo frameInfo, SdDrawPacket packet, SdTextureDesc textureDesc, SdTextureHandle texture)
+	concept SdRendererBackend = requires(T renderer, SdRendererFrameInfo frameInfo, SdRenderPacket packet, SdTextureDesc textureDesc, SdTextureHandle texture)
 	{
 		{ renderer.Render(frameInfo, packet) };
 		{ renderer.CreateTexture(textureDesc) } -> std::same_as<SdTextureHandle>;

@@ -213,6 +213,36 @@ namespace Sodium
 		}
 	};
 
+	struct SdMat4 final
+	{
+		float m[4][4] =
+		{
+			{ 1.0f, 0.0f, 0.0f, 0.0f },
+			{ 0.0f, 1.0f, 0.0f, 0.0f },
+			{ 0.0f, 0.0f, 1.0f, 0.0f },
+			{ 0.0f, 0.0f, 0.0f, 1.0f }
+		};
+
+		constexpr SdMat4() = default;
+		constexpr SdMat4(
+			float m00, float m01, float m02, float m03,
+			float m10, float m11, float m12, float m13,
+			float m20, float m21, float m22, float m23,
+			float m30, float m31, float m32, float m33)
+			: m{
+				{ m00, m01, m02, m03 },
+				{ m10, m11, m12, m13 },
+				{ m20, m21, m22, m23 },
+				{ m30, m31, m32, m33 }
+			} {
+		}
+
+		static constexpr SdMat4 Identity()
+		{
+			return {};
+		}
+	};
+
 	struct SdRect final
 	{
 		SdVec2 min = {};
@@ -225,10 +255,10 @@ namespace Sodium
 		constexpr float Width() const { return max.x - min.x; }
 		constexpr float Height() const { return max.y - min.y; }
 		constexpr SdVec2 Size() const { return { Width(), Height() }; }
-		constexpr bool Contains(const SdVec2& point) const
-		{
-			return point.x >= min.x && point.y >= min.y && point.x <= max.x && point.y <= max.y;
-		}
+		constexpr bool Contains(const SdVec2& point) const { return point.x >= min.x && point.x <= max.x && point.y >= min.y && point.y <= max.y; }
+		constexpr bool Intersects(const SdRect& other) const { return !(other.min.x > max.x || other.max.x < min.x || other.min.y > max.y || other.max.y < min.y); }
+		
+		friend constexpr bool operator==(const SdRect&, const SdRect&) = default;
 	};
 
 	struct SdColorLinear final

@@ -1,4 +1,4 @@
-#include "Render/SdDrawList.h"
+﻿#include "Render/SdDrawList.h"
 
 #include <algorithm>
 #include <cmath>
@@ -88,21 +88,21 @@ namespace Sodium
 		PathArcToSkipFirst({ rect.min.x + radius, rect.min.y + radius }, radius, SdPi, SdPi * 1.5f, segmentCount);
 	}
 
-	void SdRenderList::PathFillConvex(const SdColor& color, const SdRect& clipRect)
+	void SdRenderList::PathFillConvex(const SdColor& color)
 	{
 		if (path.size() < 3)
 			return;
 		const SdTextureHandle texture = sharedData ? sharedData->whiteTexture : SdTextureHandle{};
 		const SdVec2 opaqueUv = sharedData ? sharedData->whitePixelUv.min : SdVec2(0.0f, 0.0f);
 		if (!UseAntiAliasing())
-			PathFillConvexNoAA(color, clipRect, texture, opaqueUv);
+			PathFillConvexNoAA(color, texture, opaqueUv);
 		else
-			PathFillConvexAA(color, clipRect, texture, opaqueUv);
+			PathFillConvexAA(color, texture, opaqueUv);
 	}
 
-	void SdRenderList::PathFillConvexNoAA(const SdColor& color, const SdRect& clipRect, SdTextureHandle texture, const SdVec2& opaqueUv)
+	void SdRenderList::PathFillConvexNoAA(const SdColor& color, SdTextureHandle texture, const SdVec2& opaqueUv)
 	{
-		if (!EnsureBatch(clipRect, texture, static_cast<SdUInt32>(path.size())))
+		if (!EnsureBatch(currentClipRect, texture, static_cast<SdUInt32>(path.size())))
 			return;
 		RequireSpace(static_cast<SdUInt32>(path.size()), static_cast<SdUInt32>((path.size() - 2) * 3));
 
@@ -136,10 +136,10 @@ namespace Sodium
 			scratchNormals[pointCount - 1] = scratchNormals[pointCount - 2];
 	}
 
-	void SdRenderList::PathFillConvexAA(const SdColor& color, const SdRect& clipRect, SdTextureHandle texture, const SdVec2& opaqueUv)
+	void SdRenderList::PathFillConvexAA(const SdColor& color, SdTextureHandle texture, const SdVec2& opaqueUv)
 	{
 		const SdUInt32 pointCount = static_cast<SdUInt32>(path.size());
-		if (!EnsureBatch(clipRect, texture, pointCount * 2))
+		if (!EnsureBatch(currentClipRect, texture, pointCount * 2))
 			return;
 		RequireSpace(pointCount * 2, static_cast<SdUInt32>(((pointCount - 2) * 3) + (pointCount * 6)));
 
@@ -178,7 +178,7 @@ namespace Sodium
 		}
 	}
 
-	void SdRenderList::PathStroke(const SdColor& color, const SdRect& clipRect, float thickness, bool closed)
+	void SdRenderList::PathStroke(const SdColor& color, float thickness, bool closed)
 	{
 		if (path.size() < 2 || thickness <= 0.0f)
 			return;
@@ -192,20 +192,20 @@ namespace Sodium
 		const bool useTexture = integerThickness < SdRenderSharedData::BakedLineTextureCount && fractionalThickness <= 0.00001f;
 
 		if (!useAA)
-			PathStrokeNoAA(color, clipRect, texture, opaqueUv, thickness, closed);
+			PathStrokeNoAA(color, texture, opaqueUv, thickness, closed);
 		else if (useTexture)
-			PathStrokeAAThinTextured(color, clipRect, texture, thickness, closed, integerThickness);
+			PathStrokeAAThinTextured(color, texture, thickness, closed, integerThickness);
 		else if (!thickLine)
-			PathStrokeAAThinGeometry(color, clipRect, texture, opaqueUv, thickness, closed);
+			PathStrokeAAThinGeometry(color, texture, opaqueUv, thickness, closed);
 		else
-			PathStrokeAAThick(color, clipRect, texture, opaqueUv, thickness, closed);
+			PathStrokeAAThick(color, texture, opaqueUv, thickness, closed);
 	}
 
-	void SdRenderList::PathStrokeNoAA(const SdColor& color, const SdRect& clipRect, SdTextureHandle texture, const SdVec2& opaqueUv, float thickness, bool closed)
+	void SdRenderList::PathStrokeNoAA(const SdColor& color, SdTextureHandle texture, const SdVec2& opaqueUv, float thickness, bool closed)
 	{
 		const SdSize pointCount = path.size();
 		const SdSize segmentCount = closed ? pointCount : pointCount - 1;
-		if (!EnsureBatch(clipRect, texture, static_cast<SdUInt32>(segmentCount * 4)))
+		if (!EnsureBatch(currentClipRect, texture, static_cast<SdUInt32>(segmentCount * 4)))
 			return;
 		RequireSpace(static_cast<SdUInt32>(segmentCount * 4), static_cast<SdUInt32>(segmentCount * 6));
 		const SdUInt32 firstBaseIndex = static_cast<SdUInt32>(drawData.vertices.size());
@@ -238,14 +238,14 @@ namespace Sodium
 		}
 	}
 
-	void SdRenderList::PathStrokeAAThinTextured(const SdColor& color, const SdRect& clipRect, SdTextureHandle texture, float thickness, bool closed, SdUInt32 integerThickness)
+	void SdRenderList::PathStrokeAAThinTextured(const SdColor& color, SdTextureHandle texture, float thickness, bool closed, SdUInt32 integerThickness)
 	{
 		const SdSize pointCount = path.size();
 		const SdSize segmentCount = closed ? pointCount : pointCount - 1;
 		const float halfDrawSize = (thickness * 0.5f) + 1.0f;
 		const SdUInt32 vertexCount = static_cast<SdUInt32>(pointCount * 2);
 		const SdUInt32 indexCount = static_cast<SdUInt32>(segmentCount * 6);
-		if (!EnsureBatch(clipRect, texture, vertexCount))
+		if (!EnsureBatch(currentClipRect, texture, vertexCount))
 			return;
 		RequireSpace(vertexCount, indexCount);
 
@@ -291,14 +291,14 @@ namespace Sodium
 		}
 	}
 
-	void SdRenderList::PathStrokeAAThinGeometry(const SdColor& color, const SdRect& clipRect, SdTextureHandle texture, const SdVec2& opaqueUv, float thickness, bool closed)
+	void SdRenderList::PathStrokeAAThinGeometry(const SdColor& color, SdTextureHandle texture, const SdVec2& opaqueUv, float thickness, bool closed)
 	{
 		const SdSize pointCount = path.size();
 		const SdSize segmentCount = closed ? pointCount : pointCount - 1;
 		const float halfDrawSize = std::max(1.0f, thickness * 0.5f);
 		const SdUInt32 vertexCount = static_cast<SdUInt32>(pointCount * 3);
 		const SdUInt32 indexCount = static_cast<SdUInt32>(segmentCount * 12);
-		if (!EnsureBatch(clipRect, texture, vertexCount))
+		if (!EnsureBatch(currentClipRect, texture, vertexCount))
 			return;
 		RequireSpace(vertexCount, indexCount);
 
@@ -349,14 +349,14 @@ namespace Sodium
 		}
 	}
 
-	void SdRenderList::PathStrokeAAThick(const SdColor& color, const SdRect& clipRect, SdTextureHandle texture, const SdVec2& opaqueUv, float thickness, bool closed)
+	void SdRenderList::PathStrokeAAThick(const SdColor& color, SdTextureHandle texture, const SdVec2& opaqueUv, float thickness, bool closed)
 	{
 		const SdSize pointCount = path.size();
 		const SdSize segmentCount = closed ? pointCount : pointCount - 1;
 		const float halfInnerThickness = (thickness - 1.0f) * 0.5f;
 		const SdUInt32 vertexCount = static_cast<SdUInt32>(pointCount * 4);
 		const SdUInt32 indexCount = static_cast<SdUInt32>(segmentCount * 18);
-		if (!EnsureBatch(clipRect, texture, vertexCount))
+		if (!EnsureBatch(currentClipRect, texture, vertexCount))
 			return;
 		RequireSpace(vertexCount, indexCount);
 

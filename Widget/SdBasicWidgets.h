@@ -361,7 +361,9 @@ namespace Sodium
 			const SdRect contentRect = SdInsetRect(paintRect, usedStyle.padding);
 			const BasicWidgetDetail::SdMeasuredTextLayout textLayout = BasicWidgetDetail::MeasureTextLayout(context.instance, state.text, textStyle);
 			const SdVec2 position = BasicWidgetDetail::LeftTopTextLayoutOrigin(contentRect, textLayout);
-			context.renderList.AddText(state.text, textStyle, position, color, context.clipRect);
+			context.renderList.PushClipRect(context.clipRect);
+			context.renderList.AddText(state.text, textStyle, position, color);
+			context.renderList.PopClip();
 		}
 	};
 
@@ -401,17 +403,17 @@ namespace Sodium
 			const SdBoxStyle& presentation = context.RootStyleNode().presentationStyle;
 			const SdRect paintRect = BasicWidgetDetail::PaintRect(context);
 			const float radius = SdResolveLength(presentation.radius, paintRect.Width());
+			context.renderList.PushClipRect(context.clipRect);
 			context.renderList.AddRectFilled(
 				paintRect,
 				BasicWidgetDetail::ApplyOpacity(presentation.backgroundColor, context.opacity * presentation.opacity),
-				context.clipRect,
 				radius);
 			context.renderList.AddRect(
 				paintRect,
 				BasicWidgetDetail::ApplyOpacity(presentation.border.left.color, context.opacity * presentation.opacity),
-				context.clipRect,
 				1.0f,
 				radius);
+			context.renderList.PopClip();
 		}
 
 	private:
@@ -513,10 +515,12 @@ namespace Sodium
 			const SdColor innerShadowColor = BasicWidgetDetail::ApplyOpacity(SdColor(0, 0, 0, 72), context.opacity * contentPresentation.opacity);
 			const float radius = SdResolveLength(contentPresentation.radius, paintRect.Width(), SdResolveLength(presentation.radius, paintRect.Width()));
 
-			context.renderList.AddRectFilled(paintRect, background, context.clipRect, radius);
-			context.renderList.AddInnerShadow(paintRect, context.clipRect, { 0.0f, 0.0f }, innerShadowColor, 10.0f, -5.0f, radius);
-			context.renderList.AddRect(paintRect, border, context.clipRect, 1.0f, radius);
-			context.renderList.AddText(state.label, textStyle, labelRect.min, color, context.clipRect);
+			context.renderList.PushClipRect(context.clipRect);
+			context.renderList.AddRectFilled(paintRect, background, radius);
+			context.renderList.AddInnerShadow(paintRect, { 0.0f, 0.0f }, innerShadowColor, 10.0f, -5.0f, radius);
+			context.renderList.AddRect(paintRect, border, 1.0f, radius);
+			context.renderList.AddText(state.label, textStyle, labelRect.min, color);
+			context.renderList.PopClip();
 		}
 
 	private:
@@ -682,19 +686,20 @@ namespace Sodium
 			const SdColor indicatorColor = BasicWidgetDetail::ApplyOpacity(indicatorPresentation.backgroundColor, context.opacity * indicatorPresentation.opacity);
 			const float radius = SdResolveLength(boxPresentation.radius, style.boxSize, SdResolveLength(presentation.radius, style.boxSize));
 
-			context.renderList.AddRectFilled(boxRect, background, context.clipRect, radius);
-			context.renderList.AddRect(boxRect, border, context.clipRect, 1.0f, radius);
+			context.renderList.PushClipRect(context.clipRect);
+			context.renderList.AddRectFilled(boxRect, background, radius);
+			context.renderList.AddRect(boxRect, border, 1.0f, radius);
 			if (state.checked)
 			{
 				context.renderList.AddRectFilled(
 					indicatorRect,
 					indicatorColor,
-					context.clipRect,
 					std::max(0.0f, radius - 2.0f));
 			}
 
 			if (!state.label.empty())
-				context.renderList.AddText(state.label, textStyle, labelRect.min, textColor, context.clipRect);
+				context.renderList.AddText(state.label, textStyle, labelRect.min, textColor);
+			context.renderList.PopClip();
 		}
 
 	private:
@@ -887,18 +892,20 @@ namespace Sodium
 			const SdColor thumbBorder = BasicWidgetDetail::ApplyOpacity(thumbPresentation.border.left.color, context.opacity * thumbPresentation.opacity);
 			const float radius = SdResolveLength(trackPresentation.radius, trackRect.Width(), SdResolveLength(presentation.radius, trackRect.Width()));
 
+			context.renderList.PushClipRect(context.clipRect);
 			if (!state.label.empty())
-				context.renderList.AddText(state.label, textStyle, labelRect.min, textColor, context.clipRect);
-			context.renderList.AddRectFilled(trackRect, trackColor, context.clipRect, radius);
-			context.renderList.AddRectFilled(fillRect, fillColor, context.clipRect, radius);
-			context.renderList.AddRect(trackRect, trackBorder, context.clipRect, 1.0f, radius);
+				context.renderList.AddText(state.label, textStyle, labelRect.min, textColor);
+			context.renderList.AddRectFilled(trackRect, trackColor, radius);
+			context.renderList.AddRectFilled(fillRect, fillColor, radius);
+			context.renderList.AddRect(trackRect, trackBorder, 1.0f, radius);
 			const SdVec2 thumbCenter = {
 				(thumbRect.min.x + thumbRect.max.x) * 0.5f,
 				(thumbRect.min.y + thumbRect.max.y) * 0.5f
 			};
 			const float thumbRadius = thumbRect.Width() > 0.0f ? thumbRect.Width() * 0.5f : style.thumbRadius;
-			context.renderList.AddCircleFilled(thumbCenter, thumbRadius, thumbColor, context.clipRect);
-			context.renderList.AddCircle(thumbCenter, thumbRadius, thumbBorder, context.clipRect, 1.0f);
+			context.renderList.AddCircleFilled(thumbCenter, thumbRadius, thumbColor);
+			context.renderList.AddCircle(thumbCenter, thumbRadius, thumbBorder, 1.0f);
+			context.renderList.PopClip();
 		}
 
 	private:
@@ -1101,8 +1108,9 @@ namespace Sodium
 			const SdColor caretColor = BasicWidgetDetail::ApplyOpacity(caretPresentation.color, context.opacity * caretPresentation.opacity);
 			const float radius = SdResolveLength(fieldPresentation.radius, paintRect.Width(), SdResolveLength(presentation.radius, paintRect.Width()));
 
-			context.renderList.AddRectFilled(paintRect, background, context.clipRect, radius);
-			context.renderList.AddRect(paintRect, border, context.clipRect, 1.0f, radius);
+			context.renderList.PushClipRect(context.clipRect);
+			context.renderList.AddRectFilled(paintRect, background, radius);
+			context.renderList.AddRect(paintRect, border, 1.0f, radius);
 
 			SdUtf8String paintText = showPlaceholder ? state.placeholder : state.text;
 			if (!state.composition.empty())
@@ -1112,11 +1120,11 @@ namespace Sodium
 				paintText,
 				textStyle,
 				textRect.min,
-				textColor,
-				context.clipRect);
+				textColor);
 
 			if (state.focused)
-				context.renderList.AddRectFilled(caretRect, caretColor, context.clipRect);
+				context.renderList.AddRectFilled(caretRect, caretColor, radius);
+			context.renderList.PopClip();
 		}
 
 	private:
@@ -1335,8 +1343,9 @@ namespace Sodium
 			const float radius = SdResolveLength(contentPresentation.radius, paintRect.Width(), SdResolveLength(presentation.radius, paintRect.Width()));
 			const float titlebarRadius = SdResolveLength(titlebarPresentation.radius, paintRect.Width(), radius);
 
+			context.renderList.PushClipRect(context.clipRect);
 			if (state.options.backgroundBlurRadius > 0.0f)
-				context.renderList.AddBackdropBlur(paintRect, context.clipRect, state.options.backgroundBlurRadius, radius);
+				context.renderList.AddBackdropBlur(paintRect, state.options.backgroundBlurRadius, radius);
 			if (state.options.shadowRadius > 0.0f && state.options.shadowColor.a != 0)
 			{
 				const float shadowPadding = std::ceil(std::max(0.0f, state.options.shadowRadius)
@@ -1348,13 +1357,14 @@ namespace Sodium
 					context.clipRect.max.x + shadowPadding,
 					context.clipRect.max.y + shadowPadding
 				};
-				context.renderList.AddDropShadow(paintRect, shadowClipRect, state.options.shadowOffset, state.options.shadowColor, state.options.shadowRadius, state.options.shadowSpread, radius);
+				context.renderList.PushClipRect(shadowClipRect);
+				context.renderList.AddDropShadow(paintRect, state.options.shadowOffset, state.options.shadowColor, state.options.shadowRadius, state.options.shadowSpread, radius);
+				context.renderList.PopClip();
 			}
-			context.renderList.AddRectFilled(paintRect, background, context.clipRect, radius);
-			context.renderList.AddRectFilled(titleRect, titleColor, context.clipRect, titlebarRadius);
-			context.renderList.AddRect(paintRect, border, context.clipRect, 1.0f, radius);
-
-			context.renderList.AddText(state.title, textStyle, titleTextRect.min, textColor, context.clipRect);
+			context.renderList.AddRectFilled(paintRect, background, radius);
+			context.renderList.AddRectFilled(titleRect, titleColor, titlebarRadius);
+			context.renderList.AddRect(paintRect, border, 1.0f, radius);
+			context.renderList.AddText(state.title, textStyle, titleTextRect.min, textColor);
 
 			if (state.options.closable)
 			{
@@ -1362,15 +1372,14 @@ namespace Sodium
 					{ closeRect.min.x + 5.0f, closeRect.min.y + 5.0f },
 					{ closeRect.max.x - 5.0f, closeRect.max.y - 5.0f },
 					closeColor,
-					context.clipRect,
 					1.5f);
 				context.renderList.AddLine(
 					{ closeRect.max.x - 5.0f, closeRect.min.y + 5.0f },
 					{ closeRect.min.x + 5.0f, closeRect.max.y - 5.0f },
 					closeColor,
-					context.clipRect,
 					1.5f);
 			}
+			context.renderList.PopClip();
 		}
 
 	private:
@@ -1517,7 +1526,9 @@ namespace Sodium
 			const SdColor background = BasicWidgetDetail::ApplyOpacity(presentation.backgroundColor, context.opacity * presentation.opacity);
 			const SdColor tint = BasicWidgetDetail::ApplyOpacity(state.tint, context.opacity * presentation.opacity);
 			const float radius = SdResolveLength(presentation.radius, paintRect.Width());
-			context.renderList.AddRectFilled(paintRect, background, context.clipRect, radius);
+
+			context.renderList.PushClipRect(context.clipRect);
+			context.renderList.AddRectFilled(paintRect, background, radius);
 			const SdRect imageRect = BasicWidgetDetail::InsetRect(paintRect, {
 				usedStyle.padding.left,
 				usedStyle.padding.top,
@@ -1525,8 +1536,9 @@ namespace Sodium
 				usedStyle.padding.bottom
 				});
 			if (state.texture.IsValid())
-				context.renderList.AddImage(state.texture, imageRect, state.uvRect, tint, context.clipRect);
-			context.renderList.AddRect(paintRect, presentation.border.left.color, context.clipRect, 1.0f, radius);
+				context.renderList.AddImage(state.texture, imageRect, state.uvRect, tint);
+			context.renderList.AddRect(paintRect, presentation.border.left.color, 1.0f, radius);
+			context.renderList.PopClip();
 		}
 	};
 
@@ -1640,14 +1652,17 @@ namespace Sodium
 			const SdColor thumbColor = BasicWidgetDetail::ApplyOpacity(thumbPresentation.backgroundColor, context.opacity * thumbPresentation.opacity);
 			const float rootRadius = SdResolveLength(presentation.radius, paintRect.Width());
 			const float radius = SdResolveLength(scrollbarPresentation.radius, scrollbarRect.Width(), rootRadius);
-			context.renderList.AddRectFilled(paintRect, rootBackground, context.clipRect, rootRadius);
-			context.renderList.AddRectFilled(scrollbarRect, background, context.clipRect, radius);
-			context.renderList.AddRect(scrollbarRect, border, context.clipRect, 1.0f, radius);
+
+			context.renderList.PushClipRect(context.clipRect);
+			context.renderList.AddRectFilled(paintRect, rootBackground, rootRadius);
+			context.renderList.AddRectFilled(scrollbarRect, background, radius);
+			context.renderList.AddRect(scrollbarRect, border, 1.0f, radius);
 
 			if (style.scrollbarWidth > 0.0f)
 			{
-				context.renderList.AddRectFilled(thumbRect, thumbColor, context.clipRect, style.scrollbarWidth * 0.5f);
+				context.renderList.AddRectFilled(thumbRect, thumbColor, style.scrollbarWidth * 0.5f);
 			}
+			context.renderList.PopClip();
 		}
 	};
 
@@ -1708,12 +1723,13 @@ namespace Sodium
 			const SdBoxStyle& presentation = context.RootStyleNode().presentationStyle;
 			const SdRect paintRect = BasicWidgetDetail::PaintRect(context);
 			const float radius = SdResolveLength(presentation.radius, paintRect.Width());
+			context.renderList.PushClipRect(context.clipRect);
 			context.renderList.AddRectFilled(
 				paintRect,
 				BasicWidgetDetail::ApplyOpacity(presentation.backgroundColor, context.opacity * presentation.opacity),
-				context.clipRect,
 				radius);
-			context.renderList.AddRect(paintRect, presentation.border.left.color, context.clipRect, 1.0f, radius);
+			context.renderList.AddRect(paintRect, presentation.border.left.color, 1.0f, radius);
+			context.renderList.PopClip();
 		}
 
 	protected:
@@ -1791,12 +1807,14 @@ namespace Sodium
 			const SdBoxStyle& presentation = context.RootStyleNode().presentationStyle;
 			const SdRect paintRect = BasicWidgetDetail::PaintRect(context);
 			const float radius = SdResolveLength(presentation.radius, paintRect.Width());
+
+			context.renderList.PushClipRect(context.clipRect);
 			context.renderList.AddRectFilled(
 				paintRect,
 				BasicWidgetDetail::ApplyOpacity(presentation.backgroundColor, context.opacity * presentation.opacity),
-				context.clipRect,
 				radius);
-			context.renderList.AddRect(paintRect, presentation.border.left.color, context.clipRect, 1.0f, radius);
+			context.renderList.AddRect(paintRect, presentation.border.left.color, 1.0f, radius);
+			context.renderList.PopClip();
 		}
 	};
 
@@ -1863,14 +1881,16 @@ namespace Sodium
 			const SdColor border = BasicWidgetDetail::ApplyOpacity(presentation.border.left.color, context.opacity * presentation.opacity);
 			const SdColor color = BasicWidgetDetail::ApplyOpacity(presentation.color, context.opacity * presentation.opacity);
 			const float radius = SdResolveLength(presentation.radius, paintRect.Width());
-			context.renderList.AddRectFilled(paintRect, background, context.clipRect, radius);
-			context.renderList.AddRect(paintRect, border, context.clipRect, 1.0f, radius);
+
+			context.renderList.PushClipRect(context.clipRect);
+			context.renderList.AddRectFilled(paintRect, background, radius);
+			context.renderList.AddRect(paintRect, border, 1.0f, radius);
 			context.renderList.AddText(
 				state.text,
 				textStyle,
 				textPosition,
-				color,
-				context.clipRect);
+				color);
+			context.renderList.PopClip();
 		}
 	};
 }

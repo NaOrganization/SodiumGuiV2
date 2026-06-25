@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Core/SdCore.h"
 #include "Rhi/SdFullscreenPass.hpp"
@@ -47,17 +47,6 @@ namespace Sodium
 		Raster,
 		Copy,
 		Compute
-	};
-
-	struct SdMat4 final
-	{
-		float m[4][4] =
-		{
-			{ 1.0f, 0.0f, 0.0f, 0.0f },
-			{ 0.0f, 1.0f, 0.0f, 0.0f },
-			{ 0.0f, 0.0f, 1.0f, 0.0f },
-			{ 0.0f, 0.0f, 0.0f, 1.0f }
-		};
 	};
 
 	class SdEffectResourceCache final

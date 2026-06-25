@@ -52,7 +52,7 @@ namespace Sodium::Backends
 
 		bool CreatePipelineState();
 		bool EnsureBuffers(SdUInt32 vertexCount, SdUInt32 indexCount);
-		bool UploadBuffers(const SdDrawPacket& packet);
+		bool UploadBuffers(const SdRenderPacket& packet);
 		bool UploadTexture(const SdUploadRequest& request);
 		bool RebuildTextureResourceSet(TextureEntry& entry);
 		bool RenderBackdropBlur(const SdBackdropBlurDraw& blur, const SdRendererFrameInfo& frameInfo);
@@ -74,7 +74,7 @@ namespace Sodium::Backends
 		SdTextureHandle CreateTexture(const SdTextureDesc& desc) override;
 		void DestroyTexture(SdTextureHandle texture) override;
 
-		void Render(const SdRendererFrameInfo& frameInfo, const SdDrawPacket& packet) override;
+		void Render(const SdRendererFrameInfo& frameInfo, const SdRenderPacket& packet) override;
 	};
 
 	using SdRenderer = SdDx11Renderer;

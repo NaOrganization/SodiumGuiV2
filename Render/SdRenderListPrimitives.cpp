@@ -1,4 +1,4 @@
-#include "Render/SdDrawList.h"
+﻿#include "Render/SdDrawList.h"
 
 #include <cmath>
 
@@ -11,9 +11,10 @@ namespace Sodium
 			return { position, uv, color.Pack() };
 		}
 	}
-	void SdRenderList::PrimRectWithUV(const SdRect& rect, const SdRect& uvRect, const SdColor& color, const SdRect& clipRect, SdTextureHandle texture)
+
+	void SdRenderList::PrimRectWithUV(const SdRect& rect, const SdRect& uvRect, const SdColor& color, SdTextureHandle texture)
 	{
-		if (!EnsureBatch(clipRect, texture, 4))
+		if (!EnsureBatch(currentClipRect, texture, 4))
 			return;
 		RequireSpace(4, 6);
 
@@ -33,68 +34,68 @@ namespace Sodium
 		indices[5] = baseIndex + 3;
 	}
 
-	void SdRenderList::AddLine(const SdVec2& a, const SdVec2& b, const SdColor& color, const SdRect& clipRect, float thickness)
+	void SdRenderList::AddLine(const SdVec2& a, const SdVec2& b, const SdColor& color, float thickness)
 	{
 		PathClear();
 		PathLineTo(a);
 		PathLineTo(b);
-		PathStroke(color, clipRect, thickness, false);
+		PathStroke(color, thickness, false);
 	}
 
-	void SdRenderList::AddTriangle(const SdVec2& a, const SdVec2& b, const SdVec2& c, const SdColor& color, const SdRect& clipRect, float thickness)
-	{
-		PathClear();
-		PathLineTo(a);
-		PathLineTo(b);
-		PathLineTo(c);
-		PathStroke(color, clipRect, thickness, true);
-	}
-
-	void SdRenderList::AddTriangleFilled(const SdVec2& a, const SdVec2& b, const SdVec2& c, const SdColor& color, const SdRect& clipRect)
+	void SdRenderList::AddTriangle(const SdVec2& a, const SdVec2& b, const SdVec2& c, const SdColor& color, float thickness)
 	{
 		PathClear();
 		PathLineTo(a);
 		PathLineTo(b);
 		PathLineTo(c);
-		PathFillConvex(color, clipRect);
+		PathStroke(color, thickness, true);
 	}
 
-	void SdRenderList::AddQuad(const SdVec2& a, const SdVec2& b, const SdVec2& c, const SdVec2& d, const SdColor& color, const SdRect& clipRect, float thickness)
+	void SdRenderList::AddTriangleFilled(const SdVec2& a, const SdVec2& b, const SdVec2& c, const SdColor& color)
 	{
 		PathClear();
 		PathLineTo(a);
 		PathLineTo(b);
 		PathLineTo(c);
-		PathLineTo(d);
-		PathStroke(color, clipRect, thickness, true);
+		PathFillConvex(color);
 	}
 
-	void SdRenderList::AddQuadFilled(const SdVec2& a, const SdVec2& b, const SdVec2& c, const SdVec2& d, const SdColor& color, const SdRect& clipRect)
+	void SdRenderList::AddQuad(const SdVec2& a, const SdVec2& b, const SdVec2& c, const SdVec2& d, const SdColor& color, float thickness)
 	{
 		PathClear();
 		PathLineTo(a);
 		PathLineTo(b);
 		PathLineTo(c);
 		PathLineTo(d);
-		PathFillConvex(color, clipRect);
+		PathStroke(color, thickness, true);
 	}
 
-	void SdRenderList::AddRect(const SdRect& rect, const SdColor& color, const SdRect& clipRect, float thickness, float rounding, SdUInt32 roundingSegments)
+	void SdRenderList::AddQuadFilled(const SdVec2& a, const SdVec2& b, const SdVec2& c, const SdVec2& d, const SdColor& color)
+	{
+		PathClear();
+		PathLineTo(a);
+		PathLineTo(b);
+		PathLineTo(c);
+		PathLineTo(d);
+		PathFillConvex(color);
+	}
+
+	void SdRenderList::AddRect(const SdRect& rect, const SdColor& color, float thickness, float rounding, SdUInt32 roundingSegments)
 	{
 		PathRect(rect, rounding, roundingSegments);
-		PathStroke(color, clipRect, thickness, true);
+		PathStroke(color, thickness, true);
 	}
 
-	void SdRenderList::AddRectFilled(const SdRect& rect, const SdColor& color, const SdRect& clipRect, float rounding, SdUInt32 roundingSegments)
+	void SdRenderList::AddRectFilled(const SdRect& rect, const SdColor& color, float rounding, SdUInt32 roundingSegments)
 	{
 		PathRect(rect, rounding, roundingSegments);
-		PathFillConvex(color, clipRect);
+		PathFillConvex(color);
 	}
 
-	void SdRenderList::AddRectFilledMultiColor(const SdRect& rect, const SdColor& colorUpperLeft, const SdColor& colorUpperRight, const SdColor& colorBottomRight, const SdColor& colorBottomLeft, const SdRect& clipRect)
+	void SdRenderList::AddRectFilledMultiColor(const SdRect& rect, const SdColor& colorUpperLeft, const SdColor& colorUpperRight, const SdColor& colorBottomRight, const SdColor& colorBottomLeft)
 	{
 		const SdTextureHandle texture = sharedData ? sharedData->whiteTexture : SdTextureHandle{};
-		if (!EnsureBatch(clipRect, texture, 4))
+		if (!EnsureBatch(currentClipRect, texture, 4))
 			return;
 		RequireSpace(4, 6);
 
@@ -114,7 +115,7 @@ namespace Sodium
 		vertices[3] = MakeVertex({ rect.min.x, rect.max.y }, uv, colorBottomLeft);
 	}
 
-	void SdRenderList::AddCircle(const SdVec2& center, float radius, const SdColor& color, const SdRect& clipRect, float thickness, SdUInt32 segmentCount)
+	void SdRenderList::AddCircle(const SdVec2& center, float radius, const SdColor& color, float thickness, SdUInt32 segmentCount)
 	{
 		if (radius <= 0.0f)
 			return;
@@ -126,10 +127,10 @@ namespace Sodium
 			const float angle = (static_cast<float>(segment) / static_cast<float>(segmentCount)) * SdPi * 2.0f;
 			PathLineTo({ center.x + (std::cos(angle) * radius), center.y + (std::sin(angle) * radius) });
 		}
-		PathStroke(color, clipRect, thickness, true);
+		PathStroke(color, thickness, true);
 	}
 
-	void SdRenderList::AddCircleFilled(const SdVec2& center, float radius, const SdColor& color, const SdRect& clipRect, SdUInt32 segmentCount)
+	void SdRenderList::AddCircleFilled(const SdVec2& center, float radius, const SdColor& color, SdUInt32 segmentCount)
 	{
 		if (radius <= 0.0f)
 			return;
@@ -141,11 +142,11 @@ namespace Sodium
 			const float angle = (static_cast<float>(segment) / static_cast<float>(segmentCount)) * SdPi * 2.0f;
 			PathLineTo({ center.x + (std::cos(angle) * radius), center.y + (std::sin(angle) * radius) });
 		}
-		PathFillConvex(color, clipRect);
+		PathFillConvex(color);
 	}
 
-	void SdRenderList::AddImage(SdTextureHandle texture, const SdRect& rect, const SdRect& uvRect, const SdColor& color, const SdRect& clipRect)
+	void SdRenderList::AddImage(SdTextureHandle texture, const SdRect& rect, const SdRect& uvRect, const SdColor& color)
 	{
-		PrimRectWithUV(rect, uvRect, color, clipRect, texture);
+		PrimRectWithUV(rect, uvRect, color, texture);
 	}
 }

@@ -1,0 +1,15 @@
+﻿#include "Render/SdDrawList.h"
+
+namespace Sodium
+{
+	void SdRenderList::AddTextLayout(const SdParagraphLayout& layout, const SdColor& color)
+	{
+		(void)color;
+		for (const SdTextGlyph& glyph : layout.glyphs)
+		{
+			if (!glyph.texture.IsValid())
+				continue;
+			PrimRectWithUV(glyph.rect, glyph.uvRect, glyph.color, glyph.texture);
+		}
+	}
+}

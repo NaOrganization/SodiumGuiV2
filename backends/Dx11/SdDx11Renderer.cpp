@@ -436,7 +436,7 @@ namespace Sodium::Backends
 		return true;
 	}
 
-	bool SdDx11Renderer::UploadBuffers(const SdDrawPacket& packet)
+	bool SdDx11Renderer::UploadBuffers(const SdRenderPacket& packet)
 	{
 		if (!EnsureBuffers(static_cast<SdUInt32>(packet.vertices.size()), static_cast<SdUInt32>(packet.indices.size())))
 			return false;
@@ -1058,7 +1058,7 @@ namespace Sodium::Backends
 		return &entry;
 	}
 
-	void SdDx11Renderer::Render(const SdRendererFrameInfo& frameInfo, const SdDrawPacket& packet)
+	void SdDx11Renderer::Render(const SdRendererFrameInfo& frameInfo, const SdRenderPacket& packet)
 	{
 		if (!deviceContext)
 			return;
@@ -1069,61 +1069,68 @@ namespace Sodium::Backends
 			return;
 
 		Dx11PipelineStateSnapshot pipelineState(deviceContext.Get());
-		if (hasGeometry)
-			BindPipeline(frameInfo.displaySize);
+		BindPipeline(frameInfo.displaySize);
 		Rhi::ISdCommandEncoder& encoder = rhiDevice.GetImmediateEncoder();
-		for (const SdDrawCommand& command : packet.commands)
+		for (const SdRenderCommand& command : packet.commandBuffer.GetCommands())
 		{
-			if (command.kind == SdDrawCommandKind::BackdropBlur)
+			if (command.kind == SdRenderCommandKind::DrawBatch)
 			{
-				if (command.index < packet.backdropBlurs.size())
-					RenderBackdropBlur(packet.backdropBlurs[command.index], frameInfo);
-				if (hasGeometry)
-					BindPipeline(frameInfo.displaySize);
-				continue;
+				if (!hasGeometry)
+					continue;
+				const SdDrawBatchPayload& payload = packet.commandBuffer.ReadPayload<SdDrawBatchPayload>(command);
+				if (payload.batchIndex >= packet.batches.size() || payload.batchIndex < 0)
+					continue;
+				const SdRenderBatch& batch = packet.batches[payload.batchIndex];
+				if (batch.indexCount <= 0)
+					continue;
+				TextureEntry* texture = TryGetTexture(batch.texture);
+				if (!texture)
+					continue;
+				encoder.SetResourceSet(0, texture->resourceSet);
+				encoder.DrawIndexed(batch.indexCount, 1, batch.indexOffset, 0, 0);
 			}
-
-			if (command.kind == SdDrawCommandKind::DropShadow)
+			else if (command.kind == SdRenderCommandKind::PushClipRect)
 			{
-				if (command.index < packet.dropShadows.size())
-					RenderDropShadow(packet.dropShadows[command.index], frameInfo);
-				if (hasGeometry)
-					BindPipeline(frameInfo.displaySize);
-				continue;
+				const SdPushClipPayload& payload = packet.commandBuffer.ReadPayload<SdPushClipPayload>(command);
+				if (payload.kind != SdClipKind::Rect)
+					continue;
+				if (payload.rect.Width() <= 0.0f || payload.rect.Height() <= 0.0f)
+					continue;
+				Rhi::SdRectI scissor = {};
+				scissor.left = static_cast<SdInt32>(std::floor(std::max(0.0f, payload.rect.min.x)));
+				scissor.top = static_cast<SdInt32>(std::floor(std::max(0.0f, payload.rect.min.y)));
+				scissor.right = static_cast<SdInt32>(std::ceil(std::min(frameInfo.displaySize.x, payload.rect.max.x)));
+				scissor.bottom = static_cast<SdInt32>(std::ceil(std::min(frameInfo.displaySize.y, payload.rect.max.y)));
+				encoder.SetScissorRect(scissor);
 			}
-
-			if (command.kind == SdDrawCommandKind::InnerShadow)
+			else if (command.kind == SdRenderCommandKind::PopClip)
 			{
-				if (command.index < packet.innerShadows.size())
-					RenderInnerShadow(packet.innerShadows[command.index], frameInfo);
-				if (hasGeometry)
-					BindPipeline(frameInfo.displaySize);
-				continue;
+				encoder.SetScissorRect({ 0, 0, static_cast<SdInt32>(frameInfo.displaySize.x), static_cast<SdInt32>(frameInfo.displaySize.y) });
 			}
-
-			if (!hasGeometry)
-				continue;
-
-			if (command.kind != SdDrawCommandKind::OwnedBatch || command.index >= packet.batches.size())
-				continue;
-			const SdRenderBatch& batch = packet.batches[command.index];
-			if (batch.indexCount == 0)
-				continue;
-
-			TextureEntry* texture = TryGetTexture(batch.texture);
-			if (!texture)
-				continue;
-
-			Rhi::SdRectI scissor = {};
-			scissor.left = static_cast<SdInt32>(std::floor(std::max(0.0f, batch.clipRect.min.x)));
-			scissor.top = static_cast<SdInt32>(std::floor(std::max(0.0f, batch.clipRect.min.y)));
-			scissor.right = static_cast<SdInt32>(std::ceil(std::min(frameInfo.displaySize.x, batch.clipRect.max.x)));
-			scissor.bottom = static_cast<SdInt32>(std::ceil(std::min(frameInfo.displaySize.y, batch.clipRect.max.y)));
-			if (scissor.left >= scissor.right || scissor.top >= scissor.bottom)
-				continue;
-			encoder.SetResourceSet(0, texture->resourceSet);
-			encoder.SetScissorRect(scissor);
-			encoder.DrawIndexed(batch.indexCount, 1, batch.indexOffset, 0, 0);
+			//if (command.kind == SdDrawCommandKind::BackdropBlur)
+			//{
+			//	if (command.index < packet.backdropBlurs.size())
+			//		RenderBackdropBlur(packet.backdropBlurs[command.index], frameInfo);
+			//	if (hasGeometry)
+			//		BindPipeline(frameInfo.displaySize);
+			//	continue;
+			//}
+			//if (command.kind == SdDrawCommandKind::DropShadow)
+			//{
+			//	if (command.index < packet.dropShadows.size())
+			//		RenderDropShadow(packet.dropShadows[command.index], frameInfo);
+			//	if (hasGeometry)
+			//		BindPipeline(frameInfo.displaySize);
+			//	continue;
+			//}
+			//if (command.kind == SdDrawCommandKind::InnerShadow)
+			//{
+			//	if (command.index < packet.innerShadows.size())
+			//		RenderInnerShadow(packet.innerShadows[command.index], frameInfo);
+			//	if (hasGeometry)
+			//		BindPipeline(frameInfo.displaySize);
+			//	continue;
+			//}
 		}
 	}
 }

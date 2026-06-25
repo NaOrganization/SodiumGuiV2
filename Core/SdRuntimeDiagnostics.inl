@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 namespace Sodium
 {
@@ -43,11 +43,10 @@ namespace Sodium
 		diagnostics.activeAnimationChannelCount = static_cast<SdUInt32>(context.animationSystem.GetActiveChannelCount());
 		diagnostics.activeStyleNodeAnimationChannelCount = context.presentationChannels.CountActive();
 		diagnostics.activeLayoutTransitionCount = context.presentationChannels.CountActiveLayoutTransitions();
-		diagnostics.drawCommandCount = static_cast<SdUInt32>(drawData.commands.size());
 		diagnostics.drawVertexCount = static_cast<SdUInt32>(drawData.vertices.size());
 		diagnostics.drawIndexCount = static_cast<SdUInt32>(drawData.indices.size());
 		diagnostics.drawBatchCount = static_cast<SdUInt32>(drawData.batches.size());
-		diagnostics.resourceUploadCount = static_cast<SdUInt32>(drawData.uploads.size());
+		diagnostics.resourceUploadCount = static_cast<SdUInt32>(drawData.uploadRequests.size());
 		diagnostics.createdWidgetCount = context.stateStorage.GetStats().createdWidgetCount;
 		diagnostics.reusedWidgetCount = context.stateStorage.GetStats().reusedWidgetCount;
 		diagnostics.modelCount = context.stateStorage.GetStats().modelCount;

@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Render/SdDrawData.h"
 #include "Render/SdRenderStats.h"
@@ -10,7 +10,7 @@ namespace Sodium
 	class SdRenderSystem final
 	{
 	public:
-		bool Render(ISdRendererBackend* renderer, const SdRendererFrameInfo& frameInfo, const SdDrawPacket& packet)
+		bool Render(ISdRendererBackend* renderer, const SdRendererFrameInfo& frameInfo, const SdRenderPacket& packet)
 		{
 			if (!renderer)
 				return false;

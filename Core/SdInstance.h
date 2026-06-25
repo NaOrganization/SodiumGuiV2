@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Animation/SdAnimation.h"
 #include "Input/SdInput.h"
@@ -270,7 +270,7 @@ namespace Sodium
 		const SdStyleSystem& GetStyleSystem() const noexcept { return context.styling; }
 		const SdRenderSystem& GetRenderSystem() const noexcept { return context.renderSystem; }
 		const SdDrawData& GetRenderData() const noexcept { return renderList.GetDrawData(); }
-		SdDrawPacket GetDrawPacket() const noexcept { return renderList.BuildPacket(static_cast<SdUInt32>(context.frame.frameIndex)); }
+		SdRenderPacket GetDrawPacket() const noexcept { return renderList.BuildPacket(static_cast<SdUInt32>(context.frame.frameIndex)); }
 		SdFrameIndex GetFrameIndex() const noexcept { return context.frame.frameIndex; }
 		SdDuration GetDeltaTime() const noexcept { return context.frame.deltaTime; }
 		SdVec2 GetDisplaySize() const noexcept { return context.frame.displaySize; }

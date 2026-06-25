@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 namespace Sodium
 {
@@ -449,7 +449,7 @@ namespace Sodium
 		if (context.renderSharedData.fontBackend)
 		{
 			context.renderSharedData.fontBackend->ConfigureRenderSharedData(context.renderSharedData);
-			context.renderSharedData.fontBackend->DrainPendingUploads(renderList.GetDrawData().uploads);
+			context.renderSharedData.fontBackend->DrainPendingUploads(renderList.GetDrawData().uploadRequests);
 			context.renderSharedData.fontBackend->ConfigureRenderSharedData(context.renderSharedData);
 		}
 	}
