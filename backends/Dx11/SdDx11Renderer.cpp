@@ -1,4 +1,4 @@
-#include "SdDx11Renderer.h"
+﻿#include "SdDx11Renderer.h"
 
 #include "Effects/SdBlurEffect.hpp"
 
@@ -677,6 +677,7 @@ namespace Sodium::Backends
 			&rhiDevice,
 			blur.cornerRadius
 		};
+		effectContext.cornerRadii = blur.cornerRadii;
 		blurEffect.BuildGraph(effectContext);
 		const bool compiled = graph.Compile();
 		if (compiled)
@@ -752,10 +753,20 @@ namespace Sodium::Backends
 		params.rectMin = shadow.rect.min;
 		params.rectMax = shadow.rect.max;
 		params.offset = shadow.offset;
-		params.radius = shadow.cornerRadius;
+		params.radius = std::max(
+			std::max(shadow.cornerRadii.topLeft, shadow.cornerRadii.topRight),
+			std::max(shadow.cornerRadii.bottomRight, shadow.cornerRadii.bottomLeft));
 		params.blurRadius = shadow.radius;
 		params.spread = shadow.spread;
+		params.outerOnly = 1.0f;
+		params.shadowMode = 0.0f;
 		params.color = { color.r, color.g, color.b, color.a };
+		params.cornerRadii = {
+			shadow.cornerRadii.topLeft,
+			shadow.cornerRadii.topRight,
+			shadow.cornerRadii.bottomRight,
+			shadow.cornerRadii.bottomLeft
+		};
 		rhiDevice.UpdateBuffer(effectResources.GetShadowParamsBuffer(), &params, sizeof(params), 0);
 
 		const Rhi::SdBoundBuffer buffers[] =
@@ -798,6 +809,148 @@ namespace Sodium::Backends
 			{},
 			renderArea,
 			"Sodium.Shadow.RenderPass"
+		};
+
+		Rhi::ISdCommandEncoder& encoder = rhiDevice.GetImmediateEncoder();
+		encoder.BeginRenderPass(renderPass);
+		encoder.SetPipeline(shadowPipeline);
+		encoder.SetResourceSet(0, resourceSet);
+		encoder.SetViewport({
+			static_cast<float>(renderArea.left),
+			static_cast<float>(renderArea.top),
+			static_cast<float>(renderArea.Width()),
+			static_cast<float>(renderArea.Height()),
+			0.0f,
+			1.0f
+		});
+		encoder.SetScissorRect(renderArea);
+		encoder.Draw(3, 1, 0, 0);
+		encoder.EndRenderPass();
+
+		rhiDevice.DestroyResourceSet(resourceSet);
+		rhiDevice.DestroyTexture(targetHandle);
+		return true;
+	}
+
+	bool SdDx11Renderer::RenderInnerShadow(const SdInnerShadowDraw& shadow, const SdRendererFrameInfo& frameInfo)
+	{
+		if (shadow.radius <= 0.0f || shadow.color.a == 0)
+			return false;
+		if (!effectResources.GetShadowResourceSetLayout().IsValid()
+			|| !effectResources.GetShadowParamsBuffer().IsValid())
+		{
+			return false;
+		}
+
+		const SdRect frameRect = { 0.0f, 0.0f, frameInfo.displaySize.x, frameInfo.displaySize.y };
+		const float spread = std::max(0.0f, shadow.spread);
+		const SdRect shadowRect =
+		{
+			shadow.rect.min.x + shadow.offset.x - spread,
+			shadow.rect.min.y + shadow.offset.y - spread,
+			shadow.rect.max.x + shadow.offset.x + spread,
+			shadow.rect.max.y + shadow.offset.y + spread
+		};
+		const SdRect drawRect = ExpandRect(shadowRect, std::ceil(std::max(0.0f, shadow.radius)));
+		const SdRect clippedRect = IntersectRect(IntersectRect(drawRect, shadow.clipRect), frameRect);
+		if (clippedRect.Width() <= 0.0f || clippedRect.Height() <= 0.0f)
+			return false;
+
+		Microsoft::WRL::ComPtr<ID3D11RenderTargetView> currentRtv = {};
+		deviceContext->OMGetRenderTargets(1, currentRtv.GetAddressOf(), nullptr);
+		if (!currentRtv)
+			return false;
+
+		Microsoft::WRL::ComPtr<ID3D11Resource> targetResource = {};
+		currentRtv->GetResource(targetResource.GetAddressOf());
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> targetTexture = {};
+		if (!targetResource || FAILED(targetResource.As(&targetTexture)))
+			return false;
+
+		D3D11_TEXTURE2D_DESC targetDesc = {};
+		targetTexture->GetDesc(&targetDesc);
+		const Rhi::SdTextureFormat targetFormat = MapDxgiFormatToRhi(targetDesc.Format);
+		const Rhi::SdPipelineHandle shadowPipeline = effectResources.GetShadowPipeline(targetFormat);
+		if (!shadowPipeline.IsValid())
+			return false;
+
+		const Rhi::SdTextureDesc targetImportDesc =
+		{
+			targetDesc.Width,
+			targetDesc.Height,
+			1,
+			1,
+			targetFormat,
+			static_cast<Rhi::SdTextureUsageFlags>(Rhi::SdTextureUsage::RenderTarget),
+			targetDesc.SampleDesc.Count,
+			false,
+			"Sodium.Window.InnerShadowTarget"
+		};
+		Rhi::SdTextureHandle targetHandle = rhiDevice.ImportTexture2D(targetTexture.Get(), targetImportDesc);
+		if (!targetHandle.IsValid())
+			return false;
+
+		const SdColorLinear color = shadow.color.ToLinear();
+		SdShadowParams params = {};
+		params.rectMin = shadow.rect.min;
+		params.rectMax = shadow.rect.max;
+		params.offset = shadow.offset;
+		params.radius = std::max(
+			std::max(shadow.cornerRadii.topLeft, shadow.cornerRadii.topRight),
+			std::max(shadow.cornerRadii.bottomRight, shadow.cornerRadii.bottomLeft));
+		params.blurRadius = shadow.radius;
+		params.spread = shadow.spread;
+		params.outerOnly = 1.0f;
+		params.shadowMode = 1.0f;
+		params.color = { color.r, color.g, color.b, color.a };
+		params.cornerRadii = {
+			shadow.cornerRadii.topLeft,
+			shadow.cornerRadii.topRight,
+			shadow.cornerRadii.bottomRight,
+			shadow.cornerRadii.bottomLeft
+		};
+		rhiDevice.UpdateBuffer(effectResources.GetShadowParamsBuffer(), &params, sizeof(params), 0);
+
+		const Rhi::SdBoundBuffer buffers[] =
+		{
+			{ 0, effectResources.GetShadowParamsBuffer(), 0, sizeof(SdShadowParams) }
+		};
+		const Rhi::SdResourceSetDesc resourceSetDesc =
+		{
+			effectResources.GetShadowResourceSetLayout(),
+			{},
+			{},
+			buffers,
+			"Sodium.InnerShadow.ResourceSet"
+		};
+		const Rhi::SdResourceSetHandle resourceSet = rhiDevice.CreateResourceSet(resourceSetDesc);
+		if (!resourceSet.IsValid())
+		{
+			rhiDevice.DestroyTexture(targetHandle);
+			return false;
+		}
+
+		const Rhi::SdRectI renderArea =
+		{
+			static_cast<SdInt32>(std::floor(clippedRect.min.x)),
+			static_cast<SdInt32>(std::floor(clippedRect.min.y)),
+			static_cast<SdInt32>(std::ceil(clippedRect.max.x)),
+			static_cast<SdInt32>(std::ceil(clippedRect.max.y))
+		};
+		const Rhi::SdRenderPassColorAttachment colorAttachment =
+		{
+			targetHandle,
+			Rhi::SdLoadOp::Load,
+			Rhi::SdStoreOp::Store,
+			{}
+		};
+		const std::array<Rhi::SdRenderPassColorAttachment, 1> colorAttachments = { colorAttachment };
+		const Rhi::SdRenderPassDesc renderPass =
+		{
+			colorAttachments,
+			{},
+			renderArea,
+			"Sodium.InnerShadow.RenderPass"
 		};
 
 		Rhi::ISdCommandEncoder& encoder = rhiDevice.GetImmediateEncoder();
@@ -934,6 +1087,15 @@ namespace Sodium::Backends
 			{
 				if (command.index < packet.dropShadows.size())
 					RenderDropShadow(packet.dropShadows[command.index], frameInfo);
+				if (hasGeometry)
+					BindPipeline(frameInfo.displaySize);
+				continue;
+			}
+
+			if (command.kind == SdDrawCommandKind::InnerShadow)
+			{
+				if (command.index < packet.innerShadows.size())
+					RenderInnerShadow(packet.innerShadows[command.index], frameInfo);
 				if (hasGeometry)
 					BindPipeline(frameInfo.displaySize);
 				continue;

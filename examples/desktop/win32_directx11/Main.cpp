@@ -363,6 +363,7 @@ namespace
 			});
 
 			Sodium::SdWindowOptions metricsWindowOptions = {};
+			metricsWindowOptions.shadowColor = { 255, 0, 0, 128 };
 			metricsWindowOptions.position = { 638.0f, 118.0f };
 			metricsWindowOptions.size = { 330.0f, 172.0f };
 			metricsWindowOptions.backgroundBlurRadius = 12.0f;
@@ -464,7 +465,7 @@ namespace
 				styleSystem.SetColor(Sodium::SdDesignTokenIds::Text, { 28, 34, 42, 255 });
 				styleSystem.SetColor(Sodium::SdDesignTokenIds::ButtonText, { 28, 34, 42, 255 });
 				styleSystem.SetColor(Sodium::SdDesignTokenIds::Background, { 236, 241, 246, 255 });
-				styleSystem.SetColor(Sodium::SdDesignTokenIds::WindowBg, { 250, 252, 255, 100 });
+				styleSystem.SetColor(Sodium::SdDesignTokenIds::WindowBg, { 250, 252, 255, 0 });
 				styleSystem.SetColor(Sodium::SdDesignTokenIds::PanelBg, { 226, 234, 242, 242 });
 				styleSystem.SetColor(Sodium::SdDesignTokenIds::ButtonBg, { 214, 228, 241, 255 });
 				styleSystem.SetColor(Sodium::SdDesignTokenIds::ButtonBgHover, { 190, 215, 238, 255 });
@@ -480,7 +481,7 @@ namespace
 				styleSystem.SetColor(Sodium::SdDesignTokenIds::Text, Sodium::SdColorWhite);
 				styleSystem.SetColor(Sodium::SdDesignTokenIds::ButtonText, Sodium::SdColorWhite);
 				styleSystem.SetColor(Sodium::SdDesignTokenIds::Background, { 24, 30, 39, 242 });
-				styleSystem.SetColor(Sodium::SdDesignTokenIds::WindowBg, { 24, 30, 39, 100 });
+				styleSystem.SetColor(Sodium::SdDesignTokenIds::WindowBg, { 24, 30, 39, 0 });
 				styleSystem.SetColor(Sodium::SdDesignTokenIds::PanelBg, { 35, 42, 52, 235 });
 				styleSystem.SetColor(Sodium::SdDesignTokenIds::ButtonBg, { 48, 72, 96, 255 });
 				styleSystem.SetColor(Sodium::SdDesignTokenIds::ButtonBgHover, { 62, 100, 138, 255 });

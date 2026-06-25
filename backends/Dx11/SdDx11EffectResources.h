@@ -47,9 +47,9 @@ namespace Sodium::Backends
 				float2 direction;
 				float2 clipMin;
 				float2 clipMax;
+				float4 cornerRadii;
 				float radius;
-				float cornerRadius;
-				float2 padding0;
+				float3 padding0;
 				float2 textureMin;
 				float2 textureSize;
 			};
@@ -60,28 +60,45 @@ namespace Sodium::Backends
 				float2 uv : TEXCOORD0;
 			};
 
+			float4 SampleSource(float2 uv)
+			{
+				return sourceTexture.SampleLevel(linearSampler, saturate(uv), 0.0f);
+			}
+
 			float4 main(PSInput input) : SV_Target
 			{
-				int sampleRadius = (int)ceil(clamp(radius, 1.0f, 32.0f));
+				float clampedRadius = clamp(radius, 0.0f, 32.0f);
+
+				if (clampedRadius <= 0.001f)
+					return SampleSource(input.uv);
+
+				int sampleRadius = (int)ceil(clampedRadius);
+
 				float sigma = max((float)sampleRadius * 0.5f, 1.0f);
-				float twoSigmaSquared = 2.0f * sigma * sigma;
+				float invTwoSigmaSquared = 1.0f / max(2.0f * sigma * sigma, 0.00001f);
+
 				float2 stepValue = direction * texelSize;
-				float4 color = float4(0.0f, 0.0f, 0.0f, 0.0f);
-				float totalWeight = 0.0f;
+
+				float4 color = SampleSource(input.uv);
+				float totalWeight = 1.0f;
 
 				[loop]
-				for (int offset = -32; offset <= 32; ++offset)
+				for (int offset = 1; offset <= sampleRadius; ++offset)
 				{
-					if (abs(offset) > sampleRadius)
-						continue;
+					float offsetF = (float)offset;
+					float weight = exp(-(offsetF * offsetF) * invTwoSigmaSquared);
 
-					float weight = exp(-((float)(offset * offset)) / twoSigmaSquared);
-					color += sourceTexture.SampleLevel(linearSampler, input.uv + stepValue * (float)offset, 0.0f) * weight;
-					totalWeight += weight;
+					float2 delta = stepValue * offsetF;
+
+					color += SampleSource(input.uv + delta) * weight;
+					color += SampleSource(input.uv - delta) * weight;
+
+					totalWeight += weight * 2.0f;
 				}
 
 				return color / max(totalWeight, 0.00001f);
-			})");
+			}
+		)");
 
 		inline constexpr const char* kCompositePixelShader = SODIUM_STRING(R"(
 			Texture2D sourceTexture : register(t0);
@@ -93,9 +110,9 @@ namespace Sodium::Backends
 				float2 direction;
 				float2 clipMin;
 				float2 clipMax;
+				float4 cornerRadii;
 				float radius;
-				float cornerRadius;
-				float2 padding0;
+				float3 padding0;
 				float2 textureMin;
 				float2 textureSize;
 			};
@@ -106,20 +123,102 @@ namespace Sodium::Backends
 				float2 uv : TEXCOORD0;
 			};
 
+			float4 NormalizeCornerRadii(float2 size, float4 radii)
+			{
+				radii = max(radii, float4(0.0f, 0.0f, 0.0f, 0.0f));
+
+				float scale = 1.0f;
+
+				float topSum = radii.x + radii.y;
+				float bottomSum = radii.w + radii.z;
+				float leftSum = radii.x + radii.w;
+				float rightSum = radii.y + radii.z;
+
+				if (topSum > 0.0f)
+					scale = min(scale, size.x / topSum);
+				if (bottomSum > 0.0f)
+					scale = min(scale, size.x / bottomSum);
+				if (leftSum > 0.0f)
+					scale = min(scale, size.y / leftSum);
+				if (rightSum > 0.0f)
+					scale = min(scale, size.y / rightSum);
+
+				return radii * saturate(scale);
+			}
+
+			float CornerAlpha(float2 p, float2 center, float radius)
+			{
+				if (radius <= 0.5f)
+					return 1.0f;
+
+				float signedDistance = length(p - center) - radius;
+				return saturate(0.5f - signedDistance);
+			}
+
+			float RoundedRectAlpha(float2 pixelPos, float2 minPoint, float2 maxPoint, float4 radii)
+			{
+				if (pixelPos.x < minPoint.x || pixelPos.y < minPoint.y ||
+					pixelPos.x > maxPoint.x || pixelPos.y > maxPoint.y)
+				{
+					return 0.0f;
+				}
+
+				float2 size = max(maxPoint - minPoint, float2(0.0f, 0.0f));
+				radii = NormalizeCornerRadii(size, radii);
+
+				float tl = radii.x;
+				float tr = radii.y;
+				float br = radii.z;
+				float bl = radii.w;
+
+				float alpha = 1.0f;
+
+				float edgeDistance = min(
+					min(pixelPos.x - minPoint.x, maxPoint.x - pixelPos.x),
+					min(pixelPos.y - minPoint.y, maxPoint.y - pixelPos.y)
+				);
+
+				alpha = min(alpha, saturate(edgeDistance + 0.5f));
+
+				if (pixelPos.x < minPoint.x + tl && pixelPos.y < minPoint.y + tl)
+				{
+					alpha = min(alpha, CornerAlpha(pixelPos, minPoint + float2(tl, tl), tl));
+				}
+				else if (pixelPos.x > maxPoint.x - tr && pixelPos.y < minPoint.y + tr)
+				{
+					alpha = min(alpha, CornerAlpha(pixelPos, float2(maxPoint.x - tr, minPoint.y + tr), tr));
+				}
+				else if (pixelPos.x > maxPoint.x - br && pixelPos.y > maxPoint.y - br)
+				{
+					alpha = min(alpha, CornerAlpha(pixelPos, maxPoint - float2(br, br), br));
+				}
+				else if (pixelPos.x < minPoint.x + bl && pixelPos.y > maxPoint.y - bl)
+				{
+					alpha = min(alpha, CornerAlpha(pixelPos, float2(minPoint.x + bl, maxPoint.y - bl), bl));
+				}
+
+				return alpha;
+			}
+
 			float4 main(PSInput input) : SV_Target
 			{
-				float alpha = 1.0f;
-				if (cornerRadius > 0.5f)
-				{
-					float2 clampedPoint = clamp(input.position.xy, clipMin + cornerRadius, clipMax - cornerRadius);
-					float distanceToCorner = length(input.position.xy - clampedPoint);
-					alpha = saturate(cornerRadius + 0.5f - distanceToCorner);
-				}
+				float2 pixelPos = input.position.xy;
+
+				float alpha = RoundedRectAlpha(pixelPos, clipMin, clipMax, cornerRadii);
+
+				if (alpha <= 0.0f)
+					return float4(0.0f, 0.0f, 0.0f, 0.0f);
+
 				float2 sampleUv = input.uv;
+
 				if (textureSize.x > 0.0f && textureSize.y > 0.0f)
-					sampleUv = saturate((input.position.xy - textureMin) / textureSize);
+					sampleUv = (pixelPos - textureMin) / textureSize;
+
+				sampleUv = saturate(sampleUv);
+
 				return sourceTexture.Sample(linearSampler, sampleUv) * alpha;
-			})");
+			}
+		)");
 
 		inline constexpr const char* kShadowPixelShader = SODIUM_STRING(R"(
 			cbuffer ShadowParams : register(b0)
@@ -130,8 +229,11 @@ namespace Sodium::Backends
 				float radius;
 				float blurRadius;
 				float spread;
-				float3 padding0;
+				float outerOnly;
+				float shadowMode;
+				float padding0;
 				float4 color;
+				float4 cornerRadii;
 			};
 
 			struct PSInput
@@ -140,25 +242,102 @@ namespace Sodium::Backends
 				float2 uv : TEXCOORD0;
 			};
 
-			float RoundedRectDistance(float2 pixelPosition, float2 minPoint, float2 maxPoint, float cornerRadius)
+			float4 NormalizeCornerRadii(float2 size, float4 radii, float uniformRadius)
 			{
-				float2 center = (minPoint + maxPoint) * 0.5f;
-				float2 halfSize = max((maxPoint - minPoint) * 0.5f - float2(cornerRadius, cornerRadius), float2(0.0f, 0.0f));
-				float2 q = abs(pixelPosition - center) - halfSize;
-				return length(max(q, float2(0.0f, 0.0f))) + min(max(q.x, q.y), 0.0f) - cornerRadius;
+				if (radii.x <= 0.0f && radii.y <= 0.0f && radii.z <= 0.0f && radii.w <= 0.0f)
+					radii = float4(uniformRadius, uniformRadius, uniformRadius, uniformRadius);
+
+				radii = max(radii, float4(0.0f, 0.0f, 0.0f, 0.0f));
+
+				float scale = 1.0f;
+
+				float topSum = radii.x + radii.y;
+				float bottomSum = radii.w + radii.z;
+				float leftSum = radii.x + radii.w;
+				float rightSum = radii.y + radii.z;
+
+				if (topSum > 0.0f)
+					scale = min(scale, size.x / topSum);
+				if (bottomSum > 0.0f)
+					scale = min(scale, size.x / bottomSum);
+				if (leftSum > 0.0f)
+					scale = min(scale, size.y / leftSum);
+				if (rightSum > 0.0f)
+					scale = min(scale, size.y / rightSum);
+
+				return radii * saturate(scale);
+			}
+
+			float RoundedRectDistance(float2 pixelPosition, float2 minPoint, float2 maxPoint, float4 radii)
+			{
+				float2 size = max(maxPoint - minPoint, float2(0.0f, 0.0f));
+				radii = NormalizeCornerRadii(size, radii, 0.0f);
+
+				float tl = radii.x;
+				float tr = radii.y;
+				float br = radii.z;
+				float bl = radii.w;
+
+				if (pixelPosition.x < minPoint.x + tl && pixelPosition.y < minPoint.y + tl)
+					return length(pixelPosition - (minPoint + float2(tl, tl))) - tl;
+				if (pixelPosition.x > maxPoint.x - tr && pixelPosition.y < minPoint.y + tr)
+					return length(pixelPosition - float2(maxPoint.x - tr, minPoint.y + tr)) - tr;
+				if (pixelPosition.x > maxPoint.x - br && pixelPosition.y > maxPoint.y - br)
+					return length(pixelPosition - (maxPoint - float2(br, br))) - br;
+				if (pixelPosition.x < minPoint.x + bl && pixelPosition.y > maxPoint.y - bl)
+					return length(pixelPosition - float2(minPoint.x + bl, maxPoint.y - bl)) - bl;
+
+				float2 outsideDistance = max(max(minPoint - pixelPosition, pixelPosition - maxPoint), float2(0.0f, 0.0f));
+				if (outsideDistance.x > 0.0f || outsideDistance.y > 0.0f)
+					return length(outsideDistance);
+
+				float2 insideDistance = min(pixelPosition - minPoint, maxPoint - pixelPosition);
+				return -min(insideDistance.x, insideDistance.y);
+			}
+
+			float SoftInsideMask(float distanceValue, float softness)
+			{
+				return 1.0f - smoothstep(-softness, softness, distanceValue);
 			}
 
 			float4 main(PSInput input) : SV_Target
 			{
-				float clampedSpread = max(spread, 0.0f);
-				float2 shadowMin = rectMin + offset - clampedSpread;
-				float2 shadowMax = rectMax + offset + clampedSpread;
-				float shadowRadius = max(radius + clampedSpread, 0.0f);
-				float distanceToShadow = RoundedRectDistance(input.position.xy, shadowMin, shadowMax, shadowRadius);
-				float softness = max(blurRadius, 0.5f);
-				float alpha = 1.0f - smoothstep(-softness, softness, distanceToShadow);
+				float2 pixelPos = input.position.xy;
+
+				float2 sourceSize = max(rectMax - rectMin, float2(0.0f, 0.0f));
+				float maxShrink = max(min(sourceSize.x, sourceSize.y) * 0.5f - 0.001f, 0.0f);
+
+				float safeSpread = max(spread, -maxShrink);
+				float2 spreadVec = float2(safeSpread, safeSpread);
+
+				float2 shadowMin = rectMin + offset - spreadVec;
+				float2 shadowMax = rectMax + offset + spreadVec;
+
+				float4 sourceCornerRadii = NormalizeCornerRadii(sourceSize, cornerRadii, max(radius, 0.0f));
+				float4 shadowCornerRadii = max(sourceCornerRadii + safeSpread, float4(0.0f, 0.0f, 0.0f, 0.0f));
+				shadowCornerRadii = NormalizeCornerRadii(max(shadowMax - shadowMin, float2(0.0f, 0.0f)), shadowCornerRadii, max(radius + safeSpread, 0.0f));
+
+				float sourceDistance = RoundedRectDistance(pixelPos, rectMin, rectMax, sourceCornerRadii);
+				float shadowDistance = RoundedRectDistance(pixelPos, shadowMin, shadowMax, shadowCornerRadii);
+
+				float edgeAA = 0.5f;
+				float softness = max(blurRadius, edgeAA);
+
+				float sourceInsideAlpha = SoftInsideMask(sourceDistance, edgeAA);
+				float sourceOutsideAlpha = 1.0f - sourceInsideAlpha;
+
+				float shadowAlpha = SoftInsideMask(shadowDistance, softness);
+
+				float outerMask = lerp(1.0f, sourceOutsideAlpha, saturate(outerOnly));
+				float outerShadowAlpha = shadowAlpha * outerMask;
+
+				float innerShadowAlpha = (1.0f - shadowAlpha) * sourceInsideAlpha;
+
+				float alpha = lerp(outerShadowAlpha, innerShadowAlpha, saturate(shadowMode));
+
 				return float4(color.rgb, color.a * alpha);
-			})");
+			}
+		)");
 
 		inline bool CompileShader(
 			const char* source,
@@ -211,19 +390,19 @@ namespace Sodium::Backends
 			SdSpan<const Rhi::SdByte>(static_cast<const Rhi::SdByte*>(fullscreenVs->GetBufferPointer()), fullscreenVs->GetBufferSize()),
 			"main",
 			"Sodium.Effect.Fullscreen.VS"
-		});
+			});
 		const Rhi::SdShaderHandle blurPixelShader = device.CreateShader({
 			Rhi::SdShaderStage::Pixel,
 			SdSpan<const Rhi::SdByte>(static_cast<const Rhi::SdByte*>(blurPs->GetBufferPointer()), blurPs->GetBufferSize()),
 			"main",
 			"Sodium.Effect.Blur.PS"
-		});
+			});
 		const Rhi::SdShaderHandle compositePixelShader = device.CreateShader({
 			Rhi::SdShaderStage::Pixel,
 			SdSpan<const Rhi::SdByte>(static_cast<const Rhi::SdByte*>(compositePs->GetBufferPointer()), compositePs->GetBufferSize()),
 			"main",
 			"Sodium.Effect.Composite.PS"
-		});
+			});
 		if (!fullscreenVertexShader.IsValid() || !blurPixelShader.IsValid() || !compositePixelShader.IsValid())
 			return false;
 
@@ -236,7 +415,7 @@ namespace Sodium::Backends
 		const Rhi::SdResourceSetLayoutHandle layout = device.CreateResourceSetLayout({
 			bindings,
 			"Sodium.Effect.Blur.ResourceLayout"
-		});
+			});
 		if (!layout.IsValid())
 			return false;
 
@@ -245,7 +424,7 @@ namespace Sodium::Backends
 			static_cast<Rhi::SdBufferUsageFlags>(Rhi::SdBufferUsage::Uniform),
 			Rhi::SdMemoryUsage::CpuToGpu,
 			"Sodium.Effect.Blur.Params"
-		}, nullptr);
+			}, nullptr);
 		if (!paramsBuffer.IsValid())
 			return false;
 
@@ -257,7 +436,7 @@ namespace Sodium::Backends
 			Rhi::SdAddressMode::Clamp,
 			Rhi::SdAddressMode::Clamp,
 			"Sodium.Effect.LinearClamp"
-		});
+			});
 		if (!linearSampler.IsValid())
 			return false;
 
@@ -295,7 +474,7 @@ namespace Sodium::Backends
 		const Rhi::SdResourceSetLayoutHandle shadowLayout = device.CreateResourceSetLayout({
 			shadowBindings,
 			"Sodium.Effect.Shadow.ResourceLayout"
-		});
+			});
 		if (!shadowLayout.IsValid())
 			return false;
 		cache.SetShadowResourceSetLayout(shadowLayout);
@@ -305,7 +484,7 @@ namespace Sodium::Backends
 			static_cast<Rhi::SdBufferUsageFlags>(Rhi::SdBufferUsage::Uniform),
 			Rhi::SdMemoryUsage::CpuToGpu,
 			"Sodium.Effect.Shadow.Params"
-		}, nullptr);
+			}, nullptr);
 		if (!shadowParamsBuffer.IsValid())
 			return false;
 		cache.SetShadowParamsBuffer(shadowParamsBuffer);
@@ -319,7 +498,7 @@ namespace Sodium::Backends
 			SdSpan<const Rhi::SdByte>(static_cast<const Rhi::SdByte*>(shadowPs->GetBufferPointer()), shadowPs->GetBufferSize()),
 			"main",
 			"Sodium.Effect.Shadow.PS"
-		});
+			});
 		if (!shadowPixelShader.IsValid())
 			return false;
 

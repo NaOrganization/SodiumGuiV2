@@ -118,6 +118,7 @@ namespace Sodium
 		const Rhi::SdGpuCaps& caps;
 		Rhi::ISdGpuDevice* device = nullptr;
 		float cornerRadius = 0.0f;
+		SdCornerRadii cornerRadii = {};
 	};
 
 	class ISdEffect
@@ -138,12 +139,14 @@ namespace Sodium
 		SdVec2 direction = { 1.0f, 0.0f };
 		SdVec2 clipMin = {};
 		SdVec2 clipMax = {};
+		SdCornerRadii cornerRadii = {};
 		float radius = 0.0f;
-		float cornerRadius = 0.0f;
-		float padding[2] = {};
+		float padding[3] = {};
 		SdVec2 textureMin = {};
 		SdVec2 textureSize = { 1.0f, 1.0f };
 	};
+
+	static_assert(sizeof(SdBlurParams) == 80);
 
 	struct SdCompositeParams final
 	{
@@ -160,11 +163,14 @@ namespace Sodium
 		float radius = 0.0f;
 		float blurRadius = 0.0f;
 		float spread = 0.0f;
-		float padding[3] = {};
+		float outerOnly = 1.0f;
+		float shadowMode = 0.0f;
+		float padding[1] = {};
 		SdVec4 color = {};
+		SdVec4 cornerRadii = {};
 	};
 
-	static_assert(sizeof(SdShadowParams) == 64);
+	static_assert(sizeof(SdShadowParams) == 80);
 
 	inline Rhi::SdRenderGraphTextureDesc SdMakeEffectTextureDesc(
 		SdUInt32 width,

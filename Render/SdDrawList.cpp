@@ -178,15 +178,31 @@ namespace Sodium
 
 	void SdRenderList::AddBackdropBlur(const SdRect& rect, const SdRect& clipRect, float radius, float cornerRadius)
 	{
+		AddBackdropBlur(rect, clipRect, radius, SdCornerRadii(cornerRadius, cornerRadius, cornerRadius, cornerRadius));
+	}
+
+	void SdRenderList::AddBackdropBlur(const SdRect& rect, const SdRect& clipRect, float radius, const SdCornerRadii& cornerRadii)
+	{
 		if (radius <= 0.0f || rect.Width() <= 0.0f || rect.Height() <= 0.0f)
 			return;
 
+		const SdCornerRadii normalizedCornerRadii =
+		{
+			std::max(0.0f, cornerRadii.topLeft),
+			std::max(0.0f, cornerRadii.topRight),
+			std::max(0.0f, cornerRadii.bottomRight),
+			std::max(0.0f, cornerRadii.bottomLeft)
+		};
 		const SdUInt32 index = static_cast<SdUInt32>(drawData.backdropBlurs.size());
+		const float legacyCornerRadius = std::max(
+			std::max(normalizedCornerRadii.topLeft, normalizedCornerRadii.topRight),
+			std::max(normalizedCornerRadii.bottomRight, normalizedCornerRadii.bottomLeft));
 		drawData.backdropBlurs.push_back({
 			rect,
 			clipRect,
 			radius,
-			cornerRadius
+			legacyCornerRadius,
+			normalizedCornerRadii
 		});
 		drawData.commands.push_back({
 			SdDrawCommandKind::BackdropBlur,
@@ -197,9 +213,21 @@ namespace Sodium
 
 	void SdRenderList::AddDropShadow(const SdRect& rect, const SdRect& clipRect, const SdVec2& offset, const SdColor& color, float radius, float spread, float cornerRadius)
 	{
+		AddDropShadow(rect, clipRect, offset, color, radius, spread, SdCornerRadii(cornerRadius, cornerRadius, cornerRadius, cornerRadius));
+	}
+
+	void SdRenderList::AddDropShadow(const SdRect& rect, const SdRect& clipRect, const SdVec2& offset, const SdColor& color, float radius, float spread, const SdCornerRadii& cornerRadii)
+	{
 		if (color.a == 0 || radius <= 0.0f || rect.Width() <= 0.0f || rect.Height() <= 0.0f)
 			return;
 
+		const SdCornerRadii normalizedCornerRadii =
+		{
+			std::max(0.0f, cornerRadii.topLeft),
+			std::max(0.0f, cornerRadii.topRight),
+			std::max(0.0f, cornerRadii.bottomRight),
+			std::max(0.0f, cornerRadii.bottomLeft)
+		};
 		const SdUInt32 index = static_cast<SdUInt32>(drawData.dropShadows.size());
 		drawData.dropShadows.push_back({
 			rect,
@@ -208,10 +236,44 @@ namespace Sodium
 			color,
 			radius,
 			spread,
-			cornerRadius
+			normalizedCornerRadii
 		});
 		drawData.commands.push_back({
 			SdDrawCommandKind::DropShadow,
+			index
+		});
+		forceNewBatch = true;
+	}
+
+	void SdRenderList::AddInnerShadow(const SdRect& rect, const SdRect& clipRect, const SdVec2& offset, const SdColor& color, float radius, float spread, float cornerRadius)
+	{
+		AddInnerShadow(rect, clipRect, offset, color, radius, spread, SdCornerRadii(cornerRadius, cornerRadius, cornerRadius, cornerRadius));
+	}
+
+	void SdRenderList::AddInnerShadow(const SdRect& rect, const SdRect& clipRect, const SdVec2& offset, const SdColor& color, float radius, float spread, const SdCornerRadii& cornerRadii)
+	{
+		if (color.a == 0 || radius <= 0.0f || rect.Width() <= 0.0f || rect.Height() <= 0.0f)
+			return;
+
+		const SdCornerRadii normalizedCornerRadii =
+		{
+			std::max(0.0f, cornerRadii.topLeft),
+			std::max(0.0f, cornerRadii.topRight),
+			std::max(0.0f, cornerRadii.bottomRight),
+			std::max(0.0f, cornerRadii.bottomLeft)
+		};
+		const SdUInt32 index = static_cast<SdUInt32>(drawData.innerShadows.size());
+		drawData.innerShadows.push_back({
+			rect,
+			clipRect,
+			offset,
+			color,
+			radius,
+			spread,
+			normalizedCornerRadii
+		});
+		drawData.commands.push_back({
+			SdDrawCommandKind::InnerShadow,
 			index
 		});
 		forceNewBatch = true;

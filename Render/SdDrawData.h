@@ -46,6 +46,7 @@ namespace Sodium
 		SdRect clipRect = {};
 		float radius = 12.0f;
 		float cornerRadius = 0.0f;
+		SdCornerRadii cornerRadii = {};
 	};
 
 	struct SdDropShadowDraw final
@@ -56,7 +57,18 @@ namespace Sodium
 		SdColor color = { 0, 0, 0, 96 };
 		float radius = 16.0f;
 		float spread = 0.0f;
-		float cornerRadius = 0.0f;
+		SdCornerRadii cornerRadii = {};
+	};
+
+	struct SdInnerShadowDraw final
+	{
+		SdRect rect = {};
+		SdRect clipRect = {};
+		SdVec2 offset = {};
+		SdColor color = { 0, 0, 0, 96 };
+		float radius = 16.0f;
+		float spread = 0.0f;
+		SdCornerRadii cornerRadii = {};
 	};
 
 	enum class SdDrawCommandKind : SdUInt8
@@ -64,7 +76,8 @@ namespace Sodium
 		OwnedBatch,
 		ReferencedParagraphBatch,
 		BackdropBlur,
-		DropShadow
+		DropShadow,
+		InnerShadow
 	};
 
 	struct SdDrawCommand final
@@ -100,6 +113,7 @@ namespace Sodium
 		std::span<const SdReferencedParagraphDraw> referencedParagraphs = {};
 		std::span<const SdBackdropBlurDraw> backdropBlurs = {};
 		std::span<const SdDropShadowDraw> dropShadows = {};
+		std::span<const SdInnerShadowDraw> innerShadows = {};
 		std::span<const SdUploadRequest> resourceUpdates = {};
 		SdUInt32 packetVersion = 0;
 	};
@@ -177,6 +191,7 @@ namespace Sodium
 		std::vector<SdReferencedParagraphDraw> referencedParagraphs = {};
 		std::vector<SdBackdropBlurDraw> backdropBlurs = {};
 		std::vector<SdDropShadowDraw> dropShadows = {};
+		std::vector<SdInnerShadowDraw> innerShadows = {};
 		std::vector<SdDrawCommand> commands = {};
 		std::vector<SdUploadRequest> uploads = {};
 
@@ -188,6 +203,7 @@ namespace Sodium
 			referencedParagraphs.clear();
 			backdropBlurs.clear();
 			dropShadows.clear();
+			innerShadows.clear();
 			commands.clear();
 			uploads.clear();
 		}
@@ -200,6 +216,7 @@ namespace Sodium
 			referencedParagraphs.assign(packet.referencedParagraphs.begin(), packet.referencedParagraphs.end());
 			backdropBlurs.assign(packet.backdropBlurs.begin(), packet.backdropBlurs.end());
 			dropShadows.assign(packet.dropShadows.begin(), packet.dropShadows.end());
+			innerShadows.assign(packet.innerShadows.begin(), packet.innerShadows.end());
 			commands.assign(packet.commands.begin(), packet.commands.end());
 			uploads.assign(packet.resourceUpdates.begin(), packet.resourceUpdates.end());
 		}
@@ -214,6 +231,7 @@ namespace Sodium
 				std::span<const SdReferencedParagraphDraw>(referencedParagraphs.data(), referencedParagraphs.size()),
 				std::span<const SdBackdropBlurDraw>(backdropBlurs.data(), backdropBlurs.size()),
 				std::span<const SdDropShadowDraw>(dropShadows.data(), dropShadows.size()),
+				std::span<const SdInnerShadowDraw>(innerShadows.data(), innerShadows.size()),
 				std::span<const SdUploadRequest>(uploads.data(), uploads.size()),
 				packetVersion
 			};

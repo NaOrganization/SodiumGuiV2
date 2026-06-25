@@ -72,7 +72,11 @@ namespace Sodium
 		void AddRectFilled(const SdRect& rect, const SdColor& color, const SdRect& clipRect, float rounding = 0.0f, SdUInt32 roundingSegments = 0);
 		void AddRectFilledMultiColor(const SdRect& rect, const SdColor& colorUpperLeft, const SdColor& colorUpperRight, const SdColor& colorBottomRight, const SdColor& colorBottomLeft, const SdRect& clipRect);
 		void AddBackdropBlur(const SdRect& rect, const SdRect& clipRect, float radius, float cornerRadius = 0.0f);
+		void AddBackdropBlur(const SdRect& rect, const SdRect& clipRect, float radius, const SdCornerRadii& cornerRadii);
 		void AddDropShadow(const SdRect& rect, const SdRect& clipRect, const SdVec2& offset, const SdColor& color, float radius, float spread = 0.0f, float cornerRadius = 0.0f);
+		void AddDropShadow(const SdRect& rect, const SdRect& clipRect, const SdVec2& offset, const SdColor& color, float radius, float spread, const SdCornerRadii& cornerRadii);
+		void AddInnerShadow(const SdRect& rect, const SdRect& clipRect, const SdVec2& offset, const SdColor& color, float radius, float spread = 0.0f, float cornerRadius = 0.0f);
+		void AddInnerShadow(const SdRect& rect, const SdRect& clipRect, const SdVec2& offset, const SdColor& color, float radius, float spread, const SdCornerRadii& cornerRadii);
 		void AddCircle(const SdVec2& center, float radius, const SdColor& color, const SdRect& clipRect, float thickness = 1.0f, SdUInt32 segmentCount = 0);
 		void AddCircleFilled(const SdVec2& center, float radius, const SdColor& color, const SdRect& clipRect, SdUInt32 segmentCount = 0);
 		void AddImage(SdTextureHandle texture, const SdRect& rect, const SdRect& uvRect, const SdColor& color, const SdRect& clipRect);

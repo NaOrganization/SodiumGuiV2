@@ -146,6 +146,21 @@ namespace Sodium
 			: x(valueX), y(valueY), z(valueZ), w(valueW) {}
 	};
 
+	// Corner order: top-left, top-right, bottom-right, bottom-left.
+	struct SdCornerRadii final
+	{
+		float topLeft = 0.0f;
+		float topRight = 0.0f;
+		float bottomRight = 0.0f;
+		float bottomLeft = 0.0f;
+
+		constexpr SdCornerRadii() = default;
+		constexpr SdCornerRadii(float valueTopLeft, float valueTopRight, float valueBottomRight, float valueBottomLeft)
+			: topLeft(valueTopLeft), topRight(valueTopRight), bottomRight(valueBottomRight), bottomLeft(valueBottomLeft) {}
+
+		friend constexpr bool operator==(const SdCornerRadii&, const SdCornerRadii&) = default;
+	};
+
 	struct SdMat3 final
 	{
 		float m[3][3] =

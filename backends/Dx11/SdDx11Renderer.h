@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "backends/Dx11/SdDx11EffectResources.h"
 #include "backends/Dx11/SdDx11Rhi.h"
@@ -57,6 +57,7 @@ namespace Sodium::Backends
 		bool RebuildTextureResourceSet(TextureEntry& entry);
 		bool RenderBackdropBlur(const SdBackdropBlurDraw& blur, const SdRendererFrameInfo& frameInfo);
 		bool RenderDropShadow(const SdDropShadowDraw& shadow, const SdRendererFrameInfo& frameInfo);
+		bool RenderInnerShadow(const SdInnerShadowDraw& shadow, const SdRendererFrameInfo& frameInfo);
 		TextureEntry& EnsureTextureEntry(SdTextureHandle texture);
 		void BindPipeline(SdVec2 displaySize);
 		TextureEntry* TryGetTexture(SdTextureHandle texture) noexcept;

@@ -3642,17 +3642,44 @@ namespace
 			"backdrop blur preserves draw command order");
 
 		list.Reset();
+		list.AddBackdropBlur({ 20.0f, 0.0f, 50.0f, 30.0f }, clip, 12.0f, { 2.0f, 4.0f, 6.0f, 8.0f });
+		const SdDrawData& cornerBlurData = list.GetDrawData();
+		Check(
+			cornerBlurData.backdropBlurs.size() == 1
+			&& cornerBlurData.backdropBlurs[0].cornerRadii.topLeft == 2.0f
+			&& cornerBlurData.backdropBlurs[0].cornerRadii.topRight == 4.0f
+			&& cornerBlurData.backdropBlurs[0].cornerRadii.bottomRight == 6.0f
+			&& cornerBlurData.backdropBlurs[0].cornerRadii.bottomLeft == 8.0f,
+			"backdrop blur stores per-corner radii");
+
+		list.Reset();
 		list.AddRectFilled({ 0.0f, 0.0f, 10.0f, 10.0f }, SdColorWhite, clip);
-		list.AddDropShadow({ 20.0f, 0.0f, 50.0f, 30.0f }, clip, { 0.0f, 8.0f }, { 0, 0, 0, 128 }, 16.0f);
+		list.AddDropShadow({ 20.0f, 0.0f, 50.0f, 30.0f }, clip, { 0.0f, 8.0f }, { 0, 0, 0, 128 }, 16.0f, 0.0f, SdCornerRadii(2.0f, 4.0f, 6.0f, 8.0f));
+		list.AddInnerShadow({ 80.0f, 0.0f, 110.0f, 30.0f }, clip, { 0.0f, 2.0f }, { 0, 0, 0, 96 }, 12.0f, 0.0f, SdCornerRadii(3.0f, 5.0f, 7.0f, 9.0f));
 		list.AddRectFilled({ 60.0f, 0.0f, 70.0f, 10.0f }, SdColorWhite, clip);
 		const SdDrawData& shadowData = list.GetDrawData();
-		Check(shadowData.batches.size() == 2, "drop shadow prevents geometry from merging across effect command");
+		Check(shadowData.batches.size() == 3, "shadow effects prevent geometry from merging across effect command");
 		Check(
-			shadowData.commands.size() == 3
+			shadowData.dropShadows.size() == 1
+			&& shadowData.dropShadows[0].cornerRadii.topLeft == 2.0f
+			&& shadowData.dropShadows[0].cornerRadii.topRight == 4.0f
+			&& shadowData.dropShadows[0].cornerRadii.bottomRight == 6.0f
+			&& shadowData.dropShadows[0].cornerRadii.bottomLeft == 8.0f,
+			"drop shadow stores per-corner radii");
+		Check(
+			shadowData.innerShadows.size() == 1
+			&& shadowData.innerShadows[0].cornerRadii.topLeft == 3.0f
+			&& shadowData.innerShadows[0].cornerRadii.topRight == 5.0f
+			&& shadowData.innerShadows[0].cornerRadii.bottomRight == 7.0f
+			&& shadowData.innerShadows[0].cornerRadii.bottomLeft == 9.0f,
+			"inner shadow stores per-corner radii");
+		Check(
+			shadowData.commands.size() == 4
 			&& shadowData.commands[0].kind == SdDrawCommandKind::OwnedBatch
 			&& shadowData.commands[1].kind == SdDrawCommandKind::DropShadow
-			&& shadowData.commands[2].kind == SdDrawCommandKind::OwnedBatch,
-			"drop shadow preserves draw command order");
+			&& shadowData.commands[2].kind == SdDrawCommandKind::InnerShadow
+			&& shadowData.commands[3].kind == SdDrawCommandKind::OwnedBatch,
+			"shadow effects preserve draw command order");
 	}
 }
 

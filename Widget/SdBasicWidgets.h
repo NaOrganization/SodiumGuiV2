@@ -352,18 +352,18 @@ namespace Sodium
 				return;
 
 			const SdBoxStyle& presentation = context.RootStyleNode().presentationStyle;
-				const SdRect paintRect = BasicWidgetDetail::PaintRect(context);
-				const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(presentation, paintRect.Size(), {});
-				const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle(state.textStyle, presentation.fontSize, presentation.lineHeight);
-				const SdColor color = BasicWidgetDetail::ApplyOpacity(
-					presentation.color,
-					context.opacity * presentation.opacity);
-				const SdRect contentRect = SdInsetRect(paintRect, usedStyle.padding);
-				const BasicWidgetDetail::SdMeasuredTextLayout textLayout = BasicWidgetDetail::MeasureTextLayout(context.instance, state.text, textStyle);
-				const SdVec2 position = BasicWidgetDetail::LeftTopTextLayoutOrigin(contentRect, textLayout);
-				context.renderList.AddText(state.text, textStyle, position, color, context.clipRect);
-			}
-		};
+			const SdRect paintRect = BasicWidgetDetail::PaintRect(context);
+			const SdResolvedBoxStyle usedStyle = SdResolveBoxStyle(presentation, paintRect.Size(), {});
+			const SdTextStyle textStyle = BasicWidgetDetail::BuildTextStyle(state.textStyle, presentation.fontSize, presentation.lineHeight);
+			const SdColor color = BasicWidgetDetail::ApplyOpacity(
+				presentation.color,
+				context.opacity * presentation.opacity);
+			const SdRect contentRect = SdInsetRect(paintRect, usedStyle.padding);
+			const BasicWidgetDetail::SdMeasuredTextLayout textLayout = BasicWidgetDetail::MeasureTextLayout(context.instance, state.text, textStyle);
+			const SdVec2 position = BasicWidgetDetail::LeftTopTextLayoutOrigin(contentRect, textLayout);
+			context.renderList.AddText(state.text, textStyle, position, color, context.clipRect);
+		}
+	};
 
 	struct SdPanel final : SdWidgetTag
 	{
@@ -391,7 +391,7 @@ namespace Sodium
 			context.SetDesiredSize({
 				std::max(0.0f, usedStyle.width),
 				std::max(0.0f, usedStyle.height)
-			});
+				});
 			context.widgetState.arrangeChildren = true;
 			context.widgetState.clipChildren = true;
 		}
@@ -476,7 +476,7 @@ namespace Sodium
 			context.SetDesiredSize({
 				std::max(usedStyle.minWidth, textSize.x + usedStyle.padding.left + usedStyle.padding.right),
 				std::max(usedStyle.minHeight, textSize.y + usedStyle.padding.top + usedStyle.padding.bottom)
-			});
+				});
 		}
 
 		void OnArrange(SdArrangeContext& context)
@@ -510,9 +510,11 @@ namespace Sodium
 			const SdColor background = BasicWidgetDetail::ApplyOpacity(contentPresentation.backgroundColor, context.opacity * contentPresentation.opacity);
 			const SdColor border = BasicWidgetDetail::ApplyOpacity(contentPresentation.border.left.color, context.opacity * contentPresentation.opacity);
 			const SdColor color = BasicWidgetDetail::ApplyOpacity(labelPresentation.color, context.opacity * labelPresentation.opacity);
+			const SdColor innerShadowColor = BasicWidgetDetail::ApplyOpacity(SdColor(0, 0, 0, 72), context.opacity * contentPresentation.opacity);
 			const float radius = SdResolveLength(contentPresentation.radius, paintRect.Width(), SdResolveLength(presentation.radius, paintRect.Width()));
 
 			context.renderList.AddRectFilled(paintRect, background, context.clipRect, radius);
+			context.renderList.AddInnerShadow(paintRect, context.clipRect, { 0.0f, 0.0f }, innerShadowColor, 10.0f, -5.0f, radius);
 			context.renderList.AddRect(paintRect, border, context.clipRect, 1.0f, radius);
 			context.renderList.AddText(state.label, textStyle, labelRect.min, color, context.clipRect);
 		}
@@ -613,7 +615,7 @@ namespace Sodium
 			context.SetDesiredSize({
 				usedStyle.padding.left + style.boxSize + labelGap + textSize.x + usedStyle.padding.right,
 				std::max(usedStyle.minHeight, std::max(style.boxSize, textSize.y) + usedStyle.padding.top + usedStyle.padding.bottom)
-			});
+				});
 		}
 
 		void OnArrange(SdArrangeContext& context)
@@ -801,7 +803,7 @@ namespace Sodium
 			context.SetDesiredSize({
 				usedStyle.padding.left + labelSize.x + labelGap + usedStyle.width + usedStyle.padding.right,
 				std::max(usedStyle.height, labelSize.y + usedStyle.padding.top + usedStyle.padding.bottom)
-			});
+				});
 		}
 
 		void OnArrange(SdArrangeContext& context)
@@ -1039,7 +1041,7 @@ namespace Sodium
 			context.SetDesiredSize({
 				std::max(usedStyle.width, usedStyle.padding.left + usedStyle.padding.right + 24.0f),
 				std::max(usedStyle.minHeight, lineHeight + usedStyle.padding.top + usedStyle.padding.bottom)
-			});
+				});
 		}
 
 		void OnArrange(SdArrangeContext& context)
@@ -1136,7 +1138,6 @@ namespace Sodium
 		SdVec2 position = { 64.0f, 54.0f };
 		SdVec2 size = { 420.0f, 260.0f };
 		float backgroundBlurRadius = 16.0f;
-		bool shadowEnabled = false;
 		SdVec2 shadowOffset = { 0.0f, 0.0f };
 		SdColor shadowColor = { 0, 0, 0, 144 };
 		float shadowRadius = 20.0f;
@@ -1336,7 +1337,7 @@ namespace Sodium
 
 			if (state.options.backgroundBlurRadius > 0.0f)
 				context.renderList.AddBackdropBlur(paintRect, context.clipRect, state.options.backgroundBlurRadius, radius);
-			if (state.options.shadowEnabled && state.options.shadowRadius > 0.0f && state.options.shadowColor.a != 0)
+			if (state.options.shadowRadius > 0.0f && state.options.shadowColor.a != 0)
 			{
 				const float shadowPadding = std::ceil(std::max(0.0f, state.options.shadowRadius)
 					+ std::max(0.0f, state.options.shadowSpread)
@@ -1504,7 +1505,7 @@ namespace Sodium
 			context.SetDesiredSize({
 				imageSize.x + usedStyle.padding.left + usedStyle.padding.right,
 				imageSize.y + usedStyle.padding.top + usedStyle.padding.bottom
-			});
+				});
 		}
 
 		void OnPaint(SdPaintContext& context)
@@ -1522,7 +1523,7 @@ namespace Sodium
 				usedStyle.padding.top,
 				usedStyle.padding.right,
 				usedStyle.padding.bottom
-			});
+				});
 			if (state.texture.IsValid())
 				context.renderList.AddImage(state.texture, imageRect, state.uvRect, tint, context.clipRect);
 			context.renderList.AddRect(paintRect, presentation.border.left.color, context.clipRect, 1.0f, radius);
@@ -1840,7 +1841,7 @@ namespace Sodium
 				BasicWidgetDetail::MeasureTextLayout(context.instance, state.text, textStyle));
 			const SdVec2 size = state.visible
 				? SdVec2{ textSize.x + usedStyle.padding.left + usedStyle.padding.right, textSize.y + usedStyle.padding.top + usedStyle.padding.bottom }
-				: SdVec2{};
+			: SdVec2{};
 			context.widgetState.manualLayout = true;
 			context.widgetState.manualRect = BasicWidgetDetail::MakeRect(state.position, size);
 			context.SetDesiredSize(size);

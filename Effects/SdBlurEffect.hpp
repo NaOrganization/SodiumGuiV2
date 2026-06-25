@@ -15,6 +15,13 @@ namespace Sodium
 			return rect.Width() > 0.0f && rect.Height() > 0.0f;
 		}
 
+		inline SdCornerRadii NormalizeCornerRadii(const SdCornerRadii& cornerRadii, float uniformRadius) noexcept
+		{
+			if (cornerRadii.topLeft > 0.0f || cornerRadii.topRight > 0.0f || cornerRadii.bottomRight > 0.0f || cornerRadii.bottomLeft > 0.0f)
+				return cornerRadii;
+			return { uniformRadius, uniformRadius, uniformRadius, uniformRadius };
+		}
+
 		inline SdRect IntersectRect(const SdRect& a, const SdRect& b) noexcept
 		{
 			return {
@@ -87,6 +94,7 @@ namespace Sodium
 			const SdRect textureBounds = BlurEffectDetail::HasArea(context.expandedBounds)
 				? context.expandedBounds
 				: maskBounds;
+			const SdCornerRadii cornerRadii = BlurEffectDetail::NormalizeCornerRadii(context.cornerRadii, context.cornerRadius);
 			SdRect renderBounds = maskBounds;
 			if (BlurEffectDetail::HasArea(context.clipRect))
 				renderBounds = BlurEffectDetail::IntersectRect(renderBounds, context.clipRect);
@@ -104,7 +112,7 @@ namespace Sodium
 				format,
 				"Sodium.Blur.TempB"));
 
-			const auto addFullscreenPass = [this, &context, textureWidth, textureHeight, maskBounds, textureBounds](
+			const auto addFullscreenPass = [this, &context, textureWidth, textureHeight, maskBounds, textureBounds, cornerRadii](
 				Rhi::SdRenderGraphPassHandle pass,
 				Rhi::SdRenderGraphTexture input,
 				Rhi::SdRenderGraphTexture output,
@@ -113,7 +121,7 @@ namespace Sodium
 				Rhi::SdRectI renderArea,
 				Rhi::SdLoadOp loadOp)
 			{
-				context.graph.SetPassCallback(pass, [&graph = context.graph, device = context.device, &resources = context.resources, input, output, pipeline, direction, renderArea, loadOp, radiusValue = radius, pixelWidth = textureWidth, pixelHeight = textureHeight, maskBounds, textureBounds, cornerRadius = context.cornerRadius](Rhi::ISdCommandEncoder& encoder)
+				context.graph.SetPassCallback(pass, [&graph = context.graph, device = context.device, &resources = context.resources, input, output, pipeline, direction, renderArea, loadOp, radiusValue = radius, pixelWidth = textureWidth, pixelHeight = textureHeight, maskBounds, textureBounds, cornerRadii](Rhi::ISdCommandEncoder& encoder)
 				{
 					if (!device)
 						return;
@@ -131,8 +139,8 @@ namespace Sodium
 					params.direction = direction;
 					params.clipMin = maskBounds.min;
 					params.clipMax = maskBounds.max;
+					params.cornerRadii = cornerRadii;
 					params.radius = radiusValue;
-					params.cornerRadius = cornerRadius;
 					params.textureMin = textureBounds.min;
 					params.textureSize = {
 						std::max(1.0f, textureBounds.Width()),
