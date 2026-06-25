@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "Render/SdDrawData.h"
+#include "Render/SdRenderData.h"
 
 #include <concepts>
 

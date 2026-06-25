@@ -36,17 +36,12 @@ namespace Sodium
 			}
 		}
 
-		const SdDrawData& drawData = renderList.GetDrawData();
 		diagnostics.boxNodeCount = static_cast<SdUInt32>(context.boxTree.GetBoxCount());
 		diagnostics.hitTestRecordCount = static_cast<SdUInt32>(context.layerSystem.GetHitTestRecords().size());
 		diagnostics.layerDrawChannelCount = static_cast<SdUInt32>(context.layerSystem.GetDrawChannels().size());
 		diagnostics.activeAnimationChannelCount = static_cast<SdUInt32>(context.animationSystem.GetActiveChannelCount());
 		diagnostics.activeStyleNodeAnimationChannelCount = context.presentationChannels.CountActive();
 		diagnostics.activeLayoutTransitionCount = context.presentationChannels.CountActiveLayoutTransitions();
-		diagnostics.drawVertexCount = static_cast<SdUInt32>(drawData.vertices.size());
-		diagnostics.drawIndexCount = static_cast<SdUInt32>(drawData.indices.size());
-		diagnostics.drawBatchCount = static_cast<SdUInt32>(drawData.batches.size());
-		diagnostics.resourceUploadCount = static_cast<SdUInt32>(drawData.uploadRequests.size());
 		diagnostics.createdWidgetCount = context.stateStorage.GetStats().createdWidgetCount;
 		diagnostics.reusedWidgetCount = context.stateStorage.GetStats().reusedWidgetCount;
 		diagnostics.modelCount = context.stateStorage.GetStats().modelCount;

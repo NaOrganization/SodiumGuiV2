@@ -39,18 +39,6 @@
     <ClCompile Include="..\..\..\Core\SdDefaultFont.cpp">
       <Filter>SodiumGUI\Core</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\Render\SdDrawList.cpp">
-      <Filter>SodiumGUI\Render</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\Render\SdDrawListPath.cpp">
-      <Filter>SodiumGUI\Render</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\Render\SdDrawListPrimitives.cpp">
-      <Filter>SodiumGUI\Render</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\Render\SdDrawListText.cpp">
-      <Filter>SodiumGUI\Render</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\Render\SdRenderStats.cpp">
       <Filter>SodiumGUI\Render</Filter>
     </ClCompile>
@@ -65,6 +53,18 @@
     </ClCompile>
     <ClCompile Include="..\..\..\Backends\Stb\StbFontBackend.cpp">
       <Filter>SodiumGUI\Backends</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Render\SdRenderList.cpp">
+      <Filter>SodiumGUI\Render</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Render\SdRenderListPath.cpp">
+      <Filter>SodiumGUI\Render</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Render\SdRenderListPrimitives.cpp">
+      <Filter>SodiumGUI\Render</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Render\SdRenderListText.cpp">
+      <Filter>SodiumGUI\Render</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -117,12 +117,6 @@
       <Filter>SodiumGUI\UI</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\Render\SdRenderCore.h">
-      <Filter>SodiumGUI\Render</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Render\SdDrawData.h">
-      <Filter>SodiumGUI\Render</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Render\SdDrawList.h">
       <Filter>SodiumGUI\Render</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\Render\SdRender.h">
@@ -232,6 +226,12 @@
     </ClInclude>
     <ClInclude Include="..\..\..\Style\SdStyleCore.h">
       <Filter>SodiumGUI\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Render\SdRenderData.h">
+      <Filter>SodiumGUI\Render</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Render\SdRenderList.h">
+      <Filter>SodiumGUI\Render</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

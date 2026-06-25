@@ -269,7 +269,6 @@ namespace Sodium
 		SdStyleSystem& GetStyleSystem() noexcept { return context.styling; }
 		const SdStyleSystem& GetStyleSystem() const noexcept { return context.styling; }
 		const SdRenderSystem& GetRenderSystem() const noexcept { return context.renderSystem; }
-		const SdDrawData& GetRenderData() const noexcept { return renderList.GetDrawData(); }
 		SdRenderPacket GetDrawPacket() const noexcept { return renderList.BuildPacket(static_cast<SdUInt32>(context.frame.frameIndex)); }
 		SdFrameIndex GetFrameIndex() const noexcept { return context.frame.frameIndex; }
 		SdDuration GetDeltaTime() const noexcept { return context.frame.deltaTime; }
