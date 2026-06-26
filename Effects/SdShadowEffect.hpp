@@ -251,10 +251,10 @@ namespace Sodium
 				rect.max.y + offset.y + positiveSpread
 			};
 			const SdRect drawRect = ShadowEffectDetail::ExpandShadowBounds(shadowRect, {}, std::ceil(std::max(0.0f, radius)), 0.0f);
-			SdRect clippedRect = BlurEffectDetail::IntersectRect(drawRect, frameRect);
-			if (BlurEffectDetail::HasArea(clipRect))
-				clippedRect = BlurEffectDetail::IntersectRect(clippedRect, clipRect);
-			if (!BlurEffectDetail::HasArea(clippedRect))
+			SdRect clippedRect = drawRect.Intersection(frameRect);
+			if (clipRect.HasArea())
+				clippedRect = clippedRect.Intersection(clipRect);
+			if (!clippedRect.HasArea())
 				return false;
 
 			const SdColorLinear linearColor = color.ToLinear();
@@ -287,7 +287,7 @@ namespace Sodium
 			if (!resourceSet.IsValid())
 				return false;
 
-			const Rhi::SdRectI renderArea = BlurEffectDetail::ToRenderArea(clippedRect);
+			const Rhi::SdRectI renderArea = Rhi::SdRectI::FromRect(clippedRect);
 			const Rhi::SdRenderPassColorAttachment colorAttachment =
 			{
 				targetLayer.texture,

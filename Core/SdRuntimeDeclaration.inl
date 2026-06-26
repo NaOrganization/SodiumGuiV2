@@ -30,7 +30,9 @@ namespace Sodium
 		record.state.portalRoot = portalFrame.root;
 		record.state.portalOwnerWidgetId = portalFrame.ownerWidgetId;
 		record.state.portalAnchorWidgetId = portalFrame.anchorWidgetId;
-		record.state.escapesParentClip = portalFrame.root != SdPortalRoot::None;
+		const bool parentWithinPortalOwner = portalFrame.ownerWidgetId != 0
+			&& (parentId == portalFrame.ownerWidgetId || instance.IsWidgetDescendantOf(parentId, portalFrame.ownerWidgetId));
+		record.state.escapesParentClip = portalFrame.root != SdPortalRoot::None && !parentWithinPortalOwner;
 		std::forward<TConfigureStyle>(configureStyle)(record);
 		T& widget = *instance.context.stateStorage.GetWidgetObject<T>(record);
 

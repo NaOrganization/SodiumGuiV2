@@ -56,22 +56,21 @@ namespace Sodium
 
 			const SdRect frameRect = BlurEffectDetail::ResolveLayerBounds(targetLayer);
 			SdRect clippedRect = context.payload.sourceBounds;
-			if (BlurEffectDetail::HasArea(context.payload.clipRect))
-				clippedRect = BlurEffectDetail::IntersectRect(clippedRect, context.payload.clipRect);
-			clippedRect = BlurEffectDetail::IntersectRect(clippedRect, frameRect);
-			if (!BlurEffectDetail::HasArea(clippedRect))
+			if (context.payload.clipRect.HasArea())
+				clippedRect = clippedRect.Intersection(context.payload.clipRect);
+			clippedRect = clippedRect.Intersection(frameRect);
+			if (!clippedRect.HasArea())
 				return false;
 
 			const float capturePadding = std::ceil(std::max(0.0f, parameters.radius));
-			const SdRect captureBounds = BlurEffectDetail::IntersectRect(
-				{
+			const SdRect captureBounds =
+				SdRect{
 					clippedRect.min.x - capturePadding,
 					clippedRect.min.y - capturePadding,
 					clippedRect.max.x + capturePadding,
 					clippedRect.max.y + capturePadding
-				},
-				frameRect);
-			const Rhi::SdRectI sourceRect = BlurEffectDetail::ToRenderArea(captureBounds);
+				}.Intersection(frameRect);
+			const Rhi::SdRectI sourceRect = Rhi::SdRectI::FromRect(captureBounds);
 			const SdUInt32 captureWidth = std::max(1u, sourceRect.Width());
 			const SdUInt32 captureHeight = std::max(1u, sourceRect.Height());
 			const SdRect capturePixelBounds =

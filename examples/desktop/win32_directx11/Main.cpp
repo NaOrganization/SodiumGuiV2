@@ -256,7 +256,7 @@ namespace
 				ui.Declare<Sodium::SdText>("Independent SdWindow instance");
 				ui.Declare<Sodium::SdButton>("Tool button");
 				ui.Declare<Sodium::SdCheckBox>("Tool toggle");
-				ui.DeclareKeyed<Sodium::SdTextInput>("text_input", "Test", demoControls.textInputValue, "test");
+				ui.Declare<Sodium::SdTextInput>("Test", demoControls.textInputValue, "test");
 			});
 
 			gui.ui.DeclareKeyed<Sodium::SdPopup>("sample_builtin_popup", demoControls.popupOpen, Sodium::SdVec2{ 594.0f, 270.0f }, [](Sodium::SdUi& ui)

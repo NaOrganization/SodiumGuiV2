@@ -388,11 +388,6 @@ namespace Sodium
 			return true;
 		}
 
-		inline bool HasArea(const SdRect& rect) noexcept
-		{
-			return rect.Width() > 0.0f && rect.Height() > 0.0f;
-		}
-
 		inline SdCornerRadii NormalizeCornerRadii(const SdCornerRadii& cornerRadii, float uniformRadius) noexcept
 		{
 			if (cornerRadii.topLeft > 0.0f || cornerRadii.topRight > 0.0f || cornerRadii.bottomRight > 0.0f || cornerRadii.bottomLeft > 0.0f)
@@ -400,29 +395,9 @@ namespace Sodium
 			return { uniformRadius, uniformRadius, uniformRadius, uniformRadius };
 		}
 
-		inline SdRect IntersectRect(const SdRect& a, const SdRect& b) noexcept
-		{
-			return {
-				std::max(a.min.x, b.min.x),
-				std::max(a.min.y, b.min.y),
-				std::min(a.max.x, b.max.x),
-				std::min(a.max.y, b.max.y)
-			};
-		}
-
-		inline Rhi::SdRectI ToRenderArea(const SdRect& rect) noexcept
-		{
-			return {
-				static_cast<SdInt32>(std::floor(rect.min.x)),
-				static_cast<SdInt32>(std::floor(rect.min.y)),
-				static_cast<SdInt32>(std::ceil(rect.max.x)),
-				static_cast<SdInt32>(std::ceil(rect.max.y))
-			};
-		}
-
 		inline SdRect ResolveLayerBounds(const SdEffectRenderLayer& layer) noexcept
 		{
-			if (HasArea(layer.bounds))
+			if (layer.bounds.HasArea())
 				return layer.bounds;
 			return {
 				0.0f,
@@ -569,15 +544,15 @@ namespace Sodium
 			const SdUInt32 textureWidth = std::max(1u, sourceLayer.width);
 			const SdUInt32 textureHeight = std::max(1u, sourceLayer.height);
 			const SdRect fallbackSourceBounds = ResolveLayerBounds(sourceLayer);
-			if (!HasArea(sourceBounds))
+			if (!sourceBounds.HasArea())
 				sourceBounds = fallbackSourceBounds;
-			if (!HasArea(expandedBounds))
+			if (!expandedBounds.HasArea())
 				expandedBounds = sourceBounds;
 
 			SdRect renderBounds = sourceBounds;
-			if (HasArea(clipRect))
-				renderBounds = IntersectRect(renderBounds, clipRect);
-			if (!HasArea(renderBounds) || !HasArea(expandedBounds))
+			if (clipRect.HasArea())
+				renderBounds = renderBounds.Intersection(clipRect);
+			if (!renderBounds.HasArea() || !expandedBounds.HasArea())
 				return false;
 
 			const Rhi::SdTextureDesc textureDesc =
@@ -661,7 +636,7 @@ namespace Sodium
 				tintColor,
 				saturation,
 				brightness,
-				ToRenderArea(renderBounds),
+				Rhi::SdRectI::FromRect(renderBounds),
 				Rhi::SdLoadOp::Load,
 				SODIUM_STRING("Sodium.Effect.Blur.Composite"));
 

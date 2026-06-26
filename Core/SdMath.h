@@ -397,6 +397,7 @@ namespace Sodium
 		constexpr SdVec2 Center() const noexcept { return (min + max) * 0.5f; }
 		constexpr float Area() const noexcept { return Width() * Height(); }
 		constexpr bool IsEmpty() const noexcept { return Width() <= 0.0f || Height() <= 0.0f; }
+		constexpr bool HasArea() const noexcept { return !IsEmpty(); }
 		constexpr bool Contains(const SdVec2& point) const noexcept { return point.x >= min.x && point.x <= max.x && point.y >= min.y && point.y <= max.y; }
 		constexpr bool Contains(const SdRect& rect) const noexcept { return Contains(rect.min) && Contains(rect.max); }
 		constexpr bool Intersects(const SdRect& other) const noexcept { return !(other.min.x > max.x || other.max.x < min.x || other.min.y > max.y || other.max.y < min.y); }

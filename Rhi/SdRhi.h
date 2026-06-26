@@ -3,6 +3,7 @@
 #include "Core/SdCore.h"
 
 #include <cstddef>
+#include <cmath>
 #include <string_view>
 
 namespace Sodium::Rhi
@@ -251,6 +252,16 @@ namespace Sodium::Rhi
 		SdInt32 top = 0;
 		SdInt32 right = 0;
 		SdInt32 bottom = 0;
+
+		static SdRectI FromRect(const SdRect& rect) noexcept
+		{
+			return {
+				static_cast<SdInt32>(std::floor(rect.min.x)),
+				static_cast<SdInt32>(std::floor(rect.min.y)),
+				static_cast<SdInt32>(std::ceil(rect.max.x)),
+				static_cast<SdInt32>(std::ceil(rect.max.y))
+			};
+		}
 
 		constexpr SdUInt32 Width() const noexcept { return right > left ? static_cast<SdUInt32>(right - left) : 0; }
 		constexpr SdUInt32 Height() const noexcept { return bottom > top ? static_cast<SdUInt32>(bottom - top) : 0; }

@@ -102,15 +102,25 @@ namespace Sodium
 	{
 		None,
 		Block,
+		Inline,
 		InlineBlock,
-		Flex
+		Flex,
+		Grid
 	};
 
 	enum class SdPosition : SdUInt8
 	{
 		Static,
 		Relative,
-		Absolute
+		Absolute,
+		Fixed
+	};
+
+	enum class SdFloat : SdUInt8
+	{
+		None,
+		Left,
+		Right
 	};
 
 	enum class SdOverflow : SdUInt8
@@ -216,6 +226,12 @@ namespace Sodium
 		SdLength minHeight = SdLength::Auto();
 		SdLength maxWidth = SdLength::Auto();
 		SdLength maxHeight = SdLength::Auto();
+		SdBoxEdges inset = {
+			SdLength::Auto(),
+			SdLength::Auto(),
+			SdLength::Auto(),
+			SdLength::Auto()
+		};
 		SdBoxEdges margin = {};
 		SdBoxEdges padding = {};
 		SdBorder border = {};
@@ -237,6 +253,17 @@ namespace Sodium
 		float flexGrow = 0.0f;
 		float flexShrink = 1.0f;
 		SdLength flexBasis = SdLength::Auto();
+		SdFloat floatMode = SdFloat::None;
+		SdInt32 gridColumnCount = 0;
+		SdInt32 gridRowCount = 0;
+		SdLength gridAutoColumns = SdLength::Auto();
+		SdLength gridAutoRows = SdLength::Auto();
+		SdLength gridColumnGap = SdLength::Auto();
+		SdLength gridRowGap = SdLength::Auto();
+		SdInt32 gridColumn = 0;
+		SdInt32 gridRow = 0;
+		SdInt32 gridColumnSpan = 1;
+		SdInt32 gridRowSpan = 1;
 		SdTransform transform = {};
 		SdTransitionList transitions = {};
 
@@ -281,55 +308,6 @@ namespace Sodium
 		friend constexpr bool operator==(const SdStylePart&, const SdStylePart&) = default;
 		friend constexpr bool operator!=(const SdStylePart&, const SdStylePart&) = default;
 	};
-
-	namespace SdWidgetPartIds
-	{
-		namespace Button
-		{
-			inline constexpr SdStylePart Content = SdStylePart::Make("Sodium.Button.Part.Content"_SdId);
-			inline constexpr SdStylePart Icon = SdStylePart::Make("Sodium.Button.Part.Icon"_SdId);
-			inline constexpr SdStylePart Label = SdStylePart::Make("Sodium.Button.Part.Label"_SdId);
-		}
-
-		namespace CheckBox
-		{
-			inline constexpr SdStylePart Box = SdStylePart::Make("Sodium.CheckBox.Part.Box"_SdId);
-			inline constexpr SdStylePart Indicator = SdStylePart::Make("Sodium.CheckBox.Part.Indicator"_SdId);
-			inline constexpr SdStylePart Label = SdStylePart::Make("Sodium.CheckBox.Part.Label"_SdId);
-		}
-
-		namespace Slider
-		{
-			inline constexpr SdStylePart Label = SdStylePart::Make("Sodium.Slider.Part.Label"_SdId);
-			inline constexpr SdStylePart Track = SdStylePart::Make("Sodium.Slider.Part.Track"_SdId);
-			inline constexpr SdStylePart Fill = SdStylePart::Make("Sodium.Slider.Part.Fill"_SdId);
-			inline constexpr SdStylePart Thumb = SdStylePart::Make("Sodium.Slider.Part.Thumb"_SdId);
-		}
-
-		namespace TextInput
-		{
-			inline constexpr SdStylePart Field = SdStylePart::Make("Sodium.TextInput.Part.Field"_SdId);
-			inline constexpr SdStylePart Value = SdStylePart::Make("Sodium.TextInput.Part.Value"_SdId);
-			inline constexpr SdStylePart Placeholder = SdStylePart::Make("Sodium.TextInput.Part.Placeholder"_SdId);
-			inline constexpr SdStylePart Selection = SdStylePart::Make("Sodium.TextInput.Part.Selection"_SdId);
-			inline constexpr SdStylePart Caret = SdStylePart::Make("Sodium.TextInput.Part.Caret"_SdId);
-		}
-
-		namespace Window
-		{
-			inline constexpr SdStylePart Titlebar = SdStylePart::Make("Sodium.Window.Part.Titlebar"_SdId);
-			inline constexpr SdStylePart Title = SdStylePart::Make("Sodium.Window.Part.Title"_SdId);
-			inline constexpr SdStylePart CloseButton = SdStylePart::Make("Sodium.Window.Part.CloseButton"_SdId);
-			inline constexpr SdStylePart Content = SdStylePart::Make("Sodium.Window.Part.Content"_SdId);
-			inline constexpr SdStylePart ResizeHandle = SdStylePart::Make("Sodium.Window.Part.ResizeHandle"_SdId);
-		}
-
-		namespace ScrollView
-		{
-			inline constexpr SdStylePart Scrollbar = SdStylePart::Make("Sodium.ScrollView.Part.Scrollbar"_SdId);
-			inline constexpr SdStylePart Thumb = SdStylePart::Make("Sodium.ScrollView.Part.Thumb"_SdId);
-		}
-	}
 
 	enum class SdPseudoStateFlag : SdUInt64
 	{
@@ -460,5 +438,54 @@ namespace Sodium
 			return false;
 		outValue = static_cast<TEnum>(static_cast<std::underlying_type_t<TEnum>>(value.number));
 		return true;
+	}
+
+	namespace SdWidgetPartIds
+	{
+		namespace Button
+		{
+			inline constexpr SdStylePart Content = SdStylePart::Make("Sodium.Button.Part.Content"_SdId);
+			inline constexpr SdStylePart Icon = SdStylePart::Make("Sodium.Button.Part.Icon"_SdId);
+			inline constexpr SdStylePart Label = SdStylePart::Make("Sodium.Button.Part.Label"_SdId);
+		}
+
+		namespace CheckBox
+		{
+			inline constexpr SdStylePart Box = SdStylePart::Make("Sodium.CheckBox.Part.Box"_SdId);
+			inline constexpr SdStylePart Indicator = SdStylePart::Make("Sodium.CheckBox.Part.Indicator"_SdId);
+			inline constexpr SdStylePart Label = SdStylePart::Make("Sodium.CheckBox.Part.Label"_SdId);
+		}
+
+		namespace Slider
+		{
+			inline constexpr SdStylePart Label = SdStylePart::Make("Sodium.Slider.Part.Label"_SdId);
+			inline constexpr SdStylePart Track = SdStylePart::Make("Sodium.Slider.Part.Track"_SdId);
+			inline constexpr SdStylePart Fill = SdStylePart::Make("Sodium.Slider.Part.Fill"_SdId);
+			inline constexpr SdStylePart Thumb = SdStylePart::Make("Sodium.Slider.Part.Thumb"_SdId);
+		}
+
+		namespace TextInput
+		{
+			inline constexpr SdStylePart Field = SdStylePart::Make("Sodium.TextInput.Part.Field"_SdId);
+			inline constexpr SdStylePart Value = SdStylePart::Make("Sodium.TextInput.Part.Value"_SdId);
+			inline constexpr SdStylePart Placeholder = SdStylePart::Make("Sodium.TextInput.Part.Placeholder"_SdId);
+			inline constexpr SdStylePart Selection = SdStylePart::Make("Sodium.TextInput.Part.Selection"_SdId);
+			inline constexpr SdStylePart Caret = SdStylePart::Make("Sodium.TextInput.Part.Caret"_SdId);
+		}
+
+		namespace Window
+		{
+			inline constexpr SdStylePart Titlebar = SdStylePart::Make("Sodium.Window.Part.Titlebar"_SdId);
+			inline constexpr SdStylePart Title = SdStylePart::Make("Sodium.Window.Part.Title"_SdId);
+			inline constexpr SdStylePart CloseButton = SdStylePart::Make("Sodium.Window.Part.CloseButton"_SdId);
+			inline constexpr SdStylePart Content = SdStylePart::Make("Sodium.Window.Part.Content"_SdId);
+			inline constexpr SdStylePart ResizeHandle = SdStylePart::Make("Sodium.Window.Part.ResizeHandle"_SdId);
+		}
+
+		namespace ScrollView
+		{
+			inline constexpr SdStylePart Scrollbar = SdStylePart::Make("Sodium.ScrollView.Part.Scrollbar"_SdId);
+			inline constexpr SdStylePart Thumb = SdStylePart::Make("Sodium.ScrollView.Part.Thumb"_SdId);
+		}
 	}
 }
