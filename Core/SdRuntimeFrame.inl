@@ -63,7 +63,7 @@ namespace Sodium
 		if (lastFrameTime.time_since_epoch().count() != 0)
 			context.frame.deltaTime = now - lastFrameTime;
 		lastFrameTime = now;
-		context.input.BeginFrame(context.frame.frameIndex);
+		context.input.BeginFrame(context.frame.frameIndex, now);
 	}
 
 	inline void SdInstance::FinishInputAndBeginUiFrame()

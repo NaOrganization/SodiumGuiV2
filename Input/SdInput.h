@@ -97,6 +97,8 @@ namespace Sodium
 		SdKeyCode triggerKey = SdKeyCode::Esc;
 	};
 
+	inline constexpr SdDuration SdInputDefaultPressInterval = std::chrono::milliseconds(100);
+
 	struct SdButtonState final
 	{
 		bool isDown = false;
@@ -104,6 +106,7 @@ namespace Sodium
 		bool wentUp = false;
 		SdUInt16 repeatCountThisFrame = 0;
 		SdUInt64 lastTransitionFrame = 0;
+		SdTimePoint lastTransitionTime = {};
 	};
 
 	struct SdMouseState final
@@ -161,6 +164,8 @@ namespace Sodium
 	struct SdInputSnapshot final
 	{
 		bool quitRequested = false;
+		SdTimePoint currentTime = {};
+		SdTimePoint previousTime = {};
 		SdInputDevice lastInputDevice = SdInputDevice::None;
 		SdDisplayState display = {};
 		SdMouseState mouse = {};
@@ -171,6 +176,7 @@ namespace Sodium
 
 		bool IsMouseButtonDown(SdMouseButton button) const;
 		bool IsMouseButtonHeld(SdMouseButton button) const;
+		bool IsMouseButtonPressed(SdMouseButton button, SdDuration interval = SdInputDefaultPressInterval) const;
 		bool IsMouseButtonUp(SdMouseButton button) const;
 		SdVec2 GetMousePosition() const noexcept { return mouse.position; }
 		SdVec2 GetMouseDelta() const noexcept { return mouse.delta; }
@@ -178,10 +184,11 @@ namespace Sodium
 
 		bool IsKeyDown(SdKeyCode keyCode) const;
 		bool IsKeyHeld(SdKeyCode keyCode) const;
+		bool IsKeyPressed(SdKeyCode keyCode, SdDuration interval = SdInputDefaultPressInterval) const;
 		bool IsKeyUp(SdKeyCode keyCode) const;
 		SdModifierMask GetModifierMask() const;
-		bool IsChordPressed(SdModifierMask modifiers, SdKeyCode triggerKey) const;
-		bool IsChordPressed(const SdKeyChord& chord) const { return IsChordPressed(chord.modifiers, chord.triggerKey); }
+		bool IsChordPressed(SdModifierMask modifiers, SdKeyCode triggerKey, SdDuration interval = SdInputDefaultPressInterval) const;
+		bool IsChordPressed(const SdKeyChord& chord, SdDuration interval = SdInputDefaultPressInterval) const { return IsChordPressed(chord.modifiers, chord.triggerKey, interval); }
 
 		SdUtf8StringView GetCommittedText() const noexcept { return text.committedTextThisFrame; }
 		SdUtf8StringView GetCompositionText() const noexcept { return text.compositionText; }
@@ -191,6 +198,7 @@ namespace Sodium
 		bool IsGamepadConnected(SdUInt32 index) const;
 		bool IsGamepadButtonDown(SdUInt32 index, SdGamepadButton button) const;
 		bool IsGamepadButtonHeld(SdUInt32 index, SdGamepadButton button) const;
+		bool IsGamepadButtonPressed(SdUInt32 index, SdGamepadButton button, SdDuration interval = SdInputDefaultPressInterval) const;
 		bool IsGamepadButtonUp(SdUInt32 index, SdGamepadButton button) const;
 		SdVec2 GetGamepadLeftStick(SdUInt32 index) const;
 		SdVec2 GetGamepadRightStick(SdUInt32 index) const;
@@ -343,6 +351,7 @@ namespace Sodium
 		explicit SdInputSystem(SdSize eventCapacity = 512);
 
 		void BeginFrame(SdUInt64 newFrameIndex);
+		void BeginFrame(SdUInt64 newFrameIndex, SdTimePoint newFrameTime);
 		void FinalizeFrame();
 
 		bool PushEvent(const SdInputEvent& event);
@@ -353,12 +362,14 @@ namespace Sodium
 
 		bool IsMouseButtonDown(SdMouseButton button) const { return snapshot.IsMouseButtonDown(button); }
 		bool IsMouseButtonHeld(SdMouseButton button) const { return snapshot.IsMouseButtonHeld(button); }
+		bool IsMouseButtonPressed(SdMouseButton button, SdDuration interval = SdInputDefaultPressInterval) const { return snapshot.IsMouseButtonPressed(button, interval); }
 		bool IsMouseButtonUp(SdMouseButton button) const { return snapshot.IsMouseButtonUp(button); }
 		bool IsKeyDown(SdKeyCode keyCode) const { return snapshot.IsKeyDown(keyCode); }
 		bool IsKeyHeld(SdKeyCode keyCode) const { return snapshot.IsKeyHeld(keyCode); }
+		bool IsKeyPressed(SdKeyCode keyCode, SdDuration interval = SdInputDefaultPressInterval) const { return snapshot.IsKeyPressed(keyCode, interval); }
 		bool IsKeyUp(SdKeyCode keyCode) const { return snapshot.IsKeyUp(keyCode); }
-		bool IsChordPressed(SdModifierMask modifiers, SdKeyCode triggerKey) const { return snapshot.IsChordPressed(modifiers, triggerKey); }
-		bool IsChordPressed(const SdKeyChord& chord) const { return snapshot.IsChordPressed(chord); }
+		bool IsChordPressed(SdModifierMask modifiers, SdKeyCode triggerKey, SdDuration interval = SdInputDefaultPressInterval) const { return snapshot.IsChordPressed(modifiers, triggerKey, interval); }
+		bool IsChordPressed(const SdKeyChord& chord, SdDuration interval = SdInputDefaultPressInterval) const { return snapshot.IsChordPressed(chord, interval); }
 		SdModifierMask GetModifierMask() const { return snapshot.GetModifierMask(); }
 		SdUtf8StringView GetCommittedText() const noexcept { return snapshot.GetCommittedText(); }
 		SdUtf8StringView GetCompositionText() const noexcept { return snapshot.GetCompositionText(); }
@@ -367,6 +378,7 @@ namespace Sodium
 		bool IsGamepadConnected(SdUInt32 index) const { return snapshot.IsGamepadConnected(index); }
 		bool IsGamepadButtonDown(SdUInt32 index, SdGamepadButton button) const { return snapshot.IsGamepadButtonDown(index, button); }
 		bool IsGamepadButtonHeld(SdUInt32 index, SdGamepadButton button) const { return snapshot.IsGamepadButtonHeld(index, button); }
+		bool IsGamepadButtonPressed(SdUInt32 index, SdGamepadButton button, SdDuration interval = SdInputDefaultPressInterval) const { return snapshot.IsGamepadButtonPressed(index, button, interval); }
 		bool IsGamepadButtonUp(SdUInt32 index, SdGamepadButton button) const { return snapshot.IsGamepadButtonUp(index, button); }
 		SdVec2 GetGamepadLeftStick(SdUInt32 index) const { return snapshot.GetGamepadLeftStick(index); }
 		SdVec2 GetGamepadRightStick(SdUInt32 index) const { return snapshot.GetGamepadRightStick(index); }

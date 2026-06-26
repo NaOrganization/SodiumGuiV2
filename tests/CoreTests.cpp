@@ -2889,6 +2889,92 @@ namespace
 		Check(input.GetActiveTextInputTarget() == nullptr, "input system clears active text target");
 	}
 
+	void TestInputSystemPressState()
+	{
+		constexpr SdDuration pressInterval = std::chrono::milliseconds(100);
+		const auto TimeAt = [](SdInt32 milliseconds)
+		{
+			return SdTimePoint(std::chrono::milliseconds(milliseconds));
+		};
+		SdInputSystem input;
+
+		input.BeginFrame(1, TimeAt(0));
+		input.PushEvent(SdInputEvent{
+			SdInputEventType::Key,
+			SdInputDevice::Keyboard,
+			SdKeyEvent{ SdKeyCode::A, true }
+		});
+		input.FinalizeFrame();
+		Check(input.IsKeyPressed(SdKeyCode::A, pressInterval), "key press fires on the down frame");
+
+		input.BeginFrame(2, TimeAt(50));
+		input.FinalizeFrame();
+		Check(!input.IsKeyPressed(SdKeyCode::A, pressInterval), "key press does not fire before its interval");
+
+		input.BeginFrame(3, TimeAt(100));
+		input.FinalizeFrame();
+		Check(input.IsKeyPressed(SdKeyCode::A, pressInterval), "key press repeats while held after its interval");
+
+		input.BeginFrame(4, TimeAt(150));
+		input.PushEvent(SdInputEvent{
+			SdInputEventType::Key,
+			SdInputDevice::Keyboard,
+			SdKeyEvent{ SdKeyCode::A, false }
+		});
+		input.FinalizeFrame();
+		Check(!input.IsKeyPressed(SdKeyCode::A, pressInterval), "key press stops on release");
+
+		input.BeginFrame(5, TimeAt(160));
+		input.PushEvent(SdInputEvent{
+			SdInputEventType::MouseButton,
+			SdInputDevice::Mouse,
+			SdMouseButtonEvent{ SdMouseButton::Left, true }
+		});
+		input.PushEvent(SdInputEvent{
+			SdInputEventType::MouseButton,
+			SdInputDevice::Mouse,
+			SdMouseButtonEvent{ SdMouseButton::Left, false }
+		});
+		input.FinalizeFrame();
+		Check(input.IsMouseButtonPressed(SdMouseButton::Left, pressInterval), "mouse press fires even when down and up happen in one frame");
+
+		input.BeginFrame(6, TimeAt(200));
+		input.PushEvent(SdInputEvent{
+			SdInputEventType::GamepadConnection,
+			SdInputDevice::Gamepad,
+			SdGamepadConnectionEvent{ 0, true }
+		});
+		input.PushEvent(SdInputEvent{
+			SdInputEventType::GamepadButton,
+			SdInputDevice::Gamepad,
+			SdGamepadButtonEvent{ 0, SdGamepadButton::FaceDown, true }
+		});
+		input.FinalizeFrame();
+		Check(input.IsGamepadButtonPressed(0, SdGamepadButton::FaceDown, pressInterval), "gamepad press fires on the down frame");
+
+		input.BeginFrame(7, TimeAt(300));
+		input.FinalizeFrame();
+		Check(input.IsGamepadButtonPressed(0, SdGamepadButton::FaceDown, pressInterval), "gamepad press repeats while held after its interval");
+
+		input.BeginFrame(8, TimeAt(400));
+		input.PushEvent(SdInputEvent{
+			SdInputEventType::Key,
+			SdInputDevice::Keyboard,
+			SdKeyEvent{ SdKeyCode::LeftCtrl, true }
+		});
+		input.PushEvent(SdInputEvent{
+			SdInputEventType::Key,
+			SdInputDevice::Keyboard,
+			SdKeyEvent{ SdKeyCode::S, true }
+		});
+		input.FinalizeFrame();
+		Check(input.IsChordPressed(SdModifierMask::Ctrl, SdKeyCode::S, pressInterval), "chord press fires on trigger down");
+
+		input.BeginFrame(9, TimeAt(500));
+		input.FinalizeFrame();
+		Check(input.IsChordPressed(SdModifierMask::Ctrl, SdKeyCode::S, pressInterval), "chord press repeats while trigger is held");
+	}
+
 	void TestBuiltInWidgetDeclarations()
 	{
 		SdInstance instance;
@@ -3769,6 +3855,7 @@ int main()
 	TestContextOwnershipAndRenderSubmission();
 	TestInputLayerAndCustomWidgets();
 	TestInputSystemTextState();
+	TestInputSystemPressState();
 	TestBuiltInWidgetDeclarations();
 	TestBuiltInWidgetInteraction();
 	TestAnimationSystemDirect();

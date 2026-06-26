@@ -223,11 +223,11 @@ namespace
 			mediaWindowOptions.position = { 594.0f, 54.0f };
 			mediaWindowOptions.size = { 360.0f, 190.0f };
 			mediaWindowOptions.backgroundBlurRadius = 12.0f;
-			gui.ui.DeclareKeyed<Sodium::SdWindow>("sample_media_window", "Media Window", demoControls.mediaWindowOpen, mediaWindowOptions, [fontAtlasTexture](Sodium::SdUi& ui)
+			gui.ui.DeclareKeyed<Sodium::SdWindow>("sample_media_window", "Media Window", demoControls.mediaWindowOpen, mediaWindowOptions, [&](Sodium::SdUi& ui)
 			{
 				ui.Declare<Sodium::SdText>("Floating built-in window");
 				ui.Declare<Sodium::SdButton>("Media action");
-				ui.Declare<Sodium::SdCheckBox>("Media option");
+				ui.Declare<Sodium::SdCheckBox>("Media option", demoControls.metricsWindowOpen);
 				ui.Declare<Sodium::SdImageViewer>(fontAtlasTexture, Sodium::SdVec2{ 96.0f, 28.0f });
 			});
 
@@ -251,25 +251,26 @@ namespace
 			toolsWindowOptions.position = { 680.0f, 182.0f };
 			toolsWindowOptions.size = { 310.0f, 178.0f };
 			toolsWindowOptions.backgroundBlurRadius = 12.0f;
-			gui.ui.DeclareKeyed<Sodium::SdWindow>("sample_tools_window", "Tools Window", demoControls.toolsWindowOpen, toolsWindowOptions, [](Sodium::SdUi& ui)
+			gui.ui.DeclareKeyed<Sodium::SdWindow>("sample_tools_window", "Tools Window", demoControls.toolsWindowOpen, toolsWindowOptions, [&](Sodium::SdUi& ui)
 			{
 				ui.Declare<Sodium::SdText>("Independent SdWindow instance");
 				ui.Declare<Sodium::SdButton>("Tool button");
 				ui.Declare<Sodium::SdCheckBox>("Tool toggle");
+				ui.DeclareKeyed<Sodium::SdTextInput>("text_input", "Test", demoControls.textInputValue, "test");
 			});
 
 			gui.ui.DeclareKeyed<Sodium::SdPopup>("sample_builtin_popup", demoControls.popupOpen, Sodium::SdVec2{ 594.0f, 270.0f }, [](Sodium::SdUi& ui)
 			{
-				ui.Declare<Sodium::SdText>("SdPopup appears above content");
+				ui.Declare<Sodium::SdText>("SdPopup appears above content aaaaaaaaaaaaaaaaaaa");
 				ui.Declare<Sodium::SdButton>("Popup action");
 			});
 
-			gui.ui.DeclareKeyed<Sodium::SdContextMenu>("sample_builtin_context_menu", demoControls.contextMenuOpen, demoControls.contextMenuPosition, [](Sodium::SdUi& ui)
-			{
-				ui.Declare<Sodium::SdText>("SdContextMenu");
-				ui.Declare<Sodium::SdButton>("First command");
-				ui.Declare<Sodium::SdButton>("Second command");
-			});
+			//gui.ui.DeclareKeyed<Sodium::SdContextMenu>("sample_builtin_context_menu", demoControls.contextMenuOpen, demoControls.contextMenuPosition, [](Sodium::SdUi& ui)
+			//{
+			//	ui.Declare<Sodium::SdText>("SdContextMenu");
+			//	ui.Declare<Sodium::SdButton>("First command");
+			//	ui.Declare<Sodium::SdButton>("Second command");
+			//});
 
 			gui.ui.DeclareKeyed<Sodium::SdTooltip>(
 				"sample_builtin_tooltip",

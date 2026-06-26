@@ -571,7 +571,7 @@ namespace Sodium
 		SdWidgetId parentId = 0;
 		SdResolvedKey resolvedKey = 0;
 		SdUtf8String debugKey = {};
-		SdTypeId widgetType = 0;
+		SdStyleTargetId widgetType = 0;
 	};
 #endif
 
@@ -907,7 +907,7 @@ namespace Sodium
 			SdWidgetId parentId,
 			SdResolvedKey resolvedKey,
 			SdUtf8StringView debugKey,
-			SdTypeId widgetType)
+			SdStyleTargetId widgetType)
 		{
 			SdSubmittedIdInfo info = {};
 			info.parentId = parentId;

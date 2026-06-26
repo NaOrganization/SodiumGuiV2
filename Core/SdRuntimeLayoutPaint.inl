@@ -13,9 +13,31 @@ namespace Sodium
 				liveIds.push_back(id);
 		}
 
-		std::sort(liveIds.begin(), liveIds.end(), [&widgets](SdWidgetId left, SdWidgetId right)
+		auto widgetDepth = [&widgets](SdWidgetId id)
 		{
-			return widgets[left].order < widgets[right].order;
+			SdUInt32 depth = 0;
+			SdSize remaining = widgets.size();
+			auto it = widgets.find(id);
+			while (it != widgets.end() && it->second.parentId != 0 && remaining-- > 0)
+			{
+				auto parentIt = widgets.find(it->second.parentId);
+				if (parentIt == widgets.end())
+					break;
+				++depth;
+				it = parentIt;
+			}
+			return depth;
+		};
+
+		std::sort(liveIds.begin(), liveIds.end(), [&widgets, &widgetDepth](SdWidgetId left, SdWidgetId right)
+		{
+			const SdUInt32 leftDepth = widgetDepth(left);
+			const SdUInt32 rightDepth = widgetDepth(right);
+			if (leftDepth != rightDepth)
+				return leftDepth < rightDepth;
+			if (widgets[left].order != widgets[right].order)
+				return widgets[left].order < widgets[right].order;
+			return left < right;
 		});
 
 		const SdVec2 displaySize = context.frame.displaySize;
@@ -214,6 +236,10 @@ namespace Sodium
 				const SdWidgetRecord& parentRecord = parentIt->second;
 				const auto parentHiddenIt = displayHiddenByWidgetId.find(record.parentId);
 				hiddenByDisplay = hiddenByDisplay || (parentHiddenIt != displayHiddenByWidgetId.end() && parentHiddenIt->second);
+				const bool parentSuppressesStaleChildren = parentRecord.state.submittedThisFrame
+					&& !parentRecord.state.arrangeChildren
+					&& !record.state.submittedThisFrame;
+				hiddenByDisplay = hiddenByDisplay || parentSuppressesStaleChildren;
 				clipRect = record.state.escapesParentClip ? displayRect : parentRecord.state.computedClipRect;
 				const SdBoxNode* parentBox = context.boxTree.FindBoxByStyleNodeId(parentRecord.rootStyleNodeId);
 				const bool parentClipsChildren = parentRecord.state.clipChildren

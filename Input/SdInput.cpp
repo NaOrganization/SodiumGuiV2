@@ -20,6 +20,26 @@ namespace Sodium
 		{
 			return (mask & bit) == bit;
 		}
+
+		bool IsButtonPressed(const SdButtonState& button, SdTimePoint currentTime, SdTimePoint previousTime, SdDuration interval)
+		{
+			if (button.wentDown)
+				return true;
+			if (!button.isDown || interval <= SdDuration::zero() || currentTime <= button.lastTransitionTime)
+				return false;
+
+			const SdDuration currentElapsed = currentTime - button.lastTransitionTime;
+			if (currentElapsed < interval)
+				return false;
+
+			SdDuration previousElapsed = {};
+			if (previousTime > button.lastTransitionTime)
+				previousElapsed = previousTime - button.lastTransitionTime;
+			if (previousElapsed > currentElapsed)
+				previousElapsed = currentElapsed;
+
+			return currentElapsed / interval > previousElapsed / interval;
+		}
 	}
 
 	bool SdInputSnapshot::IsMouseButtonDown(SdMouseButton button) const
@@ -30,6 +50,11 @@ namespace Sodium
 	bool SdInputSnapshot::IsMouseButtonHeld(SdMouseButton button) const
 	{
 		return GetArrayEntry(mouse.buttons, static_cast<SdSize>(button)).isDown;
+	}
+
+	bool SdInputSnapshot::IsMouseButtonPressed(SdMouseButton button, SdDuration interval) const
+	{
+		return IsButtonPressed(GetArrayEntry(mouse.buttons, static_cast<SdSize>(button)), currentTime, previousTime, interval);
 	}
 
 	bool SdInputSnapshot::IsMouseButtonUp(SdMouseButton button) const
@@ -45,6 +70,11 @@ namespace Sodium
 	bool SdInputSnapshot::IsKeyHeld(SdKeyCode keyCode) const
 	{
 		return GetArrayEntry(keyboard.keys, static_cast<SdSize>(keyCode)).isDown;
+	}
+
+	bool SdInputSnapshot::IsKeyPressed(SdKeyCode keyCode, SdDuration interval) const
+	{
+		return IsButtonPressed(GetArrayEntry(keyboard.keys, static_cast<SdSize>(keyCode)), currentTime, previousTime, interval);
 	}
 
 	bool SdInputSnapshot::IsKeyUp(SdKeyCode keyCode) const
@@ -66,9 +96,9 @@ namespace Sodium
 		return mask;
 	}
 
-	bool SdInputSnapshot::IsChordPressed(SdModifierMask modifiers, SdKeyCode triggerKey) const
+	bool SdInputSnapshot::IsChordPressed(SdModifierMask modifiers, SdKeyCode triggerKey, SdDuration interval) const
 	{
-		if (!IsKeyDown(triggerKey))
+		if (!IsKeyPressed(triggerKey, interval))
 			return false;
 
 		const SdModifierMask currentMask = GetModifierMask();
@@ -96,6 +126,11 @@ namespace Sodium
 	bool SdInputSnapshot::IsGamepadButtonHeld(SdUInt32 index, SdGamepadButton button) const
 	{
 		return IsGamepadConnected(index) && GetArrayEntry(gamepads[index].buttons, static_cast<SdSize>(button)).isDown;
+	}
+
+	bool SdInputSnapshot::IsGamepadButtonPressed(SdUInt32 index, SdGamepadButton button, SdDuration interval) const
+	{
+		return IsGamepadConnected(index) && IsButtonPressed(GetArrayEntry(gamepads[index].buttons, static_cast<SdSize>(button)), currentTime, previousTime, interval);
 	}
 
 	bool SdInputSnapshot::IsGamepadButtonUp(SdUInt32 index, SdGamepadButton button) const
@@ -183,7 +218,14 @@ namespace Sodium
 
 	void SdInputSystem::BeginFrame(SdUInt64 newFrameIndex)
 	{
+		BeginFrame(newFrameIndex, SdTimePoint(SdDuration(newFrameIndex)));
+	}
+
+	void SdInputSystem::BeginFrame(SdUInt64 newFrameIndex, SdTimePoint newFrameTime)
+	{
 		frameIndex = newFrameIndex;
+		snapshot.previousTime = snapshot.currentTime;
+		snapshot.currentTime = newFrameTime;
 		ResetFrameTransientState();
 	}
 
@@ -402,6 +444,7 @@ namespace Sodium
 				button.isDown = true;
 				button.wentDown = true;
 				button.lastTransitionFrame = frameIndex;
+				button.lastTransitionTime = snapshot.currentTime;
 			}
 		}
 		else if (button.isDown)
@@ -409,6 +452,7 @@ namespace Sodium
 			button.isDown = false;
 			button.wentUp = true;
 			button.lastTransitionFrame = frameIndex;
+			button.lastTransitionTime = snapshot.currentTime;
 		}
 	}
 
@@ -422,6 +466,7 @@ namespace Sodium
 				key.isDown = true;
 				key.wentDown = true;
 				key.lastTransitionFrame = frameIndex;
+				key.lastTransitionTime = snapshot.currentTime;
 			}
 			else
 			{
@@ -433,6 +478,7 @@ namespace Sodium
 			key.isDown = false;
 			key.wentUp = true;
 			key.lastTransitionFrame = frameIndex;
+			key.lastTransitionTime = snapshot.currentTime;
 		}
 	}
 
@@ -452,6 +498,7 @@ namespace Sodium
 				button.isDown = true;
 				button.wentDown = true;
 				button.lastTransitionFrame = frameIndex;
+				button.lastTransitionTime = snapshot.currentTime;
 				gamepad.lastActiveFrame = frameIndex;
 			}
 		}
@@ -460,6 +507,7 @@ namespace Sodium
 			button.isDown = false;
 			button.wentUp = true;
 			button.lastTransitionFrame = frameIndex;
+			button.lastTransitionTime = snapshot.currentTime;
 			gamepad.lastActiveFrame = frameIndex;
 		}
 	}
