@@ -76,16 +76,6 @@ namespace Sodium
 		float baseline = 0.0f;
 	};
 
-	struct SdStyleClassTag final {};
-	struct SdStyleScopeTag final{};
-	struct SdPropertyTag final {};
-	struct SdDesignTokenTag final {};
-
-	using SdStyleClassId = SdId<SdStyleClassTag>;
-	using SdStyleScopeId = SdId<SdStyleScopeTag>;
-	using SdPropertyId = SdId<SdPropertyTag>;
-	using SdDesignTokenId = SdId<SdDesignTokenTag>;
-
 	namespace Literals
 	{
 		constexpr SdUInt64 operator"" _SdId(const char* text, std::size_t length) noexcept
@@ -117,22 +107,22 @@ namespace Sodium
 		SdStyleScopeId scope = 0;
 	};
 
-	namespace SdWidgetTargetIds
+	namespace SdStyleTargetIds
 	{
-		inline constexpr SdTypeId Global = "Sodium.Style.Target.Global"_SdId;
-		inline constexpr SdTypeId Default = "Sodium.Style.Target.Default"_SdId;
-		inline constexpr SdTypeId Text = "Sodium.Style.Target.Text"_SdId;
-		inline constexpr SdTypeId Panel = "Sodium.Style.Target.Panel"_SdId;
-		inline constexpr SdTypeId Button = "Sodium.Style.Target.Button"_SdId;
-		inline constexpr SdTypeId CheckBox = "Sodium.Style.Target.CheckBox"_SdId;
-		inline constexpr SdTypeId Window = "Sodium.Style.Target.Window"_SdId;
-		inline constexpr SdTypeId ImageViewer = "Sodium.Style.Target.ImageViewer"_SdId;
-		inline constexpr SdTypeId Slider = "Sodium.Style.Target.Slider"_SdId;
-		inline constexpr SdTypeId TextInput = "Sodium.Style.Target.TextInput"_SdId;
-		inline constexpr SdTypeId ScrollView = "Sodium.Style.Target.ScrollView"_SdId;
-		inline constexpr SdTypeId Popup = "Sodium.Style.Target.Popup"_SdId;
-		inline constexpr SdTypeId ContextMenu = "Sodium.Style.Target.ContextMenu"_SdId;
-		inline constexpr SdTypeId Tooltip = "Sodium.Style.Target.Tooltip"_SdId;
+		inline constexpr SdStyleTargetId Global = "Sodium.Style.Target.Global"_SdId;
+		inline constexpr SdStyleTargetId Default = "Sodium.Style.Target.Default"_SdId;
+		inline constexpr SdStyleTargetId Text = "Sodium.Style.Target.Text"_SdId;
+		inline constexpr SdStyleTargetId Panel = "Sodium.Style.Target.Panel"_SdId;
+		inline constexpr SdStyleTargetId Button = "Sodium.Style.Target.Button"_SdId;
+		inline constexpr SdStyleTargetId CheckBox = "Sodium.Style.Target.CheckBox"_SdId;
+		inline constexpr SdStyleTargetId Window = "Sodium.Style.Target.Window"_SdId;
+		inline constexpr SdStyleTargetId ImageViewer = "Sodium.Style.Target.ImageViewer"_SdId;
+		inline constexpr SdStyleTargetId Slider = "Sodium.Style.Target.Slider"_SdId;
+		inline constexpr SdStyleTargetId TextInput = "Sodium.Style.Target.TextInput"_SdId;
+		inline constexpr SdStyleTargetId ScrollView = "Sodium.Style.Target.ScrollView"_SdId;
+		inline constexpr SdStyleTargetId Popup = "Sodium.Style.Target.Popup"_SdId;
+		inline constexpr SdStyleTargetId ContextMenu = "Sodium.Style.Target.ContextMenu"_SdId;
+		inline constexpr SdStyleTargetId Tooltip = "Sodium.Style.Target.Tooltip"_SdId;
 	}
 
 	namespace SdDesignTokenIds

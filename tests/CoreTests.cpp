@@ -56,7 +56,7 @@ namespace
 
 	struct TestDrawWidget final : SdWidgetTag
 	{
-		static constexpr SdStyleId TargetTypeId = SdWidgetTargetIds::Button;
+		static constexpr SdStyleId TargetTypeId = SdStyleTargetIds::Button;
 		using Style = SdWidgetRootStyle;
 
 		struct State
@@ -116,7 +116,7 @@ namespace
 
 	struct TestContainer final : SdWidgetTag
 	{
-		static constexpr SdStyleId TargetTypeId = SdWidgetTargetIds::Panel;
+		static constexpr SdStyleId TargetTypeId = SdStyleTargetIds::Panel;
 		using Style = SdWidgetRootStyle;
 
 		template<class TContent>
@@ -2599,18 +2599,18 @@ namespace
 		Check(idStack.CurrentParentId() == 0, "id scope pops parent when destroyed");
 
 		SdStyleSystem styleSystem;
-		styleSystem.RootRule(SdWidgetTargetIds::Default)
+		styleSystem.RootRule(SdStyleTargetIds::Default)
 			.Layer(SdRootLayer::Tooltip)
 			.Set(&SdBoxStyle::backgroundColor, ThemeColor(SdThemeVariableIds::Accent));
 
-		const SdWidgetRootStyle content = styleSystem.ResolveRootStyle(SdWidgetTargetIds::Default, SdStyleInteractionState::Normal, SdRootLayer::Content);
-		const SdWidgetRootStyle overlay = styleSystem.ResolveRootStyle(SdWidgetTargetIds::Default, SdStyleInteractionState::Normal, SdRootLayer::Tooltip);
+		const SdWidgetRootStyle content = styleSystem.ResolveRootStyle(SdStyleTargetIds::Default, SdStyleInteractionState::Normal, SdRootLayer::Content);
+		const SdWidgetRootStyle overlay = styleSystem.ResolveRootStyle(SdStyleTargetIds::Default, SdStyleInteractionState::Normal, SdRootLayer::Tooltip);
 		Check(content.backgroundColor != overlay.backgroundColor, "style layer selector changes overlay background");
 		Check(overlay.backgroundColor == styleSystem.GetTheme().GetColorVariable(SdThemeVariableIds::Accent), "style layer selector applies matching rule");
-		styleSystem.RootRule(SdWidgetTargetIds::Default)
+		styleSystem.RootRule(SdStyleTargetIds::Default)
 			.Layer(SdRootLayer::Tooltip)
 			.Set(&SdBoxStyle::zIndex, SdInt32{ 17 });
-		const SdWidgetRootStyle overlayWithZIndex = styleSystem.ResolveRootStyle(SdWidgetTargetIds::Default, SdStyleInteractionState::Normal, SdRootLayer::Tooltip);
+		const SdWidgetRootStyle overlayWithZIndex = styleSystem.ResolveRootStyle(SdStyleTargetIds::Default, SdStyleInteractionState::Normal, SdRootLayer::Tooltip);
 		Check(overlayWithZIndex.zIndex == 17, "style layer selector resolves z-index");
 	}
 
@@ -2622,7 +2622,7 @@ namespace
 			.Set(&CustomComponentWidget::Style::contentPadding, SdSpacing{ 3.0f, 4.0f, 5.0f, 6.0f });
 
 		const CustomComponentWidget::Style custom = styleSystem.ResolveTypedStyle<CustomComponentWidget>(SdStyleInteractionState::Normal);
-		const SdWidgetRootStyle text = styleSystem.ResolveRootStyle(SdWidgetTargetIds::Text, SdStyleInteractionState::Normal);
+		const SdWidgetRootStyle text = styleSystem.ResolveRootStyle(SdStyleTargetIds::Text, SdStyleInteractionState::Normal);
 		Check(custom.highlight == SdColor(9, 8, 7, 6), "component target id resolves typed component style");
 		Check(custom.contentPadding.left == 3.0f, "component target id resolves typed layout property");
 		Check(text.backgroundColor == styleSystem.GetTheme().GetColorVariable(SdThemeVariableIds::Background), "typed component style does not leak to unrelated root targets");

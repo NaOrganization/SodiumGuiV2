@@ -163,7 +163,7 @@ namespace Sodium
 		const SdUInt64 inlineRootStyleRevision = context.stateStorage.GetInlineStyleRevision<SdWidgetRootStyle>(record);
 		if (!record.state.styleDirty
 			&& record.styleCache.valid
-			&& record.styleCache.targetTypeId == record.state.targetTypeId
+			&& record.styleCache.styleId == record.state.styleId
 			&& record.styleCache.interactionState == interactionState
 			&& record.styleCache.rootLayer == rootLayer
 			&& record.styleCache.styleIdentityRevision == record.styleIdentityRevision
@@ -180,7 +180,7 @@ namespace Sodium
 		++diagnostics.styleResolveCacheMissCount;
 		const bool firstStyle = !record.styleCache.valid;
 		const SdStyleResolveResult rootResult = context.styling.ResolveRootNode(
-			record.state.targetTypeId,
+			record.state.styleId,
 			interactionState,
 			rootLayer,
 			record.styleClasses,
@@ -206,7 +206,7 @@ namespace Sodium
 			if (!partNode)
 				continue;
 			const SdStyleResolveResult partResult = context.styling.ResolvePartNode(
-				record.state.targetTypeId,
+				record.state.styleId,
 				partNode->part,
 				resolvedStyle,
 				interactionState,
@@ -222,7 +222,7 @@ namespace Sodium
 			ApplyBoxStyleAnimation(*partNode);
 			++diagnostics.styleResolvedNodeCount;
 		}
-		record.styleCache.targetTypeId = record.state.targetTypeId;
+		record.styleCache.styleId = record.state.styleId;
 		record.styleCache.interactionState = interactionState;
 		record.styleCache.rootLayer = rootLayer;
 		record.styleCache.styleIdentityRevision = record.styleIdentityRevision;
@@ -256,7 +256,7 @@ namespace Sodium
 			if (node.kind == SdStyleNodeKind::Part)
 			{
 				context.styling.TryResolvePartTransition(
-					record.state.targetTypeId,
+					record.state.styleId,
 					node.part,
 					propertyId,
 					interactionState,
@@ -268,7 +268,7 @@ namespace Sodium
 			else
 			{
 				context.styling.TryResolveRootTransition(
-					record.state.targetTypeId,
+					record.state.styleId,
 					propertyId,
 					interactionState,
 					rootLayer,
@@ -395,7 +395,7 @@ namespace Sodium
 			using Style = typename TWidget::Style;
 			SdTypedStyleRecord& styleRecord = context.stateStorage.GetOrCreateTypedStyleRecord<Style>(record);
 			if (styleRecord.valid
-				&& styleRecord.targetTypeId == record.state.targetTypeId
+				&& styleRecord.styleId == record.state.styleId
 				&& styleRecord.interactionState == interactionState
 				&& styleRecord.rootLayer == rootLayer
 				&& styleRecord.styleIdentityRevision == record.styleIdentityRevision
@@ -419,7 +419,7 @@ namespace Sodium
 			{
 				resolvedStyle = resolvedStyleValue;
 				presentationStyle = resolvedStyleValue;
-				styleRecord.targetTypeId = record.state.targetTypeId;
+				styleRecord.styleId = record.state.styleId;
 				styleRecord.interactionState = interactionState;
 				styleRecord.rootLayer = rootLayer;
 				styleRecord.styleIdentityRevision = record.styleIdentityRevision;
@@ -495,7 +495,7 @@ namespace Sodium
 					}
 				}
 			}
-			styleRecord.targetTypeId = record.state.targetTypeId;
+			styleRecord.styleId = record.state.styleId;
 			styleRecord.interactionState = interactionState;
 			styleRecord.rootLayer = rootLayer;
 			styleRecord.styleIdentityRevision = record.styleIdentityRevision;

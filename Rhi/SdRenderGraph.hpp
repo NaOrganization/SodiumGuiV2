@@ -20,14 +20,6 @@ namespace Sodium::Rhi
 		Present
 	};
 
-	struct SdRenderGraphTexture final
-	{
-		SdUInt32 id = 0;
-
-		constexpr bool IsValid() const noexcept { return id != 0; }
-		friend constexpr bool operator==(const SdRenderGraphTexture&, const SdRenderGraphTexture&) = default;
-	};
-
 	struct SdRenderGraphTextureDesc final
 	{
 		SdUInt32 width = 1;
@@ -45,14 +37,6 @@ namespace Sodium::Rhi
 		Fullscreen,
 		Copy,
 		Compute
-	};
-
-	struct SdRenderGraphPassHandle final
-	{
-		SdUInt32 id = 0;
-
-		constexpr bool IsValid() const noexcept { return id != 0; }
-		friend constexpr bool operator==(const SdRenderGraphPassHandle&, const SdRenderGraphPassHandle&) = default;
 	};
 
 	struct SdRenderGraphPassDesc final
@@ -112,23 +96,23 @@ namespace Sodium::Rhi
 
 		TextureResource* TryGetTexture(SdRenderGraphTexture texture) noexcept
 		{
-			if (!texture.IsValid() || texture.id > textures.size())
+			if (!texture.IsValid() || texture.value > textures.size())
 				return nullptr;
-			return &textures[texture.id - 1];
+			return &textures[texture.value - 1];
 		}
 
 		const TextureResource* TryGetTexture(SdRenderGraphTexture texture) const noexcept
 		{
-			if (!texture.IsValid() || texture.id > textures.size())
+			if (!texture.IsValid() || texture.value > textures.size())
 				return nullptr;
-			return &textures[texture.id - 1];
+			return &textures[texture.value - 1];
 		}
 
 		PassResource* TryGetPass(SdRenderGraphPassHandle pass) noexcept
 		{
-			if (!pass.IsValid() || pass.id > passes.size())
+			if (!pass.IsValid() || pass.index > passes.size())
 				return nullptr;
-			return &passes[pass.id - 1];
+			return &passes[pass.index - 1];
 		}
 
 		static bool ContainsTexture(const std::vector<SdRenderGraphTexture>& textures, SdRenderGraphTexture texture)
@@ -204,7 +188,7 @@ namespace Sodium::Rhi
 			PassResource pass = {};
 			pass.desc = desc;
 			passes.push_back(std::move(pass));
-			return { static_cast<SdUInt32>(passes.size()) };
+			return SdRenderGraphPassHandle(static_cast<SdUInt32>(passes.size()));
 		}
 
 		void ReadTexture(SdRenderGraphPassHandle pass, SdRenderGraphTexture texture)
@@ -257,7 +241,7 @@ namespace Sodium::Rhi
 			{
 				const PassResource& pass = passes[passIndex];
 				SdCompiledRenderGraphPass compiledPass = {};
-				compiledPass.pass = { passIndex + 1 };
+				compiledPass.pass = SdRenderGraphPassHandle(passIndex + 1);
 
 				for (SdRenderGraphTexture texture : pass.reads)
 				{
@@ -332,9 +316,9 @@ namespace Sodium::Rhi
 
 			for (const SdCompiledRenderGraphPass& compiledPass : compileResult.passes)
 			{
-				if (!compiledPass.pass.IsValid() || compiledPass.pass.id > passes.size())
+				if (!compiledPass.pass.IsValid() || compiledPass.pass.index > passes.size())
 					continue;
-				PassResource& pass = passes[compiledPass.pass.id - 1];
+				PassResource& pass = passes[compiledPass.pass.index - 1];
 				if (pass.callback)
 					pass.callback(encoder);
 			}

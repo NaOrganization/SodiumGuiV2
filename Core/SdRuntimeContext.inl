@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 namespace Sodium
 {
@@ -50,10 +50,10 @@ namespace Sodium
 		const SdWidgetRecord* record = context.stateStorage.FindWidgetRecord(widgetId);
 		assert(record);
 		if (!record)
-			return context.styling.ResolveRootStyle(SdWidgetTargetIds::Default, interactionState, rootLayer);
+			return context.styling.ResolveRootStyle(SdStyleTargetIds::Default, interactionState, rootLayer);
 		const SdWidgetRootStyle* inlineRootStyle = context.stateStorage.FindInlineStyle<SdWidgetRootStyle>(*record);
 		return context.styling.ResolveRootStyle(
-			record->state.targetTypeId,
+			record->state.styleId,
 			interactionState,
 			rootLayer,
 			record->styleClasses,

@@ -267,7 +267,7 @@ namespace Sodium::Backends
 			{
 				if (layerId == SdRootRenderLayerId || layerId == SdInvalidRenderLayerId || layerId >= entries.size())
 					return nullptr;
-				Entry& entry = entries[layerId];
+				Entry& entry = entries[layerId.value];
 				return entry.occupied ? &entry : nullptr;
 			}
 
@@ -275,15 +275,15 @@ namespace Sodium::Backends
 			{
 				if (layerId == SdRootRenderLayerId || layerId == SdInvalidRenderLayerId || layerId >= entries.size())
 					return nullptr;
-				const Entry& entry = entries[layerId];
+				const Entry& entry = entries[layerId.value];
 				return entry.occupied ? &entry : nullptr;
 			}
 
 			Entry& EnsureEntry(SdRenderLayerId layerId)
 			{
 				if (entries.size() <= layerId)
-					entries.resize(layerId + 1);
-				Entry& entry = entries[layerId];
+					entries.resize(layerId.value + 1);
+				Entry& entry = entries[layerId.value];
 				entry.id = layerId;
 				entry.occupied = true;
 				return entry;

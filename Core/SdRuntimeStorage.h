@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Animation/SdAnimation.h"
 #include "Style/SdStyleCore.h"
@@ -235,25 +235,6 @@ namespace Sodium::Detail
 		const_iterator cend() const noexcept { return items + itemCount; }
 	};
 
-	struct SdObjectHandle final
-	{
-		SdTypeId type = 0;
-		SdUInt32 index = SdInvalidIndex<SdUInt32>;
-		SdUInt32 generation = 0;
-
-		bool IsValid() const noexcept
-		{
-			return generation != 0 && index != SdInvalidIndex<SdUInt32> && type != 0;
-		}
-
-		void Reset() noexcept
-		{
-			type = 0;
-			index = SdInvalidIndex<SdUInt32>;
-			generation = 0;
-		}
-	};
-
 	class SdObjectPoolBase
 	{
 	public:
@@ -326,25 +307,25 @@ namespace Sodium::Detail
 			::new (static_cast<void*>(slot.storage)) T(std::forward<TArgs>(args)...);
 			slot.occupied = true;
 			++liveCount;
-			return { SdStableTypeId<T>(), index, slot.generation };
+			return SdObjectHandle(SdStableTypeId<T>(), index, slot.generation);
 		}
 
 		void* Get(const SdObjectHandle& handle) noexcept override
 		{
-			if (handle.index >= slotCount)
+			if (handle.slot.index >= slotCount)
 				return nullptr;
-			Slot& slot = GetSlot(handle.index);
-			if (!slot.occupied || slot.generation != handle.generation)
+			Slot& slot = GetSlot(handle.slot.index);
+			if (!slot.occupied || slot.generation != handle.slot.generation)
 				return nullptr;
 			return GetValue(slot);
 		}
 
 		void Destroy(const SdObjectHandle& handle) noexcept override
 		{
-			if (handle.index >= slotCount)
+			if (handle.slot.index >= slotCount)
 				return;
-			Slot& slot = GetSlot(handle.index);
-			if (!slot.occupied || slot.generation != handle.generation)
+			Slot& slot = GetSlot(handle.slot.index);
+			if (!slot.occupied || slot.generation != handle.slot.generation)
 				return;
 
 			GetValue(slot)->~T();
@@ -352,7 +333,7 @@ namespace Sodium::Detail
 			++slot.generation;
 			if (slot.generation == 0)
 				slot.generation = 1;
-			freeIndices.push_back(handle.index);
+			freeIndices.push_back(handle.slot.index);
 			--liveCount;
 		}
 
@@ -382,12 +363,12 @@ namespace Sodium::Detail
 	class SdObjectStore final
 	{
 	private:
-		std::unordered_map<SdTypeId, std::unique_ptr<SdObjectPoolBase>> pools = {};
+		std::unordered_map<SdStyleTargetId, std::unique_ptr<SdObjectPoolBase>> pools = {};
 
 		template<class T>
 		SdTypedObjectPool<T>& GetOrCreatePool()
 		{
-			const SdTypeId type = SdStableTypeId<T>();
+			const SdStyleTargetId type = SdStableTypeId<T>();
 			auto it = pools.find(type);
 			if (it == pools.end())
 			{
@@ -477,7 +458,7 @@ namespace Sodium
 		SdWidgetRootStyle resolvedStyle = {};
 		SdWidgetRootStyle presentationStyle = {};
 		SdStyleNodeId rootStyleNodeId = SdInvalidStyleNodeId;
-		SdTypeId targetTypeId = SdWidgetTargetIds::Default;
+		SdStyleTargetId styleId = SdStyleTargetIds::Default;
 		SdStyleInteractionState interactionState = SdStyleInteractionState::Normal;
 		SdRootLayer rootLayer = SdRootLayer::Content;
 		SdUInt64 styleIdentityRevision = 0;
@@ -491,8 +472,8 @@ namespace Sodium
 		Detail::SdObjectHandle resolvedStyle = {};
 		Detail::SdObjectHandle presentationStyle = {};
 		Detail::SdObjectHandle inlineStyle = {};
-		SdTypeId styleType = 0;
-		SdTypeId targetTypeId = SdWidgetTargetIds::Default;
+		SdStyleTargetId styleType = 0;
+		SdStyleTargetId styleId = SdStyleTargetIds::Default;
 		SdStyleInteractionState interactionState = SdStyleInteractionState::Normal;
 		SdRootLayer rootLayer = SdRootLayer::Content;
 		SdUInt64 styleIdentityRevision = 0;
@@ -504,13 +485,13 @@ namespace Sodium
 
 	struct SdTypedObjectSlot final
 	{
-		SdTypeId type = 0;
+		SdStyleTargetId type = 0;
 		Detail::SdObjectHandle object = {};
 	};
 
 	struct SdTypedStyleSlot final
 	{
-		SdTypeId type = 0;
+		SdStyleTargetId type = 0;
 		SdTypedStyleRecord record = {};
 	};
 
@@ -526,7 +507,7 @@ namespace Sodium
 		Detail::SdObjectHandle widgetObject = {};
 		Detail::SdSmallVector<SdTypedObjectSlot, 2> userStates = {};
 		Detail::SdSmallVector<SdTypedStyleSlot, 1> typedStyles = {};
-		SdTypeId widgetType = 0;
+		SdStyleTargetId widgetType = 0;
 		std::vector<SdStyleClassId> styleClasses = {};
 		SdStyleScopeId styleScope = 0;
 		SdUInt64 styleIdentityRevision = 1;
@@ -555,7 +536,7 @@ namespace Sodium
 
 	struct SdModelSlot final
 	{
-		SdTypeId type = 0;
+		SdStyleTargetId type = 0;
 		SdModelRecord record = {};
 	};
 
@@ -608,7 +589,7 @@ namespace Sodium
 		Detail::SdObjectStore objectStore = {};
 		SdStateStorageStats stats = {};
 
-		static Detail::SdObjectHandle* FindTypedObject(Detail::SdSmallVector<SdTypedObjectSlot, 2>& slots, SdTypeId type) noexcept
+		static Detail::SdObjectHandle* FindTypedObject(Detail::SdSmallVector<SdTypedObjectSlot, 2>& slots, SdStyleTargetId type) noexcept
 		{
 			for (SdTypedObjectSlot& slot : slots)
 			{
@@ -618,7 +599,7 @@ namespace Sodium
 			return nullptr;
 		}
 
-		static const Detail::SdObjectHandle* FindTypedObject(const Detail::SdSmallVector<SdTypedObjectSlot, 2>& slots, SdTypeId type) noexcept
+		static const Detail::SdObjectHandle* FindTypedObject(const Detail::SdSmallVector<SdTypedObjectSlot, 2>& slots, SdStyleTargetId type) noexcept
 		{
 			for (const SdTypedObjectSlot& slot : slots)
 			{
@@ -628,7 +609,7 @@ namespace Sodium
 			return nullptr;
 		}
 
-		static SdTypedStyleRecord* FindTypedStyle(Detail::SdSmallVector<SdTypedStyleSlot, 1>& slots, SdTypeId type) noexcept
+		static SdTypedStyleRecord* FindTypedStyle(Detail::SdSmallVector<SdTypedStyleSlot, 1>& slots, SdStyleTargetId type) noexcept
 		{
 			for (SdTypedStyleSlot& slot : slots)
 			{
@@ -638,7 +619,7 @@ namespace Sodium
 			return nullptr;
 		}
 
-		static const SdTypedStyleRecord* FindTypedStyle(const Detail::SdSmallVector<SdTypedStyleSlot, 1>& slots, SdTypeId type) noexcept
+		static const SdTypedStyleRecord* FindTypedStyle(const Detail::SdSmallVector<SdTypedStyleSlot, 1>& slots, SdStyleTargetId type) noexcept
 		{
 			for (const SdTypedStyleSlot& slot : slots)
 			{
@@ -648,7 +629,7 @@ namespace Sodium
 			return nullptr;
 		}
 
-		static SdModelRecord* FindModelRecord(SdModelBucket& bucket, SdTypeId type) noexcept
+		static SdModelRecord* FindModelRecord(SdModelBucket& bucket, SdStyleTargetId type) noexcept
 		{
 			for (SdModelSlot& slot : bucket.models)
 			{
@@ -717,11 +698,11 @@ namespace Sodium
 		void ReleaseStyleNodes(SdWidgetRecord& record) noexcept
 		{
 			if (record.rootStyleNodeId != SdInvalidStyleNodeId && record.rootStyleNodeId < styleNodes.size())
-				styleNodes[record.rootStyleNodeId].widgetId = 0;
+				styleNodes[record.rootStyleNodeId.value].widgetId = 0;
 			for (SdStyleNodeId partNodeId : record.partStyleNodeIds)
 			{
 				if (partNodeId < styleNodes.size())
-					styleNodes[partNodeId].widgetId = 0;
+					styleNodes[partNodeId.value].widgetId = 0;
 			}
 			record.rootStyleNodeId = SdInvalidStyleNodeId;
 			record.styleCache.rootStyleNodeId = SdInvalidStyleNodeId;
@@ -842,9 +823,9 @@ namespace Sodium
 		{
 			if (record.rootStyleNodeId != SdInvalidStyleNodeId
 				&& record.rootStyleNodeId < styleNodes.size()
-				&& styleNodes[record.rootStyleNodeId].kind == SdStyleNodeKind::Root)
+				&& styleNodes[record.rootStyleNodeId.value].kind == SdStyleNodeKind::Root)
 			{
-				SdStyleNode& node = styleNodes[record.rootStyleNodeId];
+				SdStyleNode& node = styleNodes[record.rootStyleNodeId.value];
 				node.widgetId = widgetId;
 				node.part = SdStylePart::Root();
 				node.parentStyleNodeId = SdInvalidStyleNodeId;
@@ -866,7 +847,7 @@ namespace Sodium
 			{
 				if (partNodeId >= styleNodes.size())
 					continue;
-				SdStyleNode& node = styleNodes[partNodeId];
+				SdStyleNode& node = styleNodes[partNodeId.value];
 				if (node.part == part)
 				{
 					node.widgetId = record.state.id;
@@ -876,7 +857,7 @@ namespace Sodium
 			}
 
 			SdStyleNode& node = CreateStyleNode(record, record.state.id, part, SdStyleNodeKind::Part);
-			const SdStyleNode& root = styleNodes[record.rootStyleNodeId];
+			const SdStyleNode& root = styleNodes[record.rootStyleNodeId.value];
 			node.scopeId = root.scopeId;
 			node.pseudoState = root.pseudoState;
 			node.specifiedStyle = root.resolvedStyle;
@@ -889,13 +870,13 @@ namespace Sodium
 		{
 			if (part.IsRoot())
 				return (record.rootStyleNodeId != SdInvalidStyleNodeId && record.rootStyleNodeId < styleNodes.size())
-					? &styleNodes[record.rootStyleNodeId]
+					? &styleNodes[record.rootStyleNodeId.value]
 					: nullptr;
 
 			for (SdStyleNodeId partNodeId : record.partStyleNodeIds)
 			{
-				if (partNodeId < styleNodes.size() && styleNodes[partNodeId].part == part)
-					return &styleNodes[partNodeId];
+				if (partNodeId < styleNodes.size() && styleNodes[partNodeId.value].part == part)
+					return &styleNodes[partNodeId.value];
 			}
 			return nullptr;
 		}
@@ -907,12 +888,12 @@ namespace Sodium
 
 		SdStyleNode* FindStyleNodeById(SdStyleNodeId styleNodeId) noexcept
 		{
-			return styleNodeId < styleNodes.size() ? &styleNodes[styleNodeId] : nullptr;
+			return styleNodeId < styleNodes.size() ? &styleNodes[styleNodeId.value] : nullptr;
 		}
 
 		const SdStyleNode* FindStyleNodeById(SdStyleNodeId styleNodeId) const noexcept
 		{
-			return styleNodeId < styleNodes.size() ? &styleNodes[styleNodeId] : nullptr;
+			return styleNodeId < styleNodes.size() ? &styleNodes[styleNodeId.value] : nullptr;
 		}
 
 		const std::vector<SdStyleNode>& GetStyleNodes() const noexcept
@@ -976,7 +957,7 @@ namespace Sodium
 			auto recordIt = widgetRecords.find(widgetId);
 			assert(recordIt != widgetRecords.end());
 			SdWidgetRecord& record = recordIt->second;
-			const SdTypeId type = SdStableTypeId<T>();
+			const SdStyleTargetId type = SdStableTypeId<T>();
 			Detail::SdObjectHandle* objectSlot = FindTypedObject(record.userStates, type);
 			if (!objectSlot)
 			{
@@ -1004,7 +985,7 @@ namespace Sodium
 		{
 			assert(resolvedKey != 0);
 			SdModelBucket& bucket = GetOrCreateModelBucket(resolvedKey);
-			const SdTypeId type = SdStableTypeId<T>();
+			const SdStyleTargetId type = SdStableTypeId<T>();
 			SdModelRecord* foundRecord = FindModelRecord(bucket, type);
 			if (!foundRecord)
 			{
@@ -1135,7 +1116,7 @@ namespace Sodium
 		template<class TStyle>
 		SdTypedStyleRecord& GetOrCreateTypedStyleRecord(SdWidgetRecord& record)
 		{
-			const SdTypeId type = SdStableTypeId<TStyle>();
+			const SdStyleTargetId type = SdStableTypeId<TStyle>();
 			SdTypedStyleRecord* foundRecord = FindTypedStyle(record.typedStyles, type);
 			if (!foundRecord)
 			{

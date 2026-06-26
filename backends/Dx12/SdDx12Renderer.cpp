@@ -586,8 +586,8 @@ namespace Sodium::Backends
 			SdDx12CommandEncoder immediateEncoder = {};
 			Rhi::SdTextureHandle currentRenderTarget = {};
 
-			template<typename Entry>
-			static Rhi::SdGpuHandle Allocate(std::vector<Entry>& entries)
+			template<typename THandle, typename Entry>
+			static THandle Allocate(std::vector<Entry>& entries)
 			{
 				SdUInt32 index = 1;
 				for (; index < entries.size(); ++index)
@@ -600,11 +600,11 @@ namespace Sodium::Backends
 				Entry& entry = entries[index];
 				entry.generation = entry.generation == 0 ? 1 : entry.generation + 1;
 				entry.occupied = true;
-				return Rhi::SdGpuHandle(index, entry.generation);
+				return THandle(index, entry.generation);
 			}
 
-			template<typename Entry>
-			static Entry* Find(std::vector<Entry>& entries, Rhi::SdGpuHandle handle) noexcept
+			template<typename Entry, typename THandle>
+			static Entry* Find(std::vector<Entry>& entries, THandle handle) noexcept
 			{
 				if (!handle.IsValid() || handle.index >= entries.size())
 					return nullptr;
@@ -614,8 +614,8 @@ namespace Sodium::Backends
 				return &entry;
 			}
 
-			template<typename Entry>
-			static const Entry* Find(const std::vector<Entry>& entries, Rhi::SdGpuHandle handle) noexcept
+			template<typename Entry, typename THandle>
+			static const Entry* Find(const std::vector<Entry>& entries, THandle handle) noexcept
 			{
 				if (!handle.IsValid() || handle.index >= entries.size())
 					return nullptr;
@@ -1105,7 +1105,7 @@ namespace Sodium::Backends
 				if (!nativeDevice || !texture)
 					return {};
 
-				Rhi::SdTextureHandle handle = Allocate(textures);
+				Rhi::SdTextureHandle handle = Allocate<Rhi::SdTextureHandle>(textures);
 				TextureEntry& entry = textures[handle.index];
 				entry.resource = texture;
 				entry.desc = desc;
@@ -1172,7 +1172,7 @@ namespace Sodium::Backends
 					return {};
 				}
 
-				Rhi::SdTextureHandle handle = Allocate(textures);
+				Rhi::SdTextureHandle handle = Allocate<Rhi::SdTextureHandle>(textures);
 				TextureEntry& entry = textures[handle.index];
 				entry.resource = resource;
 				entry.desc = desc;
@@ -1336,7 +1336,7 @@ namespace Sodium::Backends
 					return {};
 				}
 
-				Rhi::SdBufferHandle handle = Allocate(buffers);
+				Rhi::SdBufferHandle handle = Allocate<Rhi::SdBufferHandle>(buffers);
 				BufferEntry& entry = buffers[handle.index];
 				entry.resource = resource;
 				entry.desc = desc;
@@ -1447,7 +1447,7 @@ namespace Sodium::Backends
 				if (desc.bytecode.empty())
 					return {};
 
-				Rhi::SdShaderHandle handle = Allocate(shaders);
+				Rhi::SdShaderHandle handle = Allocate<Rhi::SdShaderHandle>(shaders);
 				ShaderEntry& entry = shaders[handle.index];
 				entry.bytecode.assign(desc.bytecode.begin(), desc.bytecode.end());
 				entry.stage = desc.stage;
@@ -1522,7 +1522,7 @@ namespace Sodium::Backends
 				samplerDesc.MaxLOD = D3D12_FLOAT32_MAX;
 				nativeDevice->CreateSampler(&samplerDesc, descriptor.cpu);
 
-				Rhi::SdSamplerHandle handle = Allocate(samplers);
+				Rhi::SdSamplerHandle handle = Allocate<Rhi::SdSamplerHandle>(samplers);
 				samplers[handle.index].descriptor = descriptor;
 				return handle;
 			}
@@ -1540,7 +1540,7 @@ namespace Sodium::Backends
 
 			Rhi::SdVertexLayoutHandle CreateVertexLayout(const Rhi::SdVertexLayoutDesc& desc) override
 			{
-				Rhi::SdVertexLayoutHandle handle = Allocate(vertexLayouts);
+				Rhi::SdVertexLayoutHandle handle = Allocate<Rhi::SdVertexLayoutHandle>(vertexLayouts);
 				VertexLayoutEntry& entry = vertexLayouts[handle.index];
 				entry.attributes.assign(desc.attributes.begin(), desc.attributes.end());
 				entry.semanticNames.clear();
@@ -1601,7 +1601,7 @@ namespace Sodium::Backends
 				if (FAILED(nativeDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(rootSignature.ReleaseAndGetAddressOf()))))
 					return {};
 
-				Rhi::SdResourceSetLayoutHandle handle = Allocate(resourceSetLayouts);
+				Rhi::SdResourceSetLayoutHandle handle = Allocate<Rhi::SdResourceSetLayoutHandle>(resourceSetLayouts);
 				ResourceSetLayoutEntry& entry = resourceSetLayouts[handle.index];
 				entry.rootSignature = rootSignature;
 				entry.bindings = std::move(runtimeBindings);
@@ -1623,7 +1623,7 @@ namespace Sodium::Backends
 				if (!layout)
 					return {};
 
-				Rhi::SdResourceSetHandle handle = Allocate(resourceSets);
+				Rhi::SdResourceSetHandle handle = Allocate<Rhi::SdResourceSetHandle>(resourceSets);
 				ResourceSetEntry& entry = resourceSets[handle.index];
 				entry.layout = desc.layout;
 				entry.rootTables.resize(layout->bindings.size());
@@ -1800,7 +1800,7 @@ namespace Sodium::Backends
 				if (FAILED(nativeDevice->CreateGraphicsPipelineState(&pipelineDesc, IID_PPV_ARGS(pipeline.ReleaseAndGetAddressOf()))))
 					return {};
 
-				Rhi::SdPipelineHandle handle = Allocate(pipelines);
+				Rhi::SdPipelineHandle handle = Allocate<Rhi::SdPipelineHandle>(pipelines);
 				PipelineEntry& entry = pipelines[handle.index];
 				entry.pipeline = pipeline;
 				entry.resourceSetLayout = desc.resourceSetLayout;
@@ -2054,7 +2054,7 @@ namespace Sodium::Backends
 			{
 				if (layerId == SdRootRenderLayerId || layerId == SdInvalidRenderLayerId || layerId >= entries.size())
 					return nullptr;
-				Entry& entry = entries[layerId];
+				Entry& entry = entries[layerId.value];
 				return entry.occupied ? &entry : nullptr;
 			}
 
@@ -2062,15 +2062,15 @@ namespace Sodium::Backends
 			{
 				if (layerId == SdRootRenderLayerId || layerId == SdInvalidRenderLayerId || layerId >= entries.size())
 					return nullptr;
-				const Entry& entry = entries[layerId];
+				const Entry& entry = entries[layerId.value];
 				return entry.occupied ? &entry : nullptr;
 			}
 
 			Entry& EnsureEntry(SdRenderLayerId layerId)
 			{
 				if (entries.size() <= layerId)
-					entries.resize(layerId + 1);
-				Entry& entry = entries[layerId];
+					entries.resize(layerId.value + 1);
+				Entry& entry = entries[layerId.value];
 				entry.id = layerId;
 				entry.occupied = true;
 				return entry;

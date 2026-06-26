@@ -18,8 +18,6 @@ namespace Sodium
 		ScrollOffset
 	};
 
-	using SdAnimationChannelId = SdUInt32;
-
 	struct SdAnimationChannel final
 	{
 		SdAnimationChannelId id = 0;

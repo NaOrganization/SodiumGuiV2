@@ -34,7 +34,7 @@ namespace Sodium
 	struct SdCompiledSelector final
 	{
 		std::type_index styleType = std::type_index(typeid(void));
-		SdTypeId targetTag = SdWidgetTargetIds::Global;
+		SdStyleTargetId targetTag = SdStyleTargetIds::Global;
 		SdStylePart part = SdStylePart::Root();
 		SdPseudoState pseudoState = {};
 		SdRootLayer rootLayer = SdRootLayer::Content;
@@ -76,7 +76,7 @@ namespace Sodium
 	struct SdCompiledRuleBucketKey final
 	{
 		std::type_index styleType = std::type_index(typeid(void));
-		SdTypeId targetTag = SdWidgetTargetIds::Global;
+		SdStyleTargetId targetTag = SdStyleTargetIds::Global;
 		SdStylePart part = SdStylePart::Root();
 		bool matchPart = false;
 
@@ -175,14 +175,14 @@ namespace Sodium
 		template<class TCallback>
 		void ForEachCandidateRule(
 			std::type_index styleType,
-			SdTypeId targetTag,
+			SdStyleTargetId targetTag,
 			SdStylePart part,
 			TCallback&& callback) const
 		{
 			const std::vector<SdUInt32>* visitedBuckets[4] = {};
 			SdSize visitedBucketCount = 0;
 
-			const auto visitBucket = [&](SdTypeId bucketTargetTag, SdStylePart bucketPart, bool matchPart)
+			const auto visitBucket = [&](SdStyleTargetId bucketTargetTag, SdStylePart bucketPart, bool matchPart)
 			{
 				const SdCompiledRuleBucketKey key{ styleType, bucketTargetTag, bucketPart, matchPart };
 				const SdCompiledRuleBucket* bucket = FindBucket(key);
@@ -201,14 +201,14 @@ namespace Sodium
 
 			visitBucket(targetTag, SdStylePart::Root(), false);
 			visitBucket(targetTag, part, true);
-			if (targetTag != SdWidgetTargetIds::Global)
+			if (targetTag != SdStyleTargetIds::Global)
 			{
-				visitBucket(SdWidgetTargetIds::Global, SdStylePart::Root(), false);
-				visitBucket(SdWidgetTargetIds::Global, part, true);
+				visitBucket(SdStyleTargetIds::Global, SdStylePart::Root(), false);
+				visitBucket(SdStyleTargetIds::Global, part, true);
 			}
 		}
 
-		SdSize CountCandidateRules(std::type_index styleType, SdTypeId targetTag, SdStylePart part) const
+		SdSize CountCandidateRules(std::type_index styleType, SdStyleTargetId targetTag, SdStylePart part) const
 		{
 			SdSize count = 0;
 			ForEachCandidateRule(styleType, targetTag, part, [&count](const SdCompiledStyleRule&)
@@ -385,8 +385,8 @@ namespace Sodium
 		{
 			SdCompiledStyleRule rule = {};
 			rule.selector.styleType = std::type_index(typeid(TStyle));
-			if constexpr (requires { TWidget::TargetTypeId; })
-				rule.selector.targetTag = TWidget::TargetTypeId;
+			if constexpr (requires { TWidget::StyleId; })
+				rule.selector.targetTag = TWidget::StyleId;
 			else
 				rule.selector.targetTag = SdStableTypeId<TWidget>();
 			rule.selector.part = part;
@@ -401,7 +401,7 @@ namespace Sodium
 
 	public:
 		template<class TStyle>
-		SdStyleSheetRuleBuilder<TStyle> RuleForTarget(SdTypeId targetTag)
+		SdStyleSheetRuleBuilder<TStyle> RuleForTarget(SdStyleTargetId targetTag)
 		{
 			struct TargetStyleWidget final
 			{
@@ -425,7 +425,7 @@ namespace Sodium
 			return SdStyleSheetRuleBuilder<SdWidgetPartStyle>(AddRule<TWidget, SdWidgetPartStyle>(part));
 		}
 
-		SdStyleSheetRuleBuilder<SdWidgetPartStyle> PartForTarget(SdTypeId targetTag, SdStylePart part)
+		SdStyleSheetRuleBuilder<SdWidgetPartStyle> PartForTarget(SdStyleTargetId targetTag, SdStylePart part)
 		{
 			struct TargetPartStyleWidget final
 			{

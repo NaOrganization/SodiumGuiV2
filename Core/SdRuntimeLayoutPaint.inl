@@ -437,7 +437,7 @@ namespace Sodium
 				record.state.computedClipRect,
 				record.rootStyleNode.layoutBox,
 				record.state.opacity,
-				static_cast<SdLayerId>(record.state.rootLayer)
+				static_cast<SdLayerId>(static_cast<SdUInt64>(record.state.rootLayer))
 			};
 			if (record.paintCallback)
 			{

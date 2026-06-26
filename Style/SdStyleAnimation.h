@@ -71,7 +71,7 @@ namespace Sodium
 		{
 			SdSize operator()(const ChannelKey& key) const noexcept
 			{
-				SdSize hash = static_cast<SdSize>(key.styleNodeId);
+				SdSize hash = static_cast<SdSize>(key.styleNodeId.value);
 				hash ^= static_cast<SdSize>(key.propertyId.value + 0x9e3779b97f4a7c15ull + (hash << 6) + (hash >> 2));
 				return hash;
 			}

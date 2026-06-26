@@ -119,8 +119,6 @@ namespace Sodium
 		std::array<SdButtonState, static_cast<SdSize>(SdKeyCode::Count)> keys = {};
 	};
 
-	using SdTextInputTargetId = SdUInt32;
-
 	struct SdTextInputTarget final
 	{
 		SdTextInputTargetId id = 0;

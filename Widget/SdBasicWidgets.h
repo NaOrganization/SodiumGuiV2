@@ -245,7 +245,7 @@ namespace Sodium
 
 		inline SdTextInputTargetId MakeTextInputTargetId(SdWidgetId id) noexcept
 		{
-			SdTextInputTargetId result = static_cast<SdTextInputTargetId>((id & 0xFFFFFFFFull) ^ (id >> 32ull));
+			SdTextInputTargetId result = static_cast<SdTextInputTargetId>((id.value & 0xFFFFFFFFull) ^ (id.value >> 32ull));
 			return result == 0 ? 1u : result;
 		}
 
@@ -271,8 +271,7 @@ namespace Sodium
 
 	struct SdText final : SdWidgetTag
 	{
-		static constexpr SdTypeId TypeId = "Sodium.Widget.Text"_SdId;
-		static constexpr SdTypeId TargetTypeId = SdWidgetTargetIds::Text;
+		static constexpr SdStyleTargetId StyleId = SdStyleTargetIds::Text;
 		using Style = SdWidgetRootStyle;
 
 		struct Model final
@@ -322,7 +321,7 @@ namespace Sodium
 
 			state.text.assign(resolvedText.data(), resolvedText.size());
 			state.textStyle = textStyle;
-			context.widgetState.targetTypeId = TargetTypeId;
+			context.widgetState.styleId = StyleId;
 			context.widgetState.inputEnabled = false;
 			context.widgetState.layoutWeight = 1.0f;
 		}
@@ -369,8 +368,7 @@ namespace Sodium
 
 	struct SdPanel final : SdWidgetTag
 	{
-		static constexpr SdTypeId TypeId = "Sodium.Widget.Panel"_SdId;
-		static constexpr SdTypeId TargetTypeId = SdWidgetTargetIds::Panel;
+		static constexpr SdStyleTargetId StyleId = SdStyleTargetIds::Panel;
 		using Style = SdWidgetRootStyle;
 
 		void OnUpdate(SdUpdateContext& context)
@@ -419,7 +417,7 @@ namespace Sodium
 	private:
 		static void Configure(SdUpdateContext& context)
 		{
-			context.widgetState.targetTypeId = TargetTypeId;
+			context.widgetState.styleId = StyleId;
 			context.widgetState.inputEnabled = false;
 			context.widgetState.layoutWeight = 1.0f;
 		}
@@ -427,8 +425,7 @@ namespace Sodium
 
 	struct SdButton final : SdWidgetTag
 	{
-		static constexpr SdTypeId TypeId = "Sodium.Widget.Button"_SdId;
-		static constexpr SdTypeId TargetTypeId = SdWidgetTargetIds::Button;
+		static constexpr SdStyleTargetId StyleId = SdStyleTargetIds::Button;
 
 		struct Parts final
 		{
@@ -526,7 +523,7 @@ namespace Sodium
 	private:
 		static void Configure(SdUpdateContext& context)
 		{
-			context.widgetState.targetTypeId = TargetTypeId;
+			context.widgetState.styleId = StyleId;
 			context.widgetState.inputEnabled = true;
 			context.widgetState.layoutWeight = 1.0f;
 			context.EnsurePart(Parts::Content);
@@ -537,8 +534,7 @@ namespace Sodium
 
 	struct SdCheckBox final : SdWidgetTag
 	{
-		static constexpr SdTypeId TypeId = "Sodium.Widget.CheckBox"_SdId;
-		static constexpr SdTypeId TargetTypeId = SdWidgetTargetIds::CheckBox;
+		static constexpr SdStyleTargetId StyleId = SdStyleTargetIds::CheckBox;
 
 		struct Parts final
 		{
@@ -705,7 +701,7 @@ namespace Sodium
 	private:
 		static void Configure(SdUpdateContext& context)
 		{
-			context.widgetState.targetTypeId = TargetTypeId;
+			context.widgetState.styleId = StyleId;
 			context.widgetState.inputEnabled = true;
 			context.widgetState.layoutWeight = 1.0f;
 			context.EnsurePart(Parts::Box);
@@ -718,8 +714,7 @@ namespace Sodium
 
 	struct SdSliderFloat final : SdWidgetTag
 	{
-		static constexpr SdTypeId TypeId = "Sodium.Widget.Slider"_SdId;
-		static constexpr SdTypeId TargetTypeId = SdWidgetTargetIds::Slider;
+		static constexpr SdStyleTargetId StyleId = SdStyleTargetIds::Slider;
 
 		struct Parts final
 		{
@@ -911,7 +906,7 @@ namespace Sodium
 	private:
 		static void Configure(SdUpdateContext& context)
 		{
-			context.widgetState.targetTypeId = TargetTypeId;
+			context.widgetState.styleId = StyleId;
 			context.widgetState.inputEnabled = true;
 			context.widgetState.layoutWeight = 1.0f;
 			context.EnsurePart(Parts::Label);
@@ -945,8 +940,7 @@ namespace Sodium
 
 	struct SdTextInput final : SdWidgetTag
 	{
-		static constexpr SdTypeId TypeId = "Sodium.Widget.TextInput"_SdId;
-		static constexpr SdTypeId TargetTypeId = SdWidgetTargetIds::TextInput;
+		static constexpr SdStyleTargetId StyleId = SdStyleTargetIds::TextInput;
 
 		struct Parts final
 		{
@@ -1130,7 +1124,7 @@ namespace Sodium
 	private:
 		static void Configure(SdUpdateContext& context)
 		{
-			context.widgetState.targetTypeId = TargetTypeId;
+			context.widgetState.styleId = StyleId;
 			context.widgetState.inputEnabled = true;
 			context.widgetState.layoutWeight = 1.0f;
 			context.EnsurePart(Parts::Field);
@@ -1156,8 +1150,7 @@ namespace Sodium
 
 	struct SdWindow final : SdWidgetTag
 	{
-		static constexpr SdTypeId TypeId = "Sodium.Widget.Window"_SdId;
-		static constexpr SdTypeId TargetTypeId = SdWidgetTargetIds::Window;
+		static constexpr SdStyleTargetId StyleId = SdStyleTargetIds::Window;
 
 		struct Parts final
 		{
@@ -1410,7 +1403,7 @@ namespace Sodium
 			state.title.assign(title.data(), title.size());
 			state.options = options;
 			state.open = open;
-			context.widgetState.targetTypeId = TargetTypeId;
+			context.widgetState.styleId = StyleId;
 			context.widgetState.rootLayer = SdRootLayer::Floating;
 			context.widgetState.inputEnabled = open;
 			context.widgetState.layoutWeight = open ? 1.0f : 0.0f;
@@ -1468,8 +1461,7 @@ namespace Sodium
 
 	struct SdImageViewer final : SdWidgetTag
 	{
-		static constexpr SdTypeId TypeId = "Sodium.Widget.ImageViewer"_SdId;
-		static constexpr SdTypeId TargetTypeId = SdWidgetTargetIds::ImageViewer;
+		static constexpr SdStyleTargetId StyleId = SdStyleTargetIds::ImageViewer;
 		using Style = SdWidgetRootStyle;
 
 		struct State final
@@ -1497,7 +1489,7 @@ namespace Sodium
 			state.size = size;
 			state.uvRect = uvRect;
 			state.tint = tint;
-			context.widgetState.targetTypeId = TargetTypeId;
+			context.widgetState.styleId = StyleId;
 			context.widgetState.inputEnabled = false;
 			context.widgetState.layoutWeight = 1.0f;
 		}
@@ -1544,8 +1536,7 @@ namespace Sodium
 
 	struct SdScrollView final : SdWidgetTag
 	{
-		static constexpr SdTypeId TypeId = "Sodium.Widget.ScrollView"_SdId;
-		static constexpr SdTypeId TargetTypeId = SdWidgetTargetIds::ScrollView;
+		static constexpr SdStyleTargetId StyleId = SdStyleTargetIds::ScrollView;
 
 		struct Parts final
 		{
@@ -1581,7 +1572,7 @@ namespace Sodium
 		void OnUpdate(SdUpdateContext& context, TContent&& content)
 		{
 			State& state = context.State<State>();
-			context.widgetState.targetTypeId = TargetTypeId;
+			context.widgetState.styleId = StyleId;
 			context.widgetState.inputEnabled = true;
 			context.widgetState.layoutWeight = 1.0f;
 			context.EnsurePart(Parts::Scrollbar);
@@ -1668,8 +1659,7 @@ namespace Sodium
 
 	struct SdPopup final : SdWidgetTag
 	{
-		static constexpr SdTypeId TypeId = "Sodium.Widget.Popup"_SdId;
-		static constexpr SdTypeId TargetTypeId = SdWidgetTargetIds::Popup;
+		static constexpr SdStyleTargetId StyleId = SdStyleTargetIds::Popup;
 		using Style = SdWidgetRootStyle;
 
 		struct State final
@@ -1735,7 +1725,7 @@ namespace Sodium
 	protected:
 		static void Configure(SdUpdateContext& context, bool open)
 		{
-			context.widgetState.targetTypeId = TargetTypeId;
+			context.widgetState.styleId = StyleId;
 			context.widgetState.rootLayer = SdRootLayer::Popup;
 			context.widgetState.rootLayer = SdRootLayer::Popup;
 			context.widgetState.portalRoot = SdPortalRoot::Popup;
@@ -1750,8 +1740,7 @@ namespace Sodium
 
 	struct SdContextMenu final : SdWidgetTag
 	{
-		static constexpr SdTypeId TypeId = "Sodium.Widget.ContextMenu"_SdId;
-		static constexpr SdTypeId TargetTypeId = SdWidgetTargetIds::ContextMenu;
+		static constexpr SdStyleTargetId StyleId = SdStyleTargetIds::ContextMenu;
 		using Style = SdWidgetRootStyle;
 
 		struct State final
@@ -1767,7 +1756,7 @@ namespace Sodium
 			State& state = context.State<State>();
 			state.open = open;
 			state.position = position;
-			context.widgetState.targetTypeId = TargetTypeId;
+			context.widgetState.styleId = StyleId;
 			context.widgetState.rootLayer = SdRootLayer::Popup;
 			context.widgetState.rootLayer = SdRootLayer::Popup;
 			context.widgetState.portalRoot = SdPortalRoot::Popup;
@@ -1820,8 +1809,7 @@ namespace Sodium
 
 	struct SdTooltip final : SdWidgetTag
 	{
-		static constexpr SdTypeId TypeId = "Sodium.Widget.Tooltip"_SdId;
-		static constexpr SdTypeId TargetTypeId = SdWidgetTargetIds::Tooltip;
+		static constexpr SdStyleTargetId StyleId = SdStyleTargetIds::Tooltip;
 		using Style = SdWidgetRootStyle;
 
 		struct State final
@@ -1837,7 +1825,7 @@ namespace Sodium
 			state.visible = visible;
 			state.position = position;
 			state.text.assign(text.data(), text.size());
-			context.widgetState.targetTypeId = TargetTypeId;
+			context.widgetState.styleId = StyleId;
 			context.widgetState.rootLayer = SdRootLayer::Tooltip;
 			context.widgetState.rootLayer = SdRootLayer::Tooltip;
 			context.widgetState.portalRoot = SdPortalRoot::Tooltip;

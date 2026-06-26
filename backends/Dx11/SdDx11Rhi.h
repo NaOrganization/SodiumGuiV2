@@ -155,8 +155,8 @@ namespace Sodium::Backends
 		std::vector<PipelineEntry> pipelines = {};
 		SdDx11CommandEncoder immediateEncoder = {};
 
-		template<typename Entry>
-		static Rhi::SdGpuHandle Allocate(std::vector<Entry>& entries)
+		template<typename THandle, typename Entry>
+		static THandle Allocate(std::vector<Entry>& entries)
 		{
 			SdUInt32 index = 1;
 			for (; index < entries.size(); ++index)
@@ -169,11 +169,11 @@ namespace Sodium::Backends
 			Entry& entry = entries[index];
 			entry.generation = entry.generation == 0 ? 1 : entry.generation + 1;
 			entry.occupied = true;
-			return Rhi::SdGpuHandle(index, entry.generation);
+			return THandle(index, entry.generation);
 		}
 
-		template<typename Entry>
-		static Entry* Find(std::vector<Entry>& entries, Rhi::SdGpuHandle handle) noexcept
+		template<typename Entry, typename THandle>
+		static Entry* Find(std::vector<Entry>& entries, THandle handle) noexcept
 		{
 			if (!handle.IsValid() || handle.index >= entries.size())
 				return nullptr;
@@ -183,8 +183,8 @@ namespace Sodium::Backends
 			return &entry;
 		}
 
-		template<typename Entry>
-		static const Entry* Find(const std::vector<Entry>& entries, Rhi::SdGpuHandle handle) noexcept
+		template<typename Entry, typename THandle>
+		static const Entry* Find(const std::vector<Entry>& entries, THandle handle) noexcept
 		{
 			if (!handle.IsValid() || handle.index >= entries.size())
 				return nullptr;
@@ -194,8 +194,8 @@ namespace Sodium::Backends
 			return &entry;
 		}
 
-		template<typename Entry>
-		static void Release(std::vector<Entry>& entries, Rhi::SdGpuHandle handle)
+		template<typename Entry, typename THandle>
+		static void Release(std::vector<Entry>& entries, THandle handle)
 		{
 			Entry* entry = Find(entries, handle);
 			if (!entry)
@@ -390,7 +390,7 @@ namespace Sodium::Backends
 				return {};
 			}
 
-			Rhi::SdTextureHandle handle = Allocate(textures);
+			Rhi::SdTextureHandle handle = Allocate<Rhi::SdTextureHandle>(textures);
 			TextureEntry& entry = textures[handle.index];
 			entry.resource = texture;
 			entry.srv = srv;
@@ -451,7 +451,7 @@ namespace Sodium::Backends
 				return {};
 			}
 
-			Rhi::SdTextureHandle handle = Allocate(textures);
+			Rhi::SdTextureHandle handle = Allocate<Rhi::SdTextureHandle>(textures);
 			TextureEntry& entry = textures[handle.index];
 			entry.resource = texture;
 			entry.srv = srv;
@@ -531,7 +531,7 @@ namespace Sodium::Backends
 			if (FAILED(nativeDevice->CreateBuffer(&nativeDesc, initialData ? &data : nullptr, buffer.GetAddressOf())))
 				return {};
 
-			Rhi::SdBufferHandle handle = Allocate(buffers);
+			Rhi::SdBufferHandle handle = Allocate<Rhi::SdBufferHandle>(buffers);
 			BufferEntry& entry = buffers[handle.index];
 			entry.buffer = buffer;
 			entry.desc = desc;
@@ -593,7 +593,7 @@ namespace Sodium::Backends
 				return {};
 			}
 
-			Rhi::SdShaderHandle handle = Allocate(shaders);
+			Rhi::SdShaderHandle handle = Allocate<Rhi::SdShaderHandle>(shaders);
 			ShaderEntry& entry = shaders[handle.index];
 			entry.vertexShader = vertexShader;
 			entry.pixelShader = pixelShader;
@@ -680,7 +680,7 @@ namespace Sodium::Backends
 			if (FAILED(nativeDevice->CreateSamplerState(&nativeDesc, sampler.GetAddressOf())))
 				return {};
 
-			Rhi::SdSamplerHandle handle = Allocate(samplers);
+			Rhi::SdSamplerHandle handle = Allocate<Rhi::SdSamplerHandle>(samplers);
 			samplers[handle.index].sampler = sampler;
 			return handle;
 		}
@@ -689,7 +689,7 @@ namespace Sodium::Backends
 
 		Rhi::SdVertexLayoutHandle CreateVertexLayout(const Rhi::SdVertexLayoutDesc& desc) override
 		{
-			Rhi::SdVertexLayoutHandle handle = Allocate(vertexLayouts);
+			Rhi::SdVertexLayoutHandle handle = Allocate<Rhi::SdVertexLayoutHandle>(vertexLayouts);
 			VertexLayoutEntry& entry = vertexLayouts[handle.index];
 			entry.attributes.assign(desc.attributes.begin(), desc.attributes.end());
 			entry.semanticNames.clear();
@@ -706,7 +706,7 @@ namespace Sodium::Backends
 
 		Rhi::SdResourceSetLayoutHandle CreateResourceSetLayout(const Rhi::SdResourceSetLayoutDesc& desc) override
 		{
-			Rhi::SdResourceSetLayoutHandle handle = Allocate(resourceSetLayouts);
+			Rhi::SdResourceSetLayoutHandle handle = Allocate<Rhi::SdResourceSetLayoutHandle>(resourceSetLayouts);
 			ResourceSetLayoutEntry& entry = resourceSetLayouts[handle.index];
 			entry.bindings.assign(desc.bindings.begin(), desc.bindings.end());
 			return handle;
@@ -719,7 +719,7 @@ namespace Sodium::Backends
 			if (!Find(resourceSetLayouts, desc.layout))
 				return {};
 
-			Rhi::SdResourceSetHandle handle = Allocate(resourceSets);
+			Rhi::SdResourceSetHandle handle = Allocate<Rhi::SdResourceSetHandle>(resourceSets);
 			ResourceSetEntry& entry = resourceSets[handle.index];
 			entry.layout = desc.layout;
 			entry.textures.assign(desc.textures.begin(), desc.textures.end());
@@ -804,7 +804,7 @@ namespace Sodium::Backends
 			if (FAILED(nativeDevice->CreateDepthStencilState(&depthDesc, depthStencilState.GetAddressOf())))
 				return {};
 
-			Rhi::SdPipelineHandle handle = Allocate(pipelines);
+			Rhi::SdPipelineHandle handle = Allocate<Rhi::SdPipelineHandle>(pipelines);
 			PipelineEntry& entry = pipelines[handle.index];
 			entry.inputLayout = inputLayout;
 			entry.blendState = blendState;

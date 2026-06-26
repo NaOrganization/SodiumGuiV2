@@ -100,9 +100,23 @@ namespace Sodium
 		constexpr SdId(SdUInt64 value) noexcept : value(value) {}
 
 		constexpr bool IsValid() const noexcept { return value != 0; }
+		constexpr SdId& operator++() noexcept
+		{
+			++value;
+			return *this;
+		}
+		constexpr SdId operator++(int) noexcept
+		{
+			SdId previous = *this;
+			++value;
+			return previous;
+		}
 		friend constexpr bool operator==(const SdId&, const SdId&) = default;
 		friend constexpr bool operator!=(const SdId&, const SdId&) = default;
-
+		friend constexpr bool operator<(const SdId& left, const SdId& right) noexcept { return left.value < right.value; }
+		friend constexpr bool operator<=(const SdId& left, const SdId& right) noexcept { return left.value <= right.value; }
+		friend constexpr bool operator>(const SdId& left, const SdId& right) noexcept { return left.value > right.value; }
+		friend constexpr bool operator>=(const SdId& left, const SdId& right) noexcept { return left.value >= right.value; }
 	};
 
 	template <typename TTag>
@@ -119,13 +133,107 @@ namespace Sodium
 	struct SdFontFamilyTag final {};
 	struct SdImageTag final {};
 	struct SdStateTag final {};
+	struct SdWidgetIdTag final {};
+	struct SdLayerIdTag final {};
+	struct SdStyleTargetTag final {};
+	struct SdTextInputTargetTag final {};
+	struct SdRenderLayerTag final {};
+	struct SdStyleNodeTag final {};
+	struct SdAnimationChannelTag final {};
+	struct SdGlyphTag final {};
+	struct SdEffectTypeTag final {};
+	struct SdStyleClassTag final {};
+	struct SdStyleScopeTag final {};
+	struct SdPropertyTag final {};
+	struct SdDesignTokenTag final {};
+	struct SdStylePartTag final {};
 	struct SdWidgetHandleTag final {};
+	struct SdEffectTag final {};
+	struct SdObjectHandleTag final {};
 
 	using SdFontHandle = SdHandle<SdFontTag>;
 	using SdFontFamilyHandle = SdHandle<SdFontFamilyTag>;
 	using SdImageHandle = SdHandle<SdImageTag>;
 	using SdStateHandle = SdHandle<SdStateTag>;
+	using SdWidgetId = SdId<SdWidgetIdTag>;
+	using SdLayerId = SdId<SdLayerIdTag>;
+	using SdStyleTargetId = SdId<SdStyleTargetTag>;
+	using SdTextInputTargetId = SdId<SdTextInputTargetTag>;
+	using SdRenderLayerId = SdId<SdRenderLayerTag>;
+	using SdStyleNodeId = SdId<SdStyleNodeTag>;
+	using SdAnimationChannelId = SdId<SdAnimationChannelTag>;
+	using SdGlyphId = SdId<SdGlyphTag>;
+	using SdEffectTypeId = SdId<SdEffectTypeTag>;
+	using SdStyleClassId = SdId<SdStyleClassTag>;
+	using SdStyleScopeId = SdId<SdStyleScopeTag>;
+	using SdPropertyId = SdId<SdPropertyTag>;
+	using SdDesignTokenId = SdId<SdDesignTokenTag>;
 	using SdWidgetHandle = SdHandle<SdWidgetHandleTag>;
+	using SdEffectHandle = SdHandle<SdEffectTag>;
+
+	namespace Detail
+	{
+		struct SdObjectHandle final
+		{
+			SdStyleTargetId type = 0;
+			SdHandle<SdObjectHandleTag> slot = {};
+
+			constexpr SdObjectHandle() noexcept = default;
+			constexpr SdObjectHandle(SdStyleTargetId typeValue, SdUInt32 indexValue, SdUInt32 generationValue) noexcept
+				: type(typeValue), slot(indexValue, generationValue) {}
+
+			constexpr bool IsValid() const noexcept
+			{
+				return slot.IsValid() && slot.index != SdInvalidIndex<SdUInt32> && type != 0;
+			}
+
+			constexpr void Reset() noexcept
+			{
+				type = 0;
+				slot.index = SdInvalidIndex<SdUInt32>;
+				slot.generation = 0;
+			}
+		};
+	}
+
+	namespace Rhi
+	{
+		struct SdGpuResourceTag final {};
+		struct SdTextureTag final {};
+		struct SdBufferTag final {};
+		struct SdShaderTag final {};
+		struct SdSamplerTag final {};
+		struct SdPipelineTag final {};
+		struct SdResourceSetTag final {};
+		struct SdResourceSetLayoutTag final {};
+		struct SdVertexLayoutTag final {};
+		struct SdRenderGraphTextureTag final {};
+		struct SdRenderGraphPassTag final {};
+
+		using SdGpuHandle = SdHandle<SdGpuResourceTag>;
+		using SdTextureHandle = SdHandle<SdTextureTag>;
+		using SdBufferHandle = SdHandle<SdBufferTag>;
+		using SdShaderHandle = SdHandle<SdShaderTag>;
+		using SdSamplerHandle = SdHandle<SdSamplerTag>;
+		using SdPipelineHandle = SdHandle<SdPipelineTag>;
+		using SdResourceSetHandle = SdHandle<SdResourceSetTag>;
+		using SdResourceSetLayoutHandle = SdHandle<SdResourceSetLayoutTag>;
+		using SdVertexLayoutHandle = SdHandle<SdVertexLayoutTag>;
+		using SdRenderGraphTexture = SdId<SdRenderGraphTextureTag>;
+		using SdRenderGraphPassHandle = SdHandle<SdRenderGraphPassTag>;
+	}
+
+	using Rhi::SdGpuHandle;
+	using Rhi::SdTextureHandle;
+	using Rhi::SdBufferHandle;
+	using Rhi::SdShaderHandle;
+	using Rhi::SdSamplerHandle;
+	using Rhi::SdPipelineHandle;
+	using Rhi::SdResourceSetHandle;
+	using Rhi::SdResourceSetLayoutHandle;
+	using Rhi::SdVertexLayoutHandle;
+	using Rhi::SdRenderGraphTexture;
+	using Rhi::SdRenderGraphPassHandle;
 }
 
 namespace Sodium::Utf8

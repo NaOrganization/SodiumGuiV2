@@ -258,7 +258,7 @@ namespace
 				ui.Declare<Sodium::SdCheckBox>("Tool toggle");
 			});
 
-	/*		gui.ui.DeclareKeyed<Sodium::SdPopup>("sample_builtin_popup", demoControls.popupOpen, Sodium::SdVec2{ 594.0f, 270.0f }, [](Sodium::SdUi& ui)
+			gui.ui.DeclareKeyed<Sodium::SdPopup>("sample_builtin_popup", demoControls.popupOpen, Sodium::SdVec2{ 594.0f, 270.0f }, [](Sodium::SdUi& ui)
 			{
 				ui.Declare<Sodium::SdText>("SdPopup appears above content");
 				ui.Declare<Sodium::SdButton>("Popup action");
@@ -275,43 +275,43 @@ namespace
 				"sample_builtin_tooltip",
 				demoControls.tooltipVisible,
 				gui.GetInput().GetMousePosition(),
-				"SdTooltip follows the overlay layer");*/
+				"SdTooltip follows the overlay layer");
 		}
 
 		void ConfigureStyleSystem()
 		{
 			Sodium::SdStyleSystem& styleSystem = gui.GetStyleSystem();
 			ConfigureBuiltInThemeTransitions(styleSystem);
-			styleSystem.RootRule(Sodium::SdPanel::TargetTypeId)
+			styleSystem.RootRule(Sodium::SdPanel::StyleId)
 				.Scope(kExampleDemoWindowScope)
 				.Class(kExampleDemoWindowClass)
 				.Set(&Sodium::SdBoxStyle::padding, Sodium::SdStyleValue::FromSpacing({ 14.0f, 108.0f, 14.0f, 12.0f }))
 				.Set(&Sodium::SdBoxStyle::gap, Sodium::SdLength::Pixels(5.0f));
-			styleSystem.RootRule(Sodium::SdText::TargetTypeId)
+			styleSystem.RootRule(Sodium::SdText::StyleId)
 				.Scope(kExampleDemoTextScope)
 				.Set(&Sodium::SdBoxStyle::fontSize, 17.0f)
 				.Set(&Sodium::SdBoxStyle::lineHeight, 22.0f)
 				.Set(&Sodium::SdBoxStyle::padding, Sodium::SdStyleValue::FromSpacing({ 2.0f, 0.0f, 2.0f, 0.0f }));
-			styleSystem.RootRule(Sodium::SdText::TargetTypeId)
+			styleSystem.RootRule(Sodium::SdText::StyleId)
 				.Scope(kExampleDemoTextScope)
 				.Class(kExampleAccentTextClass)
 				.Set(&Sodium::SdBoxStyle::color, Sodium::DesignColor(Sodium::SdDesignTokenIds::Accent));
-			styleSystem.RootRule(Sodium::SdText::TargetTypeId)
+			styleSystem.RootRule(Sodium::SdText::StyleId)
 				.Scope(kExampleDemoTextScope)
 				.Class(kExampleWarningTextClass)
 				.Set(&Sodium::SdBoxStyle::color, Sodium::SdColor{ 255, 176, 92, 255 });
-			styleSystem.RootRule(Sodium::SdText::TargetTypeId)
+			styleSystem.RootRule(Sodium::SdText::StyleId)
 				.Scope(kExampleDemoTextScope)
 				.Class(kExamplePaddedTextClass)
 				.Set(&Sodium::SdBoxStyle::padding, Sodium::SdStyleValue::FromSpacing({ 2.0f, 1.0f, 2.0f, 1.0f }));
-			styleSystem.RootRule(Sodium::SdPanel::TargetTypeId)
+			styleSystem.RootRule(Sodium::SdPanel::StyleId)
 				.Scope(kExampleDemoPanelScope)
 				.Class(kExampleBasicPanelClass)
 				.Set(&Sodium::SdBoxStyle::width, Sodium::SdLength::Pixels(492.0f))
 				.Set(&Sodium::SdBoxStyle::height, Sodium::SdLength::Pixels(72.0f))
 				.Set(&Sodium::SdBoxStyle::padding, Sodium::SdStyleValue::FromSpacing({ 8.0f, 8.0f, 8.0f, 8.0f }))
 				.Set(&Sodium::SdBoxStyle::gap, Sodium::SdLength::Pixels(3.0f));
-			styleSystem.RootRule(Sodium::SdScrollView::TargetTypeId)
+			styleSystem.RootRule(Sodium::SdScrollView::StyleId)
 				.Scope(kExampleDemoScrollScope)
 				.Class(kExampleBasicScrollClass)
 				.Set(&Sodium::SdBoxStyle::width, Sodium::SdLength::Pixels(492.0f))

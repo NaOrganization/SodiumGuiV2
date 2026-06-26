@@ -252,7 +252,7 @@ namespace Sodium::Backends
 		int height = 0;
 		int offsetX = 0;
 		int offsetY = 0;
-		unsigned char* source = stbtt_GetGlyphBitmap(&face->info, 0.0f, GetScale(face->info, size), static_cast<int>(glyphId), &width, &height, &offsetX, &offsetY);
+		unsigned char* source = stbtt_GetGlyphBitmap(&face->info, 0.0f, GetScale(face->info, size), static_cast<int>(glyphId.value), &width, &height, &offsetX, &offsetY);
 		if (!source || width <= 0 || height <= 0)
 		{
 			if (source)

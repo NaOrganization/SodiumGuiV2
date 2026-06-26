@@ -32,8 +32,6 @@ namespace Sodium
 		bool wrap = false;
 	};
 
-	using SdGlyphId = SdUInt32;
-
 	struct SdFontRequest final
 	{
 		SdPath path = {};

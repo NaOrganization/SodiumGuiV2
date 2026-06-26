@@ -71,7 +71,6 @@ namespace Sodium
 		Mask
 	};
 
-	using SdRenderLayerId = SdUInt32;
 	inline constexpr SdRenderLayerId SdRootRenderLayerId = 0;
 	inline constexpr SdRenderLayerId SdInvalidRenderLayerId = SdInvalidIndex<SdRenderLayerId>;
 

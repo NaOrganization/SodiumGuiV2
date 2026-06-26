@@ -4,10 +4,6 @@
 
 namespace Sodium
 {
-	struct SdEffectTag final {};
-	using SdEffectHandle = SdHandle<SdEffectTag>;
-	using SdEffectTypeId = SdUInt64;
-
 	inline constexpr SdEffectTypeId SdBlurEffectTypeId = 0x5364456666656371ull;
 	inline constexpr SdEffectTypeId SdBackdropBlurEffectTypeId = 0x5364456666656372ull;
 	inline constexpr SdEffectTypeId SdDropShadowEffectTypeId = 0x5364456666656373ull;

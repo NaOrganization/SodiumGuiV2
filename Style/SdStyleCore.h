@@ -7,8 +7,6 @@
 
 namespace Sodium
 {
-	using SdStyleNodeId = SdUInt32;
-
 	inline constexpr SdStyleNodeId SdInvalidStyleNodeId = SdInvalidIndex<SdStyleNodeId>;
 
 	enum class SdLengthUnit : SdUInt8
@@ -256,8 +254,6 @@ namespace Sodium
 
 		friend bool operator==(const SdWidgetPartStyle&, const SdWidgetPartStyle&) = default;
 	};
-
-	struct SdStylePartTag final {};
 
 	struct SdStylePart final : SdId<SdStylePartTag>
 	{

@@ -4,13 +4,10 @@
 
 namespace Sodium
 {
-	struct SdTypeTag final {};
-	using SdTypeId = SdId<SdTypeTag>;
-
 	namespace Detail
 	{
 		template<class T>
-		consteval SdTypeId SdCompilerTypeNameHash()
+		consteval SdStyleTargetId SdCompilerTypeNameHash()
 		{
 #if defined(_MSC_VER)
 			return SdHashCString64(__FUNCSIG__);
@@ -24,7 +21,7 @@ namespace Sodium
 	consteval SdUInt64 SdStableTypeId()
 	{
 		if constexpr (requires { T::TypeId; })
-			return static_cast<SdTypeId>(T::TypeId).value;
+			return static_cast<SdStyleTargetId>(T::TypeId).value;
 		else
 			return Detail::SdCompilerTypeNameHash<T>().value;
 	}

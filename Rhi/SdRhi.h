@@ -15,18 +15,6 @@ namespace Sodium::Rhi
 	using SdTextureFormatFlags = SdUInt32;
 	using SdShaderLanguageFlags = SdUInt32;
 
-	struct SdGpuResourceTag final {};
-	using SdGpuHandle = SdHandle<SdGpuResourceTag>;
-
-	using SdTextureHandle = SdGpuHandle;
-	using SdBufferHandle = SdGpuHandle;
-	using SdShaderHandle = SdGpuHandle;
-	using SdSamplerHandle = SdGpuHandle;
-	using SdPipelineHandle = SdGpuHandle;
-	using SdResourceSetHandle = SdGpuHandle;
-	using SdResourceSetLayoutHandle = SdGpuHandle;
-	using SdVertexLayoutHandle = SdGpuHandle;
-
 	enum class SdTextureFormat : SdUInt16
 	{
 		Unknown,
@@ -516,15 +504,6 @@ namespace Sodium::Rhi
 
 namespace Sodium
 {
-	using Rhi::SdGpuHandle;
-	using Rhi::SdTextureHandle;
-	using Rhi::SdBufferHandle;
-	using Rhi::SdShaderHandle;
-	using Rhi::SdSamplerHandle;
-	using Rhi::SdPipelineHandle;
-	using Rhi::SdResourceSetHandle;
-	using Rhi::SdResourceSetLayoutHandle;
-	using Rhi::SdVertexLayoutHandle;
 	using Rhi::SdTextureFormat;
 	using Rhi::SdTextureUsage;
 	using Rhi::SdMemoryUsage;

@@ -51,6 +51,12 @@ namespace Sodium
 			seed = SdMix64(seed ^ SdMix64(value + 0x9E3779B97F4A7C15ull));
 		}
 
+		template<typename TTag>
+		constexpr void Add(SdId<TTag> id) noexcept
+		{
+			Add(id.value);
+		}
+
 		constexpr SdUInt64 Finish() const noexcept
 		{
 			return SdMix64(seed);

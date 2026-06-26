@@ -1,4 +1,4 @@
-#include <Windows.h>
+﻿#include <Windows.h>
 #include <d3d11.h>
 #include <dxgi.h>
 #include <wrl/client.h>
@@ -330,7 +330,7 @@ namespace SodiumDynamicExample
 				context.widgetState.rootLayer = Sodium::SdRootLayer::Tooltip;
 				context.widgetState.arrangeChildren = true;
 				context.widgetState.clipChildren = true;
-				context.widgetState.targetTypeId = Sodium::SdWidgetTargetIds::Panel;
+				context.widgetState.styleId = Sodium::SdStyleTargetIds::Panel;
 			}
 
 			void OnPaint(Sodium::SdPaintContext& context)
@@ -406,36 +406,36 @@ namespace SodiumDynamicExample
 
 			Sodium::SdStyleSystem& styleSystem = gui.GetStyleSystem();
 			ConfigureBuiltInThemeTransitions(styleSystem);
-			styleSystem.RootRule(Sodium::SdWidgetTargetIds::Panel)
+			styleSystem.RootRule(Sodium::SdStyleTargetIds::Panel)
 				.Scope(kOverlayWindowScope)
 				.Class(kOverlayWindowClass)
 				.Set(&Sodium::SdBoxStyle::padding, Sodium::SdStyleValue::FromSpacing({ 14.0f, 96.0f, 14.0f, 10.0f }))
 				.Set(&Sodium::SdBoxStyle::gap, Sodium::SdLength::Pixels(5.0f));
-			styleSystem.RootRule(Sodium::SdText::TargetTypeId)
+			styleSystem.RootRule(Sodium::SdText::StyleId)
 				.Scope(kOverlayTextScope)
 				.Set(&Sodium::SdBoxStyle::fontSize, 15.0f)
 				.Set(&Sodium::SdBoxStyle::lineHeight, 19.0f)
 				.Set(&Sodium::SdBoxStyle::padding, Sodium::SdStyleValue::FromSpacing({ 2.0f, 0.0f, 2.0f, 0.0f }));
-			styleSystem.RootRule(Sodium::SdText::TargetTypeId)
+			styleSystem.RootRule(Sodium::SdText::StyleId)
 				.Scope(kOverlayTextScope)
 				.Class(kOverlayAccentTextClass)
 				.Set(&Sodium::SdBoxStyle::color, Sodium::DesignColor(Sodium::SdDesignTokenIds::Accent));
-			styleSystem.RootRule(Sodium::SdText::TargetTypeId)
+			styleSystem.RootRule(Sodium::SdText::StyleId)
 				.Scope(kOverlayTextScope)
 				.Class(kOverlayMutedTextClass)
 				.Set(&Sodium::SdBoxStyle::color, Sodium::SdColor{ 178, 196, 214, 255 });
-			styleSystem.RootRule(Sodium::SdText::TargetTypeId)
+			styleSystem.RootRule(Sodium::SdText::StyleId)
 				.Scope(kOverlayTextScope)
 				.Class(kOverlayPaddedTextClass)
 				.Set(&Sodium::SdBoxStyle::padding, Sodium::SdStyleValue::FromSpacing({ 2.0f, 1.0f, 2.0f, 1.0f }));
-			styleSystem.RootRule(Sodium::SdPanel::TargetTypeId)
+			styleSystem.RootRule(Sodium::SdPanel::StyleId)
 				.Scope(kOverlayPanelScope)
 				.Class(kOverlayBasicPanelClass)
 				.Set(&Sodium::SdBoxStyle::width, Sodium::SdLength::Pixels(472.0f))
 				.Set(&Sodium::SdBoxStyle::height, Sodium::SdLength::Pixels(64.0f))
 				.Set(&Sodium::SdBoxStyle::padding, Sodium::SdStyleValue::FromSpacing({ 8.0f, 8.0f, 8.0f, 8.0f }))
 				.Set(&Sodium::SdBoxStyle::gap, Sodium::SdLength::Pixels(3.0f));
-			styleSystem.RootRule(Sodium::SdScrollView::TargetTypeId)
+			styleSystem.RootRule(Sodium::SdScrollView::StyleId)
 				.Scope(kOverlayScrollScope)
 				.Class(kOverlayBasicScrollClass)
 				.Set(&Sodium::SdBoxStyle::width, Sodium::SdLength::Pixels(472.0f))

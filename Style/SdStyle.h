@@ -714,9 +714,9 @@ namespace Sodium
 		template<class TWidget>
 		SdStyleRuleBuilder<TWidget> Rule();
 
-		SdStyleSystemSheetRuleBuilder<SdWidgetRootStyle> RootRule(SdTypeId targetTypeId)
+		SdStyleSystemSheetRuleBuilder<SdWidgetRootStyle> RootRule(SdStyleTargetId styleId)
 		{
-			return SdStyleSystemSheetRuleBuilder<SdWidgetRootStyle>(*this, typedStyleSheet.RuleForTarget<SdWidgetRootStyle>(targetTypeId));
+			return SdStyleSystemSheetRuleBuilder<SdWidgetRootStyle>(*this, typedStyleSheet.RuleForTarget<SdWidgetRootStyle>(styleId));
 		}
 
 		template<class TWidget>
@@ -725,13 +725,13 @@ namespace Sodium
 			return SdStyleSystemSheetRuleBuilder<SdWidgetPartStyle>(*this, typedStyleSheet.Part<TWidget>(part));
 		}
 
-		SdStyleSystemSheetRuleBuilder<SdWidgetPartStyle> PartRule(SdTypeId targetTypeId, SdStylePart part)
+		SdStyleSystemSheetRuleBuilder<SdWidgetPartStyle> PartRule(SdStyleTargetId styleId, SdStylePart part)
 		{
-			return SdStyleSystemSheetRuleBuilder<SdWidgetPartStyle>(*this, typedStyleSheet.PartForTarget(targetTypeId, part));
+			return SdStyleSystemSheetRuleBuilder<SdWidgetPartStyle>(*this, typedStyleSheet.PartForTarget(styleId, part));
 		}
 
 		SdWidgetRootStyle ResolveRootStyle(
-			SdTypeId targetTypeId,
+			SdStyleTargetId styleId,
 			SdStyleInteractionState interactionState,
 			SdRootLayer rootLayer = SdRootLayer::Content,
 			SdSpan<const SdStyleClassId> styleClasses = {},
@@ -739,7 +739,7 @@ namespace Sodium
 			const SdWidgetRootStyle* inlineStyle = nullptr) const
 		{
 			const SdStyleResolveResult result = ResolveRootNode(
-				targetTypeId,
+				styleId,
 				interactionState,
 				rootLayer,
 				styleClasses,
@@ -749,7 +749,7 @@ namespace Sodium
 		}
 
 		SdStyleResolveResult ResolveRootNode(
-			SdTypeId targetTypeId,
+			SdStyleTargetId styleId,
 			SdStyleInteractionState interactionState,
 			SdRootLayer rootLayer = SdRootLayer::Content,
 			SdSpan<const SdStyleClassId> styleClasses = {},
@@ -758,7 +758,7 @@ namespace Sodium
 		{
 			SdWidgetRootStyle specifiedStyle = ApplyCompiledTypedRules(
 				BuildDefaultRootStyle(),
-				targetTypeId,
+				styleId,
 				SdStylePart::Root(),
 				interactionState,
 				rootLayer,
@@ -767,7 +767,7 @@ namespace Sodium
 				false);
 			SdWidgetRootStyle resolvedStyle = ApplyCompiledTypedRules(
 				BuildDefaultRootStyle(),
-				targetTypeId,
+				styleId,
 				SdStylePart::Root(),
 				interactionState,
 				rootLayer,
@@ -788,7 +788,7 @@ namespace Sodium
 		}
 
 		SdWidgetPartStyle ResolvePartStyle(
-			SdTypeId targetTypeId,
+			SdStyleTargetId styleId,
 			SdStylePart part,
 			const SdWidgetRootStyle& rootStyle,
 			SdStyleInteractionState interactionState,
@@ -797,7 +797,7 @@ namespace Sodium
 			SdStyleScopeId styleScope = 0) const
 		{
 			const SdStyleResolveResult result = ResolvePartNode(
-				targetTypeId,
+				styleId,
 				part,
 				rootStyle,
 				interactionState,
@@ -808,7 +808,7 @@ namespace Sodium
 		}
 
 		SdStyleResolveResult ResolvePartNode(
-			SdTypeId targetTypeId,
+			SdStyleTargetId styleId,
 			SdStylePart part,
 			const SdWidgetRootStyle& rootStyle,
 			SdStyleInteractionState interactionState,
@@ -818,7 +818,7 @@ namespace Sodium
 		{
 			const SdWidgetPartStyle specifiedStyle = ApplyCompiledTypedRules(
 				SdWidgetPartStyle{},
-				targetTypeId,
+				styleId,
 				part,
 				interactionState,
 				rootLayer,
@@ -836,7 +836,7 @@ namespace Sodium
 			}
 			SdWidgetPartStyle resolvedStyle = ApplyCompiledTypedRules(
 				resolvedBase,
-				targetTypeId,
+				styleId,
 				part,
 				interactionState,
 				rootLayer,
@@ -875,7 +875,7 @@ namespace Sodium
 			SdTransition& transition) const;
 
 		bool TryResolveRootTransition(
-			SdTypeId targetTypeId,
+			SdStyleTargetId styleId,
 			SdPropertyId propertyId,
 			SdStyleInteractionState interactionState,
 			SdRootLayer rootLayer,
@@ -885,7 +885,7 @@ namespace Sodium
 		{
 			return TryResolveCompiledTransition(
 				std::type_index(typeid(SdWidgetRootStyle)),
-				targetTypeId,
+				styleId,
 				SdStylePart::Root(),
 				propertyId,
 				interactionState,
@@ -896,7 +896,7 @@ namespace Sodium
 		}
 
 		bool TryResolvePartTransition(
-			SdTypeId targetTypeId,
+			SdStyleTargetId styleId,
 			SdStylePart part,
 			SdPropertyId propertyId,
 			SdStyleInteractionState interactionState,
@@ -907,7 +907,7 @@ namespace Sodium
 		{
 			return TryResolveCompiledTransition(
 				std::type_index(typeid(SdWidgetPartStyle)),
-				targetTypeId,
+				styleId,
 				part,
 				propertyId,
 				interactionState,
@@ -932,10 +932,10 @@ namespace Sodium
 
 	private:
 		template<class TWidget>
-		static constexpr SdTypeId GetTargetTag() noexcept
+		static constexpr SdStyleTargetId GetTargetTag() noexcept
 		{
-			if constexpr (requires { TWidget::TargetTypeId; })
-				return TWidget::TargetTypeId;
+			if constexpr (requires { TWidget::StyleId; })
+				return TWidget::StyleId;
 			else
 				return SdStableTypeId<TWidget>();
 		}
@@ -997,7 +997,7 @@ namespace Sodium
 		template<class TStyle>
 		TStyle ApplyCompiledTypedRules(
 			TStyle style,
-			SdTypeId targetTag,
+			SdStyleTargetId targetTag,
 			SdStylePart part,
 			SdStyleInteractionState interactionState,
 			SdRootLayer rootLayer,
@@ -1255,7 +1255,7 @@ namespace Sodium
 
 		bool TryResolveCompiledTransition(
 			std::type_index styleType,
-			SdTypeId targetTypeId,
+			SdStyleTargetId styleId,
 			SdStylePart part,
 			SdPropertyId propertyId,
 			SdStyleInteractionState interactionState,
@@ -1265,7 +1265,7 @@ namespace Sodium
 			SdTransition& transition) const
 		{
 			SdStyleResolveRequest request = {};
-			request.targetTag = targetTypeId;
+			request.targetTag = styleId;
 			request.part = part;
 			request.pseudoState = SdPseudoState::FromInteraction(interactionState);
 			request.rootLayer = rootLayer;
@@ -1276,7 +1276,7 @@ namespace Sodium
 			SdCascadeLayer currentLayer = SdCascadeLayer::UserAgent;
 			SdStyleSpecificity currentSpecificity = {};
 			SdUInt32 currentSourceOrder = 0;
-			compiledStyleSheet.ForEachCandidateRule(styleType, targetTypeId, part, [&](const SdCompiledStyleRule& rule)
+			compiledStyleSheet.ForEachCandidateRule(styleType, styleId, part, [&](const SdCompiledStyleRule& rule)
 			{
 				if (rule.selector.styleType != styleType)
 					return;

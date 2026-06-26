@@ -276,7 +276,7 @@ namespace Sodium::Backends
 			return bitmap;
 
 		FT_Set_Pixel_Sizes(face->face, 0, static_cast<FT_UInt>(std::ceil(size)));
-		if (FT_Load_Glyph(face->face, glyphId, FT_LOAD_DEFAULT) != 0)
+		if (FT_Load_Glyph(face->face, static_cast<FT_UInt>(glyphId.value), FT_LOAD_DEFAULT) != 0)
 			return bitmap;
 		if (FT_Render_Glyph(face->face->glyph, FT_RENDER_MODE_NORMAL) != 0)
 			return bitmap;
