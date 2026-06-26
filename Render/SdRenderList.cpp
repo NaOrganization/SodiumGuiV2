@@ -130,12 +130,13 @@ namespace Sodium
 
 	void SdRenderList::PushClipRect(const SdRect& rect)
 	{
+		const SdRect resolvedRect = ResolveClipRect(rect);
 		SdPushClipPayload payload = {};
-		payload.rect = rect;
+		payload.rect = resolvedRect;
 
 		drawData.commandBuffer.Push(SdRenderCommandKind::PushClipRect, payload);
-		clipStack.push(rect);
-		currentClipRect = rect;
+		clipStack.push(resolvedRect);
+		currentClipRect = resolvedRect;
 	}
 
 	void SdRenderList::PopClip()
@@ -265,7 +266,7 @@ namespace Sodium
 	void SdRenderList::AddBackdropBlur(const SdRect& rect, const SdRect& clipRect, float radius, const SdCornerRadii& cornerRadii)
 	{
 		const SdRect previousClipRect = currentClipRect;
-		currentClipRect = clipRect;
+		currentClipRect = ResolveClipRect(clipRect);
 		AddBackdropBlur(rect, radius, cornerRadii);
 		currentClipRect = previousClipRect;
 	}
@@ -317,7 +318,7 @@ namespace Sodium
 	void SdRenderList::AddDropShadow(const SdRect& rect, const SdRect& clipRect, const SdVec2& offset, const SdColor& color, float radius, float spread, const SdCornerRadii& cornerRadii)
 	{
 		const SdRect previousClipRect = currentClipRect;
-		currentClipRect = clipRect;
+		currentClipRect = ResolveClipRect(clipRect);
 		AddDropShadow(rect, offset, color, radius, spread, cornerRadii);
 		currentClipRect = previousClipRect;
 	}
@@ -362,7 +363,7 @@ namespace Sodium
 	void SdRenderList::AddInnerShadow(const SdRect& rect, const SdRect& clipRect, const SdVec2& offset, const SdColor& color, float radius, float spread, const SdCornerRadii& cornerRadii)
 	{
 		const SdRect previousClipRect = currentClipRect;
-		currentClipRect = clipRect;
+		currentClipRect = ResolveClipRect(clipRect);
 		AddInnerShadow(rect, offset, color, radius, spread, cornerRadii);
 		currentClipRect = previousClipRect;
 	}

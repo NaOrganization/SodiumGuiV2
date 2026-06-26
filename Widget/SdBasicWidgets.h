@@ -982,7 +982,7 @@ namespace Sodium
 
 			if (context.IsFocused())
 			{
-				if (context.input.IsKeyDown(SdKeyCode::Backspace))
+				if (context.input.IsKeyPressed(SdKeyCode::Backspace))
 				{
 					const SdSize oldSize = value.size();
 					BasicWidgetDetail::PopBackUtf8(value);

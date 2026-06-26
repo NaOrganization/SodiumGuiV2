@@ -56,6 +56,10 @@ namespace Sodium
 		void PathStrokeAAThick(const SdColor& color, SdTextureHandle texture, const SdVec2& opaqueUv, float thickness, bool closed);
 		void BuildPolylineNormals(bool closed);
 		void PrimRectWithUV(const SdRect& rect, const SdRect& uvRect, const SdColor& color, SdTextureHandle texture);
+		SdRect ResolveClipRect(const SdRect& rect) const noexcept
+		{
+			return clipStack.empty() ? rect : currentClipRect.Intersection(rect);
+		}
 		static SdUInt32 ResolveCircleSegmentCount(float radius, SdUInt32 requestedSegmentCount);
 
 	public:
@@ -121,7 +125,7 @@ namespace Sodium
 		void AddText(SdUtf8StringView text, const SdVec2& position, const SdColor& color, const SdRect& clipRect)
 		{
 			const SdRect previousClipRect = currentClipRect;
-			currentClipRect = clipRect;
+			currentClipRect = ResolveClipRect(clipRect);
 			AddText(text, position, color);
 			currentClipRect = previousClipRect;
 		}
@@ -147,7 +151,7 @@ namespace Sodium
 		void AddText(SdUtf8StringView text, const SdTextStyle& style, const SdVec2& position, const SdColor& color, const SdRect& clipRect)
 		{
 			const SdRect previousClipRect = currentClipRect;
-			currentClipRect = clipRect;
+			currentClipRect = ResolveClipRect(clipRect);
 			AddText(text, style, position, color);
 			currentClipRect = previousClipRect;
 		}

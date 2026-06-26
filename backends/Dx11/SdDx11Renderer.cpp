@@ -14,6 +14,9 @@
 #include <cstddef>
 #include <cmath>
 #include <cstring>
+#include <iterator>
+
+#pragma comment(lib, "d3d11.lib")
 
 #ifdef min
 #undef min
@@ -27,19 +30,6 @@ namespace Sodium::Backends
 {
 	namespace
 	{
-		Rhi::SdTextureFormat MapDxgiFormatToRhi(DXGI_FORMAT format) noexcept
-		{
-			switch (format)
-			{
-			case DXGI_FORMAT_R8G8B8A8_UNORM: return Rhi::SdTextureFormat::Rgba8Unorm;
-			case DXGI_FORMAT_R8G8B8A8_UNORM_SRGB: return Rhi::SdTextureFormat::Rgba8UnormSrgb;
-			case DXGI_FORMAT_B8G8R8A8_UNORM: return Rhi::SdTextureFormat::Bgra8Unorm;
-			case DXGI_FORMAT_B8G8R8A8_UNORM_SRGB: return Rhi::SdTextureFormat::Bgra8UnormSrgb;
-			case DXGI_FORMAT_R16G16B16A16_FLOAT: return Rhi::SdTextureFormat::Rgba16Float;
-			default: return Rhi::SdTextureFormat::Bgra8Unorm;
-			}
-		}
-
 		SdRect IntersectRect(const SdRect& a, const SdRect& b) noexcept
 		{
 			return {
@@ -488,14 +478,119 @@ namespace Sodium::Backends
 		};
 	}
 
-	bool SdDx11Renderer::Initialize(const Config& config)
+	bool SdDx11Renderer::CreateOwnedDeviceAndSwapchain(const Rhi::SdSwapchainDesc& desc)
 	{
-		if (!config.device || !config.deviceContext)
+		HWND windowHandle = static_cast<HWND>(desc.nativeWindow);
+		if (!windowHandle || desc.width == 0 || desc.height == 0)
 			return false;
 
-		device = config.device;
-		deviceContext = config.deviceContext;
-		if (!rhiDevice.Initialize({ config.device, config.deviceContext }))
+		const DXGI_FORMAT colorFormat = MapTextureFormat(desc.colorFormat);
+		if (colorFormat == DXGI_FORMAT_UNKNOWN)
+			return false;
+
+		swapchainWidth = desc.width;
+		swapchainHeight = desc.height;
+
+		DXGI_SWAP_CHAIN_DESC swapChainDesc = {};
+		swapChainDesc.BufferDesc.Width = desc.width;
+		swapChainDesc.BufferDesc.Height = desc.height;
+		swapChainDesc.BufferDesc.Format = colorFormat;
+		swapChainDesc.SampleDesc.Count = 1;
+		swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+		swapChainDesc.BufferCount = std::max(1u, desc.bufferCount);
+		swapChainDesc.OutputWindow = windowHandle;
+		swapChainDesc.Windowed = TRUE;
+		swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
+
+		UINT flags = 0;
+#if defined(_DEBUG)
+		flags |= D3D11_CREATE_DEVICE_DEBUG;
+#endif
+
+		D3D_FEATURE_LEVEL featureLevel = D3D_FEATURE_LEVEL_11_0;
+		const D3D_FEATURE_LEVEL featureLevels[] =
+		{
+			D3D_FEATURE_LEVEL_11_1,
+			D3D_FEATURE_LEVEL_11_0,
+			D3D_FEATURE_LEVEL_10_1,
+			D3D_FEATURE_LEVEL_10_0
+		};
+
+		HRESULT hr = ::D3D11CreateDeviceAndSwapChain(
+			nullptr,
+			D3D_DRIVER_TYPE_HARDWARE,
+			nullptr,
+			flags,
+			featureLevels,
+			static_cast<UINT>(std::size(featureLevels)),
+			D3D11_SDK_VERSION,
+			&swapChainDesc,
+			swapChain.ReleaseAndGetAddressOf(),
+			device.ReleaseAndGetAddressOf(),
+			&featureLevel,
+			deviceContext.ReleaseAndGetAddressOf());
+
+#if defined(_DEBUG)
+		if (hr == DXGI_ERROR_SDK_COMPONENT_MISSING)
+		{
+			flags &= ~D3D11_CREATE_DEVICE_DEBUG;
+			hr = ::D3D11CreateDeviceAndSwapChain(
+				nullptr,
+				D3D_DRIVER_TYPE_HARDWARE,
+				nullptr,
+				flags,
+				featureLevels,
+				static_cast<UINT>(std::size(featureLevels)),
+				D3D11_SDK_VERSION,
+				&swapChainDesc,
+				swapChain.ReleaseAndGetAddressOf(),
+				device.ReleaseAndGetAddressOf(),
+				&featureLevel,
+				deviceContext.ReleaseAndGetAddressOf());
+		}
+#endif
+
+		if (FAILED(hr))
+			return false;
+		ownsDeviceResources = true;
+		return CreateSwapchainRenderTarget();
+	}
+
+	bool SdDx11Renderer::CreateSwapchainRenderTarget()
+	{
+		if (!device || !swapChain)
+			return false;
+
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> backBuffer = {};
+		if (FAILED(swapChain->GetBuffer(0, IID_PPV_ARGS(backBuffer.GetAddressOf()))))
+			return false;
+		return SUCCEEDED(device->CreateRenderTargetView(backBuffer.Get(), nullptr, swapchainRenderTargetView.ReleaseAndGetAddressOf()));
+	}
+
+	void SdDx11Renderer::ReleaseSwapchainRenderTarget()
+	{
+		if (deviceContext)
+			deviceContext->OMSetRenderTargets(0, nullptr, nullptr);
+		swapchainRenderTargetView.Reset();
+	}
+
+	bool SdDx11Renderer::Initialize(const Config& config)
+	{
+		if (config.swapchain.nativeWindow)
+		{
+			if (!CreateOwnedDeviceAndSwapchain(config.swapchain))
+				return false;
+		}
+		else
+		{
+			if (!config.device || !config.deviceContext)
+				return false;
+			device = config.device;
+			deviceContext = config.deviceContext;
+			ownsDeviceResources = false;
+		}
+
+		if (!rhiDevice.Initialize({ device.Get(), deviceContext.Get() }))
 			return false;
 		if (!CreatePipelineState())
 			return false;
@@ -531,6 +626,8 @@ namespace Sodium::Backends
 		if (vertexBuffer.IsValid())
 			rhiDevice.DestroyBuffer(vertexBuffer);
 		rhiDevice.Shutdown();
+		ReleaseSwapchainRenderTarget();
+		swapChain.Reset();
 		pipeline = {};
 		resourceSetLayout = {};
 		sampler = {};
@@ -544,6 +641,49 @@ namespace Sodium::Backends
 		device.Reset();
 		vertexCapacity = 0;
 		indexCapacity = 0;
+		swapchainWidth = 0;
+		swapchainHeight = 0;
+		swapchainOccluded = false;
+		ownsDeviceResources = false;
+	}
+
+	bool SdDx11Renderer::Resize(SdUInt32 width, SdUInt32 height)
+	{
+		if (!swapChain || width == 0 || height == 0)
+			return true;
+		if (width == swapchainWidth && height == swapchainHeight)
+			return true;
+
+		rhiDevice.WaitIdle();
+		ReleaseSwapchainRenderTarget();
+		if (FAILED(swapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0)))
+			return false;
+		swapchainWidth = width;
+		swapchainHeight = height;
+		return CreateSwapchainRenderTarget();
+	}
+
+	void SdDx11Renderer::BeginFrame(const std::array<float, 4>& clearColor)
+	{
+		if (!deviceContext || !swapchainRenderTargetView)
+			return;
+		ID3D11RenderTargetView* target = swapchainRenderTargetView.Get();
+		deviceContext->OMSetRenderTargets(1, &target, nullptr);
+		deviceContext->ClearRenderTargetView(swapchainRenderTargetView.Get(), clearColor.data());
+	}
+
+	bool SdDx11Renderer::Present()
+	{
+		if (!swapChain)
+			return true;
+		const HRESULT hr = swapChain->Present(0, 0);
+		swapchainOccluded = hr == DXGI_STATUS_OCCLUDED;
+		return SUCCEEDED(hr) || hr == DXGI_STATUS_OCCLUDED;
+	}
+
+	bool SdDx11Renderer::IsOccluded() const noexcept
+	{
+		return swapchainOccluded;
 	}
 
 	bool SdDx11Renderer::CreatePipelineState()

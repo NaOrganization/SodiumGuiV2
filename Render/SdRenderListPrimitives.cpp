@@ -89,7 +89,7 @@ namespace Sodium
 	void SdRenderList::AddRect(const SdRect& rect, const SdColor& color, const SdRect& clipRect, float thickness, float rounding, SdUInt32 roundingSegments)
 	{
 		const SdRect previousClipRect = currentClipRect;
-		currentClipRect = clipRect;
+		currentClipRect = ResolveClipRect(clipRect);
 		AddRect(rect, color, thickness, rounding, roundingSegments);
 		currentClipRect = previousClipRect;
 	}
@@ -103,7 +103,7 @@ namespace Sodium
 	void SdRenderList::AddRectFilled(const SdRect& rect, const SdColor& color, const SdRect& clipRect, float rounding, SdUInt32 roundingSegments)
 	{
 		const SdRect previousClipRect = currentClipRect;
-		currentClipRect = clipRect;
+		currentClipRect = ResolveClipRect(clipRect);
 		AddRectFilled(rect, color, rounding, roundingSegments);
 		currentClipRect = previousClipRect;
 	}

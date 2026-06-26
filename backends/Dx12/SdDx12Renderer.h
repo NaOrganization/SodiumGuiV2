@@ -18,6 +18,7 @@ namespace Sodium::Backends
 		ID3D12Resource* const* renderTargets = nullptr;
 		UINT renderTargetCount = 0;
 		DXGI_FORMAT renderTargetFormat = DXGI_FORMAT_UNKNOWN;
+		Rhi::SdSwapchainDesc swapchain = {};
 	};
 
 	class SdDx12Renderer final : public ISdRendererBackend
@@ -39,14 +40,18 @@ namespace Sodium::Backends
 
 		bool Initialize(const Config& config);
 		void Shutdown();
+		bool Resize(SdUInt32 width, SdUInt32 height);
+		void BeginFrame(const std::array<float, 4>& clearColor);
+		bool Present();
+		bool IsOccluded() const noexcept;
 		bool SetRenderTargets(ID3D12Resource* const* renderTargets, UINT renderTargetCount, DXGI_FORMAT renderTargetFormat = DXGI_FORMAT_UNKNOWN);
 		void ReleaseRenderTargets();
 		void BeginFrame(UINT renderTargetIndex);
 		void BeginFrame(UINT renderTargetIndex, const std::array<float, 4>& clearColor);
 
 		bool IsInitialized() const noexcept override;
-		Rhi::ISdGpuDevice* GetRhiDeviceInterface() noexcept override;
-		const Rhi::ISdGpuDevice* GetRhiDeviceInterface() const noexcept override;
+		Rhi::ISdGpuDevice& GetRhiDeviceInterface() noexcept override;
+		const Rhi::ISdGpuDevice& GetRhiDeviceInterface() const noexcept override;
 		SdTextureHandle CreateTexture(const SdTextureDesc& desc) override;
 		void DestroyTexture(SdTextureHandle texture) override;
 		void Render(const SdRendererFrameInfo& frameInfo, const SdRenderPacket& packet) override;

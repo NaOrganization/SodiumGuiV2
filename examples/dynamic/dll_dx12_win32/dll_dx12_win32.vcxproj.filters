@@ -104,6 +104,9 @@
     <ClInclude Include="..\..\..\Backends\Dx12\SdDx12Renderer.h">
       <Filter>SodiumGUI\Backends\Dx12</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\Backends\Dx12\SdDx12RhiMappings.h">
+      <Filter>SodiumGUI\Backends\Dx12</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\..\Backends\Win32\SdWin32Platform.h">
       <Filter>SodiumGUI\Backends\Win32</Filter>
     </ClInclude>

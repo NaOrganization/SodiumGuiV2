@@ -49,10 +49,7 @@ namespace Sodium
 			&& context.renderer && context.renderer->IsInitialized()
 			&& context.fontBackend && context.fontBackend->IsInitialized();
 		if (initialized)
-		{
-			if (Rhi::ISdGpuDevice* device = context.renderer->GetRhiDeviceInterface())
-				return context.effectRegistry.Initialize(*device);
-		}
+			return context.effectRegistry.Initialize(context.renderer->GetRhiDeviceInterface());
 		return initialized;
 	}
 

@@ -1,12 +1,15 @@
 #include "SdDx12Renderer.h"
 
+#include "backends/Dx12/SdDx12RhiMappings.h"
 #include "Effects/SdEffectRegistry.hpp"
 
 #include <d3dcompiler.h>
+#include <dxgi1_4.h>
 #include <wrl/client.h>
 
 #include <algorithm>
 #include <array>
+#include <cassert>
 #include <cstddef>
 #include <cmath>
 #include <cstring>
@@ -18,6 +21,7 @@
 
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "d3dcompiler.lib")
+#pragma comment(lib, "dxgi.lib")
 
 #ifdef min
 #undef min
@@ -98,42 +102,6 @@ namespace Sodium::Backends
 			};
 		}
 
-		DXGI_FORMAT MapTextureFormat(Rhi::SdTextureFormat format) noexcept
-		{
-			switch (format)
-			{
-			case Rhi::SdTextureFormat::R8Unorm: return DXGI_FORMAT_R8_UNORM;
-			case Rhi::SdTextureFormat::Rgba8Unorm: return DXGI_FORMAT_R8G8B8A8_UNORM;
-			case Rhi::SdTextureFormat::Rgba8UnormSrgb: return DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-			case Rhi::SdTextureFormat::Bgra8Unorm: return DXGI_FORMAT_B8G8R8A8_UNORM;
-			case Rhi::SdTextureFormat::Bgra8UnormSrgb: return DXGI_FORMAT_B8G8R8A8_UNORM_SRGB;
-			case Rhi::SdTextureFormat::R16Float: return DXGI_FORMAT_R16_FLOAT;
-			case Rhi::SdTextureFormat::Rgba16Float: return DXGI_FORMAT_R16G16B16A16_FLOAT;
-			case Rhi::SdTextureFormat::Rgba32Float: return DXGI_FORMAT_R32G32B32A32_FLOAT;
-			case Rhi::SdTextureFormat::Depth24Stencil8: return DXGI_FORMAT_D24_UNORM_S8_UINT;
-			case Rhi::SdTextureFormat::Depth32Float: return DXGI_FORMAT_D32_FLOAT;
-			default: return DXGI_FORMAT_UNKNOWN;
-			}
-		}
-
-		Rhi::SdTextureFormat MapDxgiFormatToRhi(DXGI_FORMAT format) noexcept
-		{
-			switch (format)
-			{
-			case DXGI_FORMAT_R8_UNORM: return Rhi::SdTextureFormat::R8Unorm;
-			case DXGI_FORMAT_R8G8B8A8_UNORM: return Rhi::SdTextureFormat::Rgba8Unorm;
-			case DXGI_FORMAT_R8G8B8A8_UNORM_SRGB: return Rhi::SdTextureFormat::Rgba8UnormSrgb;
-			case DXGI_FORMAT_B8G8R8A8_UNORM: return Rhi::SdTextureFormat::Bgra8Unorm;
-			case DXGI_FORMAT_B8G8R8A8_UNORM_SRGB: return Rhi::SdTextureFormat::Bgra8UnormSrgb;
-			case DXGI_FORMAT_R16_FLOAT: return Rhi::SdTextureFormat::R16Float;
-			case DXGI_FORMAT_R16G16B16A16_FLOAT: return Rhi::SdTextureFormat::Rgba16Float;
-			case DXGI_FORMAT_R32G32B32A32_FLOAT: return Rhi::SdTextureFormat::Rgba32Float;
-			case DXGI_FORMAT_D24_UNORM_S8_UINT: return Rhi::SdTextureFormat::Depth24Stencil8;
-			case DXGI_FORMAT_D32_FLOAT: return Rhi::SdTextureFormat::Depth32Float;
-			default: return Rhi::SdTextureFormat::Rgba8Unorm;
-			}
-		}
-
 		UINT64 AlignUp(UINT64 value, UINT64 alignment) noexcept
 		{
 			return (value + alignment - 1) & ~(alignment - 1);
@@ -172,133 +140,6 @@ namespace Sodium::Backends
 			desc.SampleDesc.Count = 1;
 			desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
 			return desc;
-		}
-
-		D3D12_BLEND MapBlendFactor(Rhi::SdBlendFactor factor) noexcept
-		{
-			switch (factor)
-			{
-			case Rhi::SdBlendFactor::Zero: return D3D12_BLEND_ZERO;
-			case Rhi::SdBlendFactor::One: return D3D12_BLEND_ONE;
-			case Rhi::SdBlendFactor::SrcColor: return D3D12_BLEND_SRC_COLOR;
-			case Rhi::SdBlendFactor::InvSrcColor: return D3D12_BLEND_INV_SRC_COLOR;
-			case Rhi::SdBlendFactor::DstColor: return D3D12_BLEND_DEST_COLOR;
-			case Rhi::SdBlendFactor::InvDstColor: return D3D12_BLEND_INV_DEST_COLOR;
-			case Rhi::SdBlendFactor::DstAlpha: return D3D12_BLEND_DEST_ALPHA;
-			case Rhi::SdBlendFactor::InvDstAlpha: return D3D12_BLEND_INV_DEST_ALPHA;
-			case Rhi::SdBlendFactor::SrcAlpha: return D3D12_BLEND_SRC_ALPHA;
-			case Rhi::SdBlendFactor::InvSrcAlpha:
-			default: return D3D12_BLEND_INV_SRC_ALPHA;
-			}
-		}
-
-		D3D12_BLEND_OP MapBlendOp(Rhi::SdBlendOp op) noexcept
-		{
-			switch (op)
-			{
-			case Rhi::SdBlendOp::Subtract: return D3D12_BLEND_OP_SUBTRACT;
-			case Rhi::SdBlendOp::ReverseSubtract: return D3D12_BLEND_OP_REV_SUBTRACT;
-			case Rhi::SdBlendOp::Min: return D3D12_BLEND_OP_MIN;
-			case Rhi::SdBlendOp::Max: return D3D12_BLEND_OP_MAX;
-			case Rhi::SdBlendOp::Add:
-			default: return D3D12_BLEND_OP_ADD;
-			}
-		}
-
-		D3D12_COMPARISON_FUNC MapCompare(Rhi::SdCompareOp op) noexcept
-		{
-			switch (op)
-			{
-			case Rhi::SdCompareOp::Never: return D3D12_COMPARISON_FUNC_NEVER;
-			case Rhi::SdCompareOp::Less: return D3D12_COMPARISON_FUNC_LESS;
-			case Rhi::SdCompareOp::LessEqual: return D3D12_COMPARISON_FUNC_LESS_EQUAL;
-			case Rhi::SdCompareOp::Equal: return D3D12_COMPARISON_FUNC_EQUAL;
-			case Rhi::SdCompareOp::GreaterEqual: return D3D12_COMPARISON_FUNC_GREATER_EQUAL;
-			case Rhi::SdCompareOp::Greater: return D3D12_COMPARISON_FUNC_GREATER;
-			case Rhi::SdCompareOp::Always:
-			default: return D3D12_COMPARISON_FUNC_ALWAYS;
-			}
-		}
-
-		D3D12_FILTER MapFilter(const Rhi::SdSamplerDesc& desc) noexcept
-		{
-			const bool linear = desc.minFilter == Rhi::SdFilterMode::Linear
-				&& desc.magFilter == Rhi::SdFilterMode::Linear
-				&& desc.mipFilter == Rhi::SdFilterMode::Linear;
-			return linear ? D3D12_FILTER_MIN_MAG_MIP_LINEAR : D3D12_FILTER_MIN_MAG_MIP_POINT;
-		}
-
-		D3D12_TEXTURE_ADDRESS_MODE MapAddress(Rhi::SdAddressMode mode) noexcept
-		{
-			switch (mode)
-			{
-			case Rhi::SdAddressMode::Repeat: return D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-			case Rhi::SdAddressMode::Mirror: return D3D12_TEXTURE_ADDRESS_MODE_MIRROR;
-			case Rhi::SdAddressMode::Clamp:
-			default: return D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
-			}
-		}
-
-		DXGI_FORMAT MapVertexFormat(Rhi::SdVertexFormat format) noexcept
-		{
-			switch (format)
-			{
-			case Rhi::SdVertexFormat::Float2: return DXGI_FORMAT_R32G32_FLOAT;
-			case Rhi::SdVertexFormat::Float3: return DXGI_FORMAT_R32G32B32_FLOAT;
-			case Rhi::SdVertexFormat::Float4: return DXGI_FORMAT_R32G32B32A32_FLOAT;
-			case Rhi::SdVertexFormat::UByte4Norm: return DXGI_FORMAT_R8G8B8A8_UNORM;
-			default: return DXGI_FORMAT_UNKNOWN;
-			}
-		}
-
-		D3D12_PRIMITIVE_TOPOLOGY MapTopology(Rhi::SdPrimitiveTopology topology) noexcept
-		{
-			switch (topology)
-			{
-			case Rhi::SdPrimitiveTopology::TriangleStrip: return D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
-			case Rhi::SdPrimitiveTopology::LineList: return D3D_PRIMITIVE_TOPOLOGY_LINELIST;
-			case Rhi::SdPrimitiveTopology::LineStrip: return D3D_PRIMITIVE_TOPOLOGY_LINESTRIP;
-			case Rhi::SdPrimitiveTopology::TriangleList:
-			default: return D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-			}
-		}
-
-		D3D12_PRIMITIVE_TOPOLOGY_TYPE MapTopologyType(Rhi::SdPrimitiveTopology topology) noexcept
-		{
-			switch (topology)
-			{
-			case Rhi::SdPrimitiveTopology::LineList:
-			case Rhi::SdPrimitiveTopology::LineStrip:
-				return D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE;
-			case Rhi::SdPrimitiveTopology::TriangleList:
-			case Rhi::SdPrimitiveTopology::TriangleStrip:
-			default:
-				return D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-			}
-		}
-
-		D3D12_DESCRIPTOR_RANGE_TYPE MapDescriptorRangeType(Rhi::SdShaderResourceType type) noexcept
-		{
-			switch (type)
-			{
-			case Rhi::SdShaderResourceType::Sampler: return D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
-			case Rhi::SdShaderResourceType::UniformBuffer: return D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-			case Rhi::SdShaderResourceType::StorageBuffer:
-			case Rhi::SdShaderResourceType::StorageTexture: return D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
-			case Rhi::SdShaderResourceType::Texture2D:
-			default: return D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-			}
-		}
-
-		D3D12_SHADER_VISIBILITY MapShaderVisibility(Rhi::SdShaderStageFlags stages) noexcept
-		{
-			const bool vertex = Rhi::SdHasFlag(stages, Rhi::SdShaderStageFlag::Vertex);
-			const bool pixel = Rhi::SdHasFlag(stages, Rhi::SdShaderStageFlag::Pixel);
-			if (vertex && !pixel)
-				return D3D12_SHADER_VISIBILITY_VERTEX;
-			if (pixel && !vertex)
-				return D3D12_SHADER_VISIBILITY_PIXEL;
-			return D3D12_SHADER_VISIBILITY_ALL;
 		}
 
 		struct Dx12DescriptorAllocation final
@@ -568,6 +409,7 @@ namespace Sodium::Backends
 			bool commandListOpen = false;
 
 			Rhi::SdGpuCaps caps = {};
+			Rhi::SdRhiStatus lastStatus = Rhi::SdRhiStatus::Ok;
 			Dx12DescriptorHeap resourceDescriptors = {};
 			Dx12DescriptorHeap samplerDescriptors = {};
 			Dx12DescriptorHeap rtvDescriptors = {};
@@ -927,7 +769,10 @@ namespace Sodium::Backends
 			bool Initialize(const Config& config)
 			{
 				if (!config.device || !config.commandQueue)
+				{
+					lastStatus = Rhi::SdRhiStatus::InvalidArgument;
 					return false;
+				}
 
 				nativeDevice = config.device;
 				nativeCommandQueue = config.commandQueue;
@@ -959,6 +804,7 @@ namespace Sodium::Backends
 					return false;
 
 				immediateEncoder.Reset(*this);
+				lastStatus = Rhi::SdRhiStatus::Ok;
 				return true;
 			}
 
@@ -1009,6 +855,7 @@ namespace Sodium::Backends
 				nativeCommandQueue.Reset();
 				nativeDevice.Reset();
 				caps = {};
+				lastStatus = Rhi::SdRhiStatus::Ok;
 				currentRenderTarget = {};
 				commandListOpen = false;
 				nextFenceValue = 1;
@@ -1025,6 +872,8 @@ namespace Sodium::Backends
 
 			bool IsInitialized() const noexcept { return nativeDevice.Get() && nativeCommandQueue.Get() && commandList.Get(); }
 			const Rhi::SdGpuCaps& GetCaps() const noexcept override { return caps; }
+			Rhi::SdRhiStatus GetLastStatus() const noexcept override { return lastStatus; }
+			void WaitIdle() override { WaitForGpu(); }
 			Rhi::ISdCommandEncoder& GetImmediateEncoder() noexcept { return immediateEncoder; }
 			ID3D12GraphicsCommandList* GetCommandList() const noexcept { return commandList.Get(); }
 			ID3D12DescriptorHeap* GetResourceHeap() const noexcept { return resourceDescriptors.GetHeap(); }
@@ -1122,11 +971,17 @@ namespace Sodium::Backends
 			Rhi::SdTextureHandle CreateTexture(const Rhi::SdTextureDesc& desc) override
 			{
 				if (!nativeDevice || desc.width == 0 || desc.height == 0)
+				{
+					lastStatus = Rhi::SdRhiStatus::InvalidArgument;
 					return {};
+				}
 
 				const DXGI_FORMAT format = MapTextureFormat(desc.format);
 				if (format == DXGI_FORMAT_UNKNOWN)
+				{
+					lastStatus = Rhi::SdRhiStatus::Unsupported;
 					return {};
+				}
 
 				D3D12_RESOURCE_DESC nativeDesc = {};
 				nativeDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
@@ -1169,6 +1024,7 @@ namespace Sodium::Backends
 					clearValuePtr,
 					IID_PPV_ARGS(resource.ReleaseAndGetAddressOf()))))
 				{
+					lastStatus = Rhi::SdRhiStatus::BackendError;
 					return {};
 				}
 
@@ -1180,8 +1036,10 @@ namespace Sodium::Backends
 				if (!CreateTextureDescriptors(entry))
 				{
 					ReleaseTextureEntry(entry);
+					lastStatus = Rhi::SdRhiStatus::BackendError;
 					return {};
 				}
+				lastStatus = Rhi::SdRhiStatus::Ok;
 				return handle;
 			}
 
@@ -2249,6 +2107,11 @@ namespace Sodium::Backends
 		};
 
 		SdDx12GpuDevice rhiDevice = {};
+		Microsoft::WRL::ComPtr<IDXGIFactory4> factory = {};
+		Microsoft::WRL::ComPtr<ID3D12Device> ownedDevice = {};
+		Microsoft::WRL::ComPtr<ID3D12CommandQueue> ownedCommandQueue = {};
+		Microsoft::WRL::ComPtr<IDXGISwapChain3> swapChain = {};
+		std::vector<Microsoft::WRL::ComPtr<ID3D12Resource>> swapchainRenderTargets = {};
 		Rhi::SdBufferHandle vertexBuffer = {};
 		Rhi::SdBufferHandle indexBuffer = {};
 		Rhi::SdBufferHandle frameConstantBuffer = {};
@@ -2263,9 +2126,140 @@ namespace Sodium::Backends
 		std::array<float, 4> frameClearColor = { 0.0f, 0.0f, 0.0f, 1.0f };
 		DXGI_FORMAT renderTargetFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
 		UINT currentRenderTargetIndex = kInvalidRenderTargetIndex;
+		UINT swapchainFrameIndex = 0;
+		UINT presentSyncInterval = 0;
 		SdUInt32 vertexCapacity = 0;
 		SdUInt32 indexCapacity = 0;
+		SdUInt32 swapchainWidth = 0;
+		SdUInt32 swapchainHeight = 0;
 		bool clearFrameTarget = false;
+		bool swapchainOccluded = false;
+		bool ownsDeviceResources = false;
+
+		bool CreateOwnedDevice()
+		{
+			UINT factoryFlags = 0;
+#if defined(_DEBUG)
+			Microsoft::WRL::ComPtr<ID3D12Debug> debugController = {};
+			if (SUCCEEDED(::D3D12GetDebugInterface(IID_PPV_ARGS(debugController.GetAddressOf()))))
+			{
+				debugController->EnableDebugLayer();
+				factoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
+			}
+#endif
+
+			if (FAILED(::CreateDXGIFactory2(factoryFlags, IID_PPV_ARGS(factory.ReleaseAndGetAddressOf()))))
+			{
+				factoryFlags = 0;
+				if (FAILED(::CreateDXGIFactory2(factoryFlags, IID_PPV_ARGS(factory.ReleaseAndGetAddressOf()))))
+					return false;
+			}
+
+			if (FAILED(::D3D12CreateDevice(nullptr, D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(ownedDevice.ReleaseAndGetAddressOf()))))
+			{
+				Microsoft::WRL::ComPtr<IDXGIAdapter> warpAdapter = {};
+				if (FAILED(factory->EnumWarpAdapter(IID_PPV_ARGS(warpAdapter.GetAddressOf()))))
+					return false;
+				if (FAILED(::D3D12CreateDevice(warpAdapter.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(ownedDevice.ReleaseAndGetAddressOf()))))
+					return false;
+			}
+
+			D3D12_COMMAND_QUEUE_DESC queueDesc = {};
+			queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
+			queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
+			return SUCCEEDED(ownedDevice->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(ownedCommandQueue.ReleaseAndGetAddressOf())));
+		}
+
+		bool CreateOwnedDeviceAndSwapchain(const Rhi::SdSwapchainDesc& desc)
+		{
+			HWND windowHandle = static_cast<HWND>(desc.nativeWindow);
+			if (!windowHandle || desc.width == 0 || desc.height == 0)
+				return false;
+
+			renderTargetFormat = MapTextureFormat(desc.colorFormat);
+			if (renderTargetFormat == DXGI_FORMAT_UNKNOWN)
+				return false;
+			swapchainWidth = desc.width;
+			swapchainHeight = desc.height;
+			presentSyncInterval = desc.presentMode == Rhi::SdPresentMode::Fifo ? 1u : 0u;
+
+			if (!CreateOwnedDevice())
+				return false;
+
+			DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
+			swapChainDesc.Width = desc.width;
+			swapChainDesc.Height = desc.height;
+			swapChainDesc.Format = renderTargetFormat;
+			swapChainDesc.BufferCount = std::max(2u, desc.bufferCount);
+			swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+			swapChainDesc.SampleDesc.Count = 1;
+			swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+
+			Microsoft::WRL::ComPtr<IDXGISwapChain1> swapChain1 = {};
+			if (FAILED(factory->CreateSwapChainForHwnd(ownedCommandQueue.Get(), windowHandle, &swapChainDesc, nullptr, nullptr, swapChain1.ReleaseAndGetAddressOf())))
+				return false;
+			factory->MakeWindowAssociation(windowHandle, DXGI_MWA_NO_ALT_ENTER);
+			if (FAILED(swapChain1.As(&swapChain)))
+				return false;
+			swapchainFrameIndex = swapChain->GetCurrentBackBufferIndex();
+			ownsDeviceResources = true;
+			return true;
+		}
+
+		bool RefreshSwapchainRenderTargets()
+		{
+			if (!swapChain)
+				return false;
+
+			DXGI_SWAP_CHAIN_DESC desc = {};
+			if (FAILED(swapChain->GetDesc(&desc)) || desc.BufferCount == 0)
+				return false;
+
+			swapchainRenderTargets.resize(desc.BufferCount);
+			std::vector<ID3D12Resource*> renderTargets(desc.BufferCount, nullptr);
+			for (UINT i = 0; i < desc.BufferCount; ++i)
+			{
+				if (FAILED(swapChain->GetBuffer(i, IID_PPV_ARGS(swapchainRenderTargets[i].ReleaseAndGetAddressOf()))))
+					return false;
+				renderTargets[i] = swapchainRenderTargets[i].Get();
+			}
+			return SetRenderTargets(renderTargets.data(), static_cast<UINT>(renderTargets.size()), renderTargetFormat);
+		}
+
+		bool ResizeSwapchain(SdUInt32 width, SdUInt32 height)
+		{
+			if (!swapChain || width == 0 || height == 0)
+				return true;
+			if (width == swapchainWidth && height == swapchainHeight)
+				return true;
+
+			rhiDevice.WaitIdle();
+			ReleaseRenderTargets();
+			for (Microsoft::WRL::ComPtr<ID3D12Resource>& target : swapchainRenderTargets)
+				target.Reset();
+			swapchainRenderTargets.clear();
+
+			if (FAILED(swapChain->ResizeBuffers(0, width, height, renderTargetFormat, 0)))
+				return false;
+			swapchainWidth = width;
+			swapchainHeight = height;
+			swapchainFrameIndex = swapChain->GetCurrentBackBufferIndex();
+			return RefreshSwapchainRenderTargets();
+		}
+
+		bool Present()
+		{
+			if (!swapChain)
+				return true;
+			const HRESULT hr = swapChain->Present(presentSyncInterval, 0);
+			swapchainOccluded = hr == DXGI_STATUS_OCCLUDED;
+			if (SUCCEEDED(hr) || hr == DXGI_STATUS_OCCLUDED)
+			{
+				swapchainFrameIndex = swapChain->GetCurrentBackBufferIndex();
+				return true;
+			}
+			return false;
+		}
 
 		bool CreatePipelineState()
 		{
@@ -2490,10 +2484,27 @@ namespace Sodium::Backends
 
 		bool Initialize(const Config& config)
 		{
-			renderTargetFormat = config.renderTargetFormat;
-			if (!rhiDevice.Initialize({ config.device, config.commandQueue }))
+			ID3D12Device* device = config.device;
+			ID3D12CommandQueue* commandQueue = config.commandQueue;
+			const bool useOwnedSwapchain = config.swapchain.nativeWindow != nullptr;
+			if (useOwnedSwapchain)
+			{
+				if (!CreateOwnedDeviceAndSwapchain(config.swapchain))
+					return false;
+				device = ownedDevice.Get();
+				commandQueue = ownedCommandQueue.Get();
+			}
+			else
+			{
+				renderTargetFormat = config.renderTargetFormat;
+			}
+
+			if (!rhiDevice.Initialize({ device, commandQueue }))
 				return false;
-			if (!SetRenderTargets(config.renderTargets, config.renderTargetCount, config.renderTargetFormat))
+			const bool renderTargetsReady = useOwnedSwapchain
+				? RefreshSwapchainRenderTargets()
+				: SetRenderTargets(config.renderTargets, config.renderTargetCount, config.renderTargetFormat);
+			if (!renderTargetsReady)
 			{
 				Shutdown();
 				return false;
@@ -2536,6 +2547,11 @@ namespace Sodium::Backends
 			if (vertexBuffer.IsValid())
 				rhiDevice.DestroyBuffer(vertexBuffer);
 			rhiDevice.Shutdown();
+			swapchainRenderTargets.clear();
+			swapChain.Reset();
+			ownedCommandQueue.Reset();
+			ownedDevice.Reset();
+			factory.Reset();
 			pipeline = {};
 			resourceSetLayout = {};
 			sampler = {};
@@ -2548,6 +2564,12 @@ namespace Sodium::Backends
 			vertexCapacity = 0;
 			indexCapacity = 0;
 			currentRenderTargetIndex = kInvalidRenderTargetIndex;
+			swapchainFrameIndex = 0;
+			presentSyncInterval = 0;
+			swapchainWidth = 0;
+			swapchainHeight = 0;
+			swapchainOccluded = false;
+			ownsDeviceResources = false;
 			clearFrameTarget = false;
 		}
 
@@ -2823,6 +2845,30 @@ namespace Sodium::Backends
 			impl->Shutdown();
 	}
 
+	bool SdDx12Renderer::Resize(SdUInt32 width, SdUInt32 height)
+	{
+		return impl && impl->ResizeSwapchain(width, height);
+	}
+
+	void SdDx12Renderer::BeginFrame(const std::array<float, 4>& clearColor)
+	{
+		if (!impl)
+			return;
+		impl->currentRenderTargetIndex = impl->swapchainFrameIndex;
+		impl->frameClearColor = clearColor;
+		impl->clearFrameTarget = true;
+	}
+
+	bool SdDx12Renderer::Present()
+	{
+		return impl && impl->Present();
+	}
+
+	bool SdDx12Renderer::IsOccluded() const noexcept
+	{
+		return impl && impl->swapchainOccluded;
+	}
+
 	bool SdDx12Renderer::SetRenderTargets(ID3D12Resource* const* renderTargets, UINT renderTargetCount, DXGI_FORMAT renderTargetFormat)
 	{
 		return impl && impl->SetRenderTargets(renderTargets, renderTargetCount, renderTargetFormat);
@@ -2856,14 +2902,16 @@ namespace Sodium::Backends
 		return impl && impl->rhiDevice.IsInitialized() && !impl->frameRenderTargets.empty() && impl->pipeline.IsValid();
 	}
 
-	Rhi::ISdGpuDevice* SdDx12Renderer::GetRhiDeviceInterface() noexcept
+	Rhi::ISdGpuDevice& SdDx12Renderer::GetRhiDeviceInterface() noexcept
 	{
-		return impl ? &impl->rhiDevice : nullptr;
+		assert(impl);
+		return impl->rhiDevice;
 	}
 
-	const Rhi::ISdGpuDevice* SdDx12Renderer::GetRhiDeviceInterface() const noexcept
+	const Rhi::ISdGpuDevice& SdDx12Renderer::GetRhiDeviceInterface() const noexcept
 	{
-		return impl ? &impl->rhiDevice : nullptr;
+		assert(impl);
+		return impl->rhiDevice;
 	}
 
 	SdTextureHandle SdDx12Renderer::CreateTexture(const SdTextureDesc& desc)

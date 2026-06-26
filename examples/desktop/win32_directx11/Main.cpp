@@ -1,8 +1,4 @@
 ﻿#include <Windows.h>
-#include <d3d11.h>
-#include <dxgi.h>
-#include <wrl/client.h>
-
 #include <array>
 #include <chrono>
 #include <cstdio>
@@ -22,12 +18,8 @@
 
 using namespace Sodium::Literals;
 
-#pragma comment(lib, "d3d11.lib")
-
 namespace
 {
-	using Microsoft::WRL::ComPtr;
-
 	constexpr wchar_t kWindowClassName[] = L"SodiumGUI.Win32DirectX11.Example";
 	constexpr UINT kInitialWindowWidth = 1024;
 	constexpr UINT kInitialWindowHeight = 720;
@@ -46,134 +38,6 @@ namespace
 	{
 		(void)styleSystem;
 	}
-
-	struct Dx11DeviceResources final
-	{
-		ComPtr<ID3D11Device> device = {};
-		ComPtr<ID3D11DeviceContext> context = {};
-		ComPtr<IDXGISwapChain> swapChain = {};
-		ComPtr<ID3D11RenderTargetView> renderTargetView = {};
-		UINT width = 0;
-		UINT height = 0;
-		bool occluded = false;
-
-		bool Create(HWND windowHandle, UINT initialWidth, UINT initialHeight)
-		{
-			width = initialWidth;
-			height = initialHeight;
-
-			DXGI_SWAP_CHAIN_DESC swapChainDesc = {};
-			swapChainDesc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-			swapChainDesc.SampleDesc.Count = 1;
-			swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-			swapChainDesc.BufferCount = 2;
-			swapChainDesc.OutputWindow = windowHandle;
-			swapChainDesc.Windowed = TRUE;
-			swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
-
-			UINT flags = 0;
-#if defined(_DEBUG)
-			flags |= D3D11_CREATE_DEVICE_DEBUG;
-#endif
-
-			D3D_FEATURE_LEVEL featureLevel = D3D_FEATURE_LEVEL_11_0;
-			const D3D_FEATURE_LEVEL featureLevels[] =
-			{
-				D3D_FEATURE_LEVEL_11_1,
-				D3D_FEATURE_LEVEL_11_0,
-				D3D_FEATURE_LEVEL_10_1,
-				D3D_FEATURE_LEVEL_10_0
-			};
-
-			HRESULT hr = ::D3D11CreateDeviceAndSwapChain(
-				nullptr,
-				D3D_DRIVER_TYPE_HARDWARE,
-				nullptr,
-				flags,
-				featureLevels,
-				static_cast<UINT>(std::size(featureLevels)),
-				D3D11_SDK_VERSION,
-				&swapChainDesc,
-				swapChain.ReleaseAndGetAddressOf(),
-				device.ReleaseAndGetAddressOf(),
-				&featureLevel,
-				context.ReleaseAndGetAddressOf());
-
-#if defined(_DEBUG)
-			if (hr == DXGI_ERROR_SDK_COMPONENT_MISSING)
-			{
-				flags &= ~D3D11_CREATE_DEVICE_DEBUG;
-				hr = ::D3D11CreateDeviceAndSwapChain(
-					nullptr,
-					D3D_DRIVER_TYPE_HARDWARE,
-					nullptr,
-					flags,
-					featureLevels,
-					static_cast<UINT>(std::size(featureLevels)),
-					D3D11_SDK_VERSION,
-					&swapChainDesc,
-					swapChain.ReleaseAndGetAddressOf(),
-					device.ReleaseAndGetAddressOf(),
-					&featureLevel,
-					context.ReleaseAndGetAddressOf());
-			}
-#endif
-
-			if (FAILED(hr))
-				return false;
-			return CreateRenderTarget();
-		}
-
-		bool CreateRenderTarget()
-		{
-			ComPtr<ID3D11Texture2D> backBuffer = {};
-			if (FAILED(swapChain->GetBuffer(0, IID_PPV_ARGS(backBuffer.GetAddressOf()))))
-				return false;
-			return SUCCEEDED(device->CreateRenderTargetView(backBuffer.Get(), nullptr, renderTargetView.ReleaseAndGetAddressOf()));
-		}
-
-		void CleanupRenderTarget()
-		{
-			renderTargetView.Reset();
-		}
-
-		bool Resize(UINT newWidth, UINT newHeight)
-		{
-			if (!swapChain || newWidth == 0 || newHeight == 0)
-				return true;
-			if (newWidth == width && newHeight == height)
-				return true;
-
-			width = newWidth;
-			height = newHeight;
-			CleanupRenderTarget();
-			context->OMSetRenderTargets(0, nullptr, nullptr);
-			if (FAILED(swapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0)))
-				return false;
-			return CreateRenderTarget();
-		}
-
-		void BeginFrame(const std::array<float, 4>& clearColor)
-		{
-			ID3D11RenderTargetView* target = renderTargetView.Get();
-			context->OMSetRenderTargets(1, &target, nullptr);
-			context->ClearRenderTargetView(renderTargetView.Get(), clearColor.data());
-		}
-
-		void Present()
-		{
-			const HRESULT hr = swapChain->Present(0, 0);
-			occluded = hr == DXGI_STATUS_OCCLUDED;
-		}
-
-		void Shutdown()
-		{
-			CleanupRenderTarget();
-			swapChain.Reset();
-			context.Reset();
-			device.Reset();
-		}
-	};
 
 	struct DemoControlsState final
 	{
@@ -196,7 +60,6 @@ namespace
 	{
 		HINSTANCE instance = nullptr;
 		HWND windowHandle = nullptr;
-		Dx11DeviceResources dx = {};
 		UINT resizeWidth = 0, resizeHeight = 0;
 		bool running = true;
 		bool demoWindowOpen = true;
@@ -254,14 +117,17 @@ namespace
 			gui.ui.DeclareKeyed<Sodium::SdWindow>("sample_tools_window", "Tools Window", demoControls.toolsWindowOpen, toolsWindowOptions, [&](Sodium::SdUi& ui)
 			{
 				ui.Declare<Sodium::SdText>("Independent SdWindow instance");
-				ui.Declare<Sodium::SdButton>("Tool button");
+				if (ui.Declare<Sodium::SdButton>("Tool button").clickedThisFrame)
+				{
+					demoControls.lightTheme = !demoControls.lightTheme;
+				}
 				ui.Declare<Sodium::SdCheckBox>("Tool toggle");
 				ui.Declare<Sodium::SdTextInput>("Test", demoControls.textInputValue, "test");
 			});
 
 			gui.ui.DeclareKeyed<Sodium::SdPopup>("sample_builtin_popup", demoControls.popupOpen, Sodium::SdVec2{ 594.0f, 270.0f }, [](Sodium::SdUi& ui)
 			{
-				ui.Declare<Sodium::SdText>("SdPopup appears above content aaaaaaaaaaaaaaaaaaa");
+				ui.Declare<Sodium::SdText>("SdPopup appears above content");
 				ui.Declare<Sodium::SdButton>("Popup action");
 			});
 
@@ -387,11 +253,18 @@ namespace
 				return false;
 			if (!CreateWindowInstance(showCommand))
 				return false;
-			if (!dx.Create(windowHandle, kInitialWindowWidth, kInitialWindowHeight))
-				return false;
 			if (!platform.Initialize(Sodium::Backends::SdWin32PlatformConfig(windowHandle)))
 				return false;
-			if (!renderer.Initialize(Sodium::Backends::SdDx11RendererConfig(dx.device.Get(), dx.context.Get())))
+			Sodium::Backends::SdDx11RendererConfig rendererConfig = {};
+			rendererConfig.swapchain = {
+				windowHandle,
+				kInitialWindowWidth,
+				kInitialWindowHeight,
+				Sodium::Rhi::SdTextureFormat::Rgba8Unorm,
+				2,
+				Sodium::Rhi::SdPresentMode::Immediate
+			};
+			if (!renderer.Initialize(rendererConfig))
 				return false;
 			if (!fontBackend.Initialize())
 				return false;
@@ -429,12 +302,12 @@ namespace
 				}
 				if (!running)
 					break;
-				if (dx.occluded)
+				if (renderer.IsOccluded())
 					::Sleep(16);
 
 				if (resizeWidth != 0 && resizeHeight != 0)
 				{
-					if (!dx.Resize(resizeWidth, resizeHeight))
+					if (!renderer.Resize(resizeWidth, resizeHeight))
 						break;
 					resizeWidth = 0;
 					resizeHeight = 0;
@@ -442,13 +315,14 @@ namespace
 
 				ApplyGlobalTheme();
 				const std::array<float, 4> clearColor = GetClearColor();
-				dx.BeginFrame(clearColor);
+				renderer.BeginFrame(clearColor);
 				gui.BeginFrame();
 				const Sodium::SdStyleClassId demoWindowClasses[] = { kExampleDemoWindowClass };
 				DeclareFloatingBuiltInWidgets(fontBackend.GetAtlasTexture());
 				gui.EndFrame();
 				gui.Render();
-				dx.Present();
+				if (!renderer.Present())
+					break;
 
 				const auto frameEnd = std::chrono::steady_clock::now();
 				const double frameSeconds = std::chrono::duration<double>(frameEnd - frameStart).count();
@@ -469,7 +343,6 @@ namespace
 			fontBackend.Shutdown();
 			renderer.Shutdown();
 			platform.Shutdown();
-			dx.Shutdown();
 			if (windowHandle)
 			{
 				::DestroyWindow(windowHandle);
@@ -483,7 +356,7 @@ namespace
 			platform.HandleMessage(hwnd, message, wParam, lParam, gui.GetInputSystem());
 			if (message == WM_LBUTTONDOWN)
 				::SetFocus(hwnd);
-			if (message == WM_SIZE && dx.swapChain && wParam != SIZE_MINIMIZED)
+			if (message == WM_SIZE && wParam != SIZE_MINIMIZED)
 			{
 				resizeWidth = (UINT)LOWORD(lParam); // Queue resize
 				resizeHeight = (UINT)HIWORD(lParam);

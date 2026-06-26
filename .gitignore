@@ -13,3 +13,7 @@ examples/desktop/win32_directx11/SodiumGUI_Performance.txt
 /examples/desktop/win32_directx12/bin
 /examples/desktop/win32_directx12/obj
 SodiumGUI_Performance.txt
+/examples/desktop/win32_directx9/bin
+/examples/desktop/win32_directx9/obj
+/examples/dynamic/dll_dx9_win32/obj
+/examples/dynamic/dll_dx9_win32/bin

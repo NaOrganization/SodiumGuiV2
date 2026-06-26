@@ -1,8 +1,4 @@
 ﻿#include <Windows.h>
-#include <d3d12.h>
-#include <dxgi1_4.h>
-#include <wrl/client.h>
-
 #include <array>
 #include <chrono>
 #include <cstdio>
@@ -16,186 +12,16 @@
 
 #include <Widget/SdBasicWidgets.h>
 
-#pragma comment(lib, "d3d12.lib")
-#pragma comment(lib, "dxgi.lib")
-
 namespace
 {
-	using Microsoft::WRL::ComPtr;
-
 	constexpr wchar_t kWindowClassName[] = L"SodiumGUI.Win32DirectX12.Example";
 	constexpr UINT kInitialWindowWidth = 1024;
 	constexpr UINT kInitialWindowHeight = 720;
-
-	struct Dx12DeviceResources final
-	{
-		static constexpr UINT kFrameCount = 2;
-
-		ComPtr<IDXGIFactory4> factory = {};
-		ComPtr<ID3D12Device> device = {};
-		ComPtr<ID3D12CommandQueue> commandQueue = {};
-		ComPtr<IDXGISwapChain3> swapChain = {};
-		std::array<ComPtr<ID3D12Resource>, kFrameCount> renderTargets = {};
-		ComPtr<ID3D12Fence> fence = {};
-		HANDLE fenceEvent = nullptr;
-		UINT64 fenceValue = 1;
-		UINT frameIndex = 0;
-		UINT width = 0;
-		UINT height = 0;
-		DXGI_FORMAT backBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
-		bool occluded = false;
-
-		bool Create(HWND windowHandle, UINT initialWidth, UINT initialHeight)
-		{
-			width = initialWidth;
-			height = initialHeight;
-
-			UINT factoryFlags = 0;
-#if defined(_DEBUG)
-			ComPtr<ID3D12Debug> debugController = {};
-			if (SUCCEEDED(::D3D12GetDebugInterface(IID_PPV_ARGS(debugController.GetAddressOf()))))
-			{
-				debugController->EnableDebugLayer();
-				factoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
-			}
-#endif
-
-			if (FAILED(::CreateDXGIFactory2(factoryFlags, IID_PPV_ARGS(factory.ReleaseAndGetAddressOf()))))
-			{
-				factoryFlags = 0;
-				if (FAILED(::CreateDXGIFactory2(factoryFlags, IID_PPV_ARGS(factory.ReleaseAndGetAddressOf()))))
-					return false;
-			}
-
-			if (!CreateDevice())
-				return false;
-
-			D3D12_COMMAND_QUEUE_DESC queueDesc = {};
-			queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
-			queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
-			if (FAILED(device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(commandQueue.ReleaseAndGetAddressOf()))))
-				return false;
-
-			DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
-			swapChainDesc.Width = width;
-			swapChainDesc.Height = height;
-			swapChainDesc.Format = backBufferFormat;
-			swapChainDesc.BufferCount = kFrameCount;
-			swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-			swapChainDesc.SampleDesc.Count = 1;
-			swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-
-			ComPtr<IDXGISwapChain1> swapChain1 = {};
-			if (FAILED(factory->CreateSwapChainForHwnd(commandQueue.Get(), windowHandle, &swapChainDesc, nullptr, nullptr, swapChain1.ReleaseAndGetAddressOf())))
-				return false;
-
-			factory->MakeWindowAssociation(windowHandle, DXGI_MWA_NO_ALT_ENTER);
-			if (FAILED(swapChain1.As(&swapChain)))
-				return false;
-
-			frameIndex = swapChain->GetCurrentBackBufferIndex();
-			if (!CreateRenderTargets())
-				return false;
-
-			if (FAILED(device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(fence.ReleaseAndGetAddressOf()))))
-				return false;
-			fenceEvent = ::CreateEventW(nullptr, FALSE, FALSE, nullptr);
-			return fenceEvent != nullptr;
-		}
-
-		bool CreateDevice()
-		{
-			if (SUCCEEDED(::D3D12CreateDevice(nullptr, D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(device.ReleaseAndGetAddressOf()))))
-				return true;
-
-			ComPtr<IDXGIAdapter> warpAdapter = {};
-			if (FAILED(factory->EnumWarpAdapter(IID_PPV_ARGS(warpAdapter.GetAddressOf()))))
-				return false;
-			return SUCCEEDED(::D3D12CreateDevice(warpAdapter.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(device.ReleaseAndGetAddressOf())));
-		}
-
-		bool CreateRenderTargets()
-		{
-			for (UINT i = 0; i < kFrameCount; ++i)
-			{
-				if (FAILED(swapChain->GetBuffer(i, IID_PPV_ARGS(renderTargets[i].ReleaseAndGetAddressOf()))))
-					return false;
-			}
-			return true;
-		}
-
-		void FillRenderTargetArray(std::array<ID3D12Resource*, kFrameCount>& targets) const noexcept
-		{
-			for (UINT i = 0; i < kFrameCount; ++i)
-				targets[i] = renderTargets[i].Get();
-		}
-
-		bool Resize(UINT newWidth, UINT newHeight)
-		{
-			if (!swapChain || newWidth == 0 || newHeight == 0)
-				return true;
-			if (newWidth == width && newHeight == height)
-				return true;
-
-			WaitForGpu();
-			for (ComPtr<ID3D12Resource>& renderTarget : renderTargets)
-				renderTarget.Reset();
-
-			width = newWidth;
-			height = newHeight;
-			if (FAILED(swapChain->ResizeBuffers(kFrameCount, width, height, backBufferFormat, 0)))
-				return false;
-
-			frameIndex = swapChain->GetCurrentBackBufferIndex();
-			return CreateRenderTargets();
-		}
-
-		void Present()
-		{
-			const HRESULT hr = swapChain->Present(0, 0);
-			occluded = hr == DXGI_STATUS_OCCLUDED;
-			frameIndex = swapChain->GetCurrentBackBufferIndex();
-		}
-
-		void WaitForGpu()
-		{
-			if (!commandQueue || !fence || !fenceEvent)
-				return;
-
-			const UINT64 signalValue = fenceValue++;
-			if (FAILED(commandQueue->Signal(fence.Get(), signalValue)))
-				return;
-
-			if (fence->GetCompletedValue() < signalValue)
-			{
-				if (SUCCEEDED(fence->SetEventOnCompletion(signalValue, fenceEvent)))
-					::WaitForSingleObject(fenceEvent, INFINITE);
-			}
-		}
-
-		void Shutdown()
-		{
-			WaitForGpu();
-			for (ComPtr<ID3D12Resource>& renderTarget : renderTargets)
-				renderTarget.Reset();
-			swapChain.Reset();
-			commandQueue.Reset();
-			fence.Reset();
-			device.Reset();
-			factory.Reset();
-			if (fenceEvent)
-			{
-				::CloseHandle(fenceEvent);
-				fenceEvent = nullptr;
-			}
-		}
-	};
 
 	struct ExampleApplication final
 	{
 		HINSTANCE instance = nullptr;
 		HWND windowHandle = nullptr;
-		Dx12DeviceResources dx = {};
 		UINT resizeWidth = 0;
 		UINT resizeHeight = 0;
 		bool running = true;
@@ -222,14 +48,19 @@ namespace
 				return false;
 			if (!CreateWindowInstance(showCommand))
 				return false;
-			if (!dx.Create(windowHandle, kInitialWindowWidth, kInitialWindowHeight))
-				return false;
 			if (!platform.Initialize(Sodium::Backends::SdWin32PlatformConfig(windowHandle)))
 				return false;
 
-			std::array<ID3D12Resource*, Dx12DeviceResources::kFrameCount> renderTargets = {};
-			dx.FillRenderTargetArray(renderTargets);
-			if (!renderer.Initialize({ dx.device.Get(), dx.commandQueue.Get(), renderTargets.data(), static_cast<UINT>(renderTargets.size()), dx.backBufferFormat }))
+			Sodium::Backends::SdDx12RendererConfig rendererConfig = {};
+			rendererConfig.swapchain = {
+				windowHandle,
+				kInitialWindowWidth,
+				kInitialWindowHeight,
+				Sodium::Rhi::SdTextureFormat::Rgba8Unorm,
+				2,
+				Sodium::Rhi::SdPresentMode::Immediate
+			};
+			if (!renderer.Initialize(rendererConfig))
 				return false;
 
 			if (!fontBackend.Initialize())
@@ -265,29 +96,25 @@ namespace
 				}
 				if (!running)
 					break;
-				if (dx.occluded)
+				if (renderer.IsOccluded())
 					::Sleep(16);
 
 				if (resizeWidth != 0 && resizeHeight != 0)
 				{
-					renderer.ReleaseRenderTargets();
-					if (!dx.Resize(resizeWidth, resizeHeight))
-						break;
-					std::array<ID3D12Resource*, Dx12DeviceResources::kFrameCount> renderTargets = {};
-					dx.FillRenderTargetArray(renderTargets);
-					if (!renderer.SetRenderTargets(renderTargets.data(), static_cast<UINT>(renderTargets.size()), dx.backBufferFormat))
+					if (!renderer.Resize(resizeWidth, resizeHeight))
 						break;
 					resizeWidth = 0;
 					resizeHeight = 0;
 				}
 
 				const auto frameStart = std::chrono::steady_clock::now();
-				renderer.BeginFrame(dx.frameIndex, GetClearColor());
+				renderer.BeginFrame(GetClearColor());
 				gui.BeginFrame();
 				DeclareDemoUi();
 				gui.EndFrame();
 				gui.Render();
-				dx.Present();
+				if (!renderer.Present())
+					break;
 
 				const auto frameEnd = std::chrono::steady_clock::now();
 				const double frameSeconds = std::chrono::duration<double>(frameEnd - previousFrameTime).count();
@@ -305,7 +132,6 @@ namespace
 			fontBackend.Shutdown();
 			renderer.Shutdown();
 			platform.Shutdown();
-			dx.Shutdown();
 			if (windowHandle)
 			{
 				::DestroyWindow(windowHandle);
@@ -319,7 +145,7 @@ namespace
 			platform.HandleMessage(hwnd, message, wParam, lParam, gui.GetInputSystem());
 			if (message == WM_LBUTTONDOWN)
 				::SetFocus(hwnd);
-			if (message == WM_SIZE && dx.swapChain && wParam != SIZE_MINIMIZED)
+			if (message == WM_SIZE && wParam != SIZE_MINIMIZED)
 			{
 				resizeWidth = static_cast<UINT>(LOWORD(lParam));
 				resizeHeight = static_cast<UINT>(HIWORD(lParam));

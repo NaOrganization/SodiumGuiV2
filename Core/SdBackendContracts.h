@@ -38,10 +38,10 @@ namespace Sodium
 		//   after DestroyTexture or when their generation no longer matches.
 		virtual void Render(const SdRendererFrameInfo& frameInfo, const SdRenderPacket& packet) = 0;
 
-		// Optional RHI device access for systems owned above the backend, such
-		// as SdEffectRegistry. Non-RHI test backends may return nullptr.
-		virtual Rhi::ISdGpuDevice* GetRhiDeviceInterface() noexcept { return nullptr; }
-		virtual const Rhi::ISdGpuDevice* GetRhiDeviceInterface() const noexcept { return nullptr; }
+		// Required RHI device access for systems owned above the backend, such
+		// as SdEffectRegistry.
+		virtual Rhi::ISdGpuDevice& GetRhiDeviceInterface() noexcept = 0;
+		virtual const Rhi::ISdGpuDevice& GetRhiDeviceInterface() const noexcept = 0;
 
 		// Creates a backend-owned texture handle. The caller owns the source
 		// pixel memory; the backend owns GPU resource lifetime after creation.

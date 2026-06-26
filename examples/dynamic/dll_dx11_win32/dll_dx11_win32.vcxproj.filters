@@ -107,6 +107,9 @@
     <ClInclude Include="..\..\..\Backends\Dx11\SdDx11Rhi.h">
       <Filter>SodiumGUI\Backends\Dx11</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\Backends\Dx11\SdDx11RhiMappings.h">
+      <Filter>SodiumGUI\Backends\Dx11</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\..\Backends\Dx11\SdDx11PrecompiledShaders.h">
       <Filter>SodiumGUI\Backends\Dx11</Filter>
     </ClInclude>

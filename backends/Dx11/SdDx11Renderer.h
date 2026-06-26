@@ -5,8 +5,10 @@
 
 #include <Windows.h>
 #include <d3d11.h>
+#include <dxgi.h>
 #include <wrl/client.h>
 
+#include <array>
 #include <memory>
 
 namespace Sodium::Backends
@@ -15,6 +17,7 @@ namespace Sodium::Backends
 	{
 		ID3D11Device* device = nullptr;
 		ID3D11DeviceContext* deviceContext = nullptr;
+		Rhi::SdSwapchainDesc swapchain = {};
 	};
 
 	class SdDx11Renderer final : public ISdRendererBackend
@@ -32,6 +35,8 @@ namespace Sodium::Backends
 
 		Microsoft::WRL::ComPtr<ID3D11Device> device = {};
 		Microsoft::WRL::ComPtr<ID3D11DeviceContext> deviceContext = {};
+		Microsoft::WRL::ComPtr<IDXGISwapChain> swapChain = {};
+		Microsoft::WRL::ComPtr<ID3D11RenderTargetView> swapchainRenderTargetView = {};
 		SdDx11GpuDevice rhiDevice = {};
 		Rhi::SdBufferHandle vertexBuffer = {};
 		Rhi::SdBufferHandle indexBuffer = {};
@@ -45,8 +50,15 @@ namespace Sodium::Backends
 		std::vector<TextureEntry> textures = {};
 		SdUInt32 vertexCapacity = 0;
 		SdUInt32 indexCapacity = 0;
+		SdUInt32 swapchainWidth = 0;
+		SdUInt32 swapchainHeight = 0;
 		SdRendererFrameInfo currentFrameInfo = {};
+		bool swapchainOccluded = false;
+		bool ownsDeviceResources = false;
 
+		bool CreateOwnedDeviceAndSwapchain(const Rhi::SdSwapchainDesc& desc);
+		bool CreateSwapchainRenderTarget();
+		void ReleaseSwapchainRenderTarget();
 		bool CreatePipelineState();
 		bool EnsureBuffers(SdUInt32 vertexCount, SdUInt32 indexCount);
 		bool UploadBuffers(const SdRenderPacket& packet);
@@ -61,11 +73,15 @@ namespace Sodium::Backends
 
 		bool Initialize(const Config& config);
 		void Shutdown();
+		bool Resize(SdUInt32 width, SdUInt32 height);
+		void BeginFrame(const std::array<float, 4>& clearColor);
+		bool Present();
+		bool IsOccluded() const noexcept;
 		bool IsInitialized() const noexcept override { return rhiDevice.IsInitialized() && pipeline.IsValid(); }
 		SdDx11GpuDevice& GetRhiDevice() noexcept { return rhiDevice; }
 		const SdDx11GpuDevice& GetRhiDevice() const noexcept { return rhiDevice; }
-		Rhi::ISdGpuDevice* GetRhiDeviceInterface() noexcept override { return &rhiDevice; }
-		const Rhi::ISdGpuDevice* GetRhiDeviceInterface() const noexcept override { return &rhiDevice; }
+		Rhi::ISdGpuDevice& GetRhiDeviceInterface() noexcept override { return rhiDevice; }
+		const Rhi::ISdGpuDevice& GetRhiDeviceInterface() const noexcept override { return rhiDevice; }
 		SdTextureHandle CreateTexture(SdUInt32 width, SdUInt32 height, const void* rgbaPixels);
 		SdTextureHandle CreateTexture(const SdTextureDesc& desc) override;
 		void DestroyTexture(SdTextureHandle texture) override;

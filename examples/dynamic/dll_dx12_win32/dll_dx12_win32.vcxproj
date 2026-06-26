@@ -204,6 +204,7 @@
     <ClInclude Include="..\..\..\Backends\FreeType\FreeTypeFontBackend.h" />
     <ClInclude Include="..\..\..\Backends\Stb\StbFontBackend.h" />
     <ClInclude Include="..\..\..\Backends\Dx12\SdDx12Renderer.h" />
+    <ClInclude Include="..\..\..\Backends\Dx12\SdDx12RhiMappings.h" />
     <ClInclude Include="..\..\..\Backends\Win32\SdWin32Platform.h" />
     <ClInclude Include="..\..\..\Animation\SdAnimation.h" />
     <ClInclude Include="..\..\..\Core\SdBackendContracts.h" />

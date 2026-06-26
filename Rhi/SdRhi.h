@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Core/SdCore.h"
 
@@ -224,6 +224,22 @@ namespace Sodium::Rhi
 		UInt32
 	};
 
+	enum class SdPresentMode : SdUInt8
+	{
+		Immediate,
+		Fifo
+	};
+
+	enum class SdRhiStatus : SdUInt8
+	{
+		Ok,
+		InvalidArgument,
+		OutOfMemory,
+		Unsupported,
+		DeviceLost,
+		BackendError
+	};
+
 	enum class SdShaderResourceType : SdUInt8
 	{
 		Texture2D,
@@ -291,6 +307,16 @@ namespace Sodium::Rhi
 
 		SdTextureFormatFlags supportedTextureFormats = 0;
 		SdShaderLanguageFlags supportedShaderLanguages = 0;
+	};
+
+	struct SdSwapchainDesc final
+	{
+		void* nativeWindow = nullptr;
+		SdUInt32 width = 1;
+		SdUInt32 height = 1;
+		SdTextureFormat colorFormat = SdTextureFormat::Rgba8Unorm;
+		SdUInt32 bufferCount = 2;
+		SdPresentMode presentMode = SdPresentMode::Immediate;
 	};
 
 	struct SdTextureDesc final
@@ -484,12 +510,26 @@ namespace Sodium::Rhi
 		virtual void DrawIndexed(SdUInt32 indexCount, SdUInt32 instanceCount, SdUInt32 firstIndex, SdInt32 vertexOffset, SdUInt32 firstInstance) = 0;
 	};
 
+	class ISdSwapchain
+	{
+	public:
+		virtual ~ISdSwapchain() = default;
+
+		virtual SdTextureHandle AcquireNextImage() = 0;
+		virtual bool Present() = 0;
+		virtual bool Resize(SdUInt32 width, SdUInt32 height) = 0;
+		virtual SdTextureFormat GetColorFormat() const = 0;
+	};
+
 	class ISdGpuDevice
 	{
 	public:
 		virtual ~ISdGpuDevice() = default;
 
 		virtual const SdGpuCaps& GetCaps() const noexcept = 0;
+		virtual SdRhiStatus GetLastStatus() const noexcept = 0;
+		virtual void WaitIdle() = 0;
+		virtual ISdSwapchain* CreateSwapchain(const SdSwapchainDesc&) { return nullptr; }
 		virtual SdTextureHandle CreateTexture(const SdTextureDesc& desc) = 0;
 		virtual void DestroyTexture(SdTextureHandle texture) = 0;
 		virtual bool UpdateTexture(SdTextureHandle texture, const void* pixels, SdUInt32 rowPitch) = 0;

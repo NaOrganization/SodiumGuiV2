@@ -205,6 +205,7 @@
     <ClInclude Include="..\..\..\Backends\Stb\StbFontBackend.h" />
     <ClInclude Include="..\..\..\Backends\Dx11\SdDx11Renderer.h" />
     <ClInclude Include="..\..\..\Backends\Dx11\SdDx11Rhi.h" />
+    <ClInclude Include="..\..\..\Backends\Dx11\SdDx11RhiMappings.h" />
     <ClInclude Include="..\..\..\Backends\Dx11\SdDx11PrecompiledShaders.h" />
     <ClInclude Include="..\..\..\Backends\Win32\SdWin32Platform.h" />
     <ClInclude Include="..\..\..\Animation\SdAnimation.h" />

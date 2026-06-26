@@ -21,8 +21,8 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{0e4d4c34-c05f-4821-900a-a8eafe64339b}</ProjectGuid>
-    <RootNamespace>win32directx11</RootNamespace>
+    <ProjectGuid>{13d8200b-726a-48f3-a88c-73f60ad1317c}</ProjectGuid>
+    <RootNamespace>win32directx9</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -161,7 +161,7 @@
   <ItemGroup>
     <ClCompile Include="..\..\..\Backends\FreeType\FreeTypeFontBackend.cpp" />
     <ClCompile Include="..\..\..\Backends\Stb\StbFontBackend.cpp" />
-    <ClCompile Include="..\..\..\Backends\Dx11\SdDx11Renderer.cpp" />
+    <ClCompile Include="..\..\..\Backends\Dx9\SdDx9Renderer.cpp" />
     <ClCompile Include="..\..\..\Backends\Win32\SdWin32Platform.cpp" />
     <ClCompile Include="..\..\..\Core\SdDefaultFont.cpp" />
     <ClCompile Include="..\..\..\Input\SdInput.cpp" />
@@ -175,10 +175,7 @@
   <ItemGroup>
     <ClInclude Include="..\..\..\Backends\FreeType\FreeTypeFontBackend.h" />
     <ClInclude Include="..\..\..\Backends\Stb\StbFontBackend.h" />
-    <ClInclude Include="..\..\..\Backends\Dx11\SdDx11Renderer.h" />
-    <ClInclude Include="..\..\..\Backends\Dx11\SdDx11Rhi.h" />
-    <ClInclude Include="..\..\..\Backends\Dx11\SdDx11RhiMappings.h" />
-    <ClInclude Include="..\..\..\Backends\Dx11\SdDx11PrecompiledShaders.h" />
+    <ClInclude Include="..\..\..\Backends\Dx9\SdDx9Renderer.h" />
     <ClInclude Include="..\..\..\Backends\Win32\SdWin32Platform.h" />
     <ClInclude Include="..\..\..\Animation\SdAnimation.h" />
     <ClInclude Include="..\..\..\Core\SdBackendContracts.h" />
