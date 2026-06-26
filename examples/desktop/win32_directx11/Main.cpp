@@ -250,6 +250,7 @@ namespace
 			Sodium::SdWindowOptions toolsWindowOptions = {};
 			toolsWindowOptions.position = { 680.0f, 182.0f };
 			toolsWindowOptions.size = { 310.0f, 178.0f };
+			toolsWindowOptions.backgroundBlurRadius = 12.0f;
 			gui.ui.DeclareKeyed<Sodium::SdWindow>("sample_tools_window", "Tools Window", demoControls.toolsWindowOpen, toolsWindowOptions, [](Sodium::SdUi& ui)
 			{
 				ui.Declare<Sodium::SdText>("Independent SdWindow instance");
@@ -257,7 +258,7 @@ namespace
 				ui.Declare<Sodium::SdCheckBox>("Tool toggle");
 			});
 
-			gui.ui.DeclareKeyed<Sodium::SdPopup>("sample_builtin_popup", demoControls.popupOpen, Sodium::SdVec2{ 594.0f, 270.0f }, [](Sodium::SdUi& ui)
+	/*		gui.ui.DeclareKeyed<Sodium::SdPopup>("sample_builtin_popup", demoControls.popupOpen, Sodium::SdVec2{ 594.0f, 270.0f }, [](Sodium::SdUi& ui)
 			{
 				ui.Declare<Sodium::SdText>("SdPopup appears above content");
 				ui.Declare<Sodium::SdButton>("Popup action");
@@ -274,7 +275,7 @@ namespace
 				"sample_builtin_tooltip",
 				demoControls.tooltipVisible,
 				gui.GetInput().GetMousePosition(),
-				"SdTooltip follows the overlay layer");
+				"SdTooltip follows the overlay layer");*/
 		}
 
 		void ConfigureStyleSystem()

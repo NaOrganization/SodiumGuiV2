@@ -74,6 +74,13 @@ namespace Sodium
 			const Rhi::SdRectI sourceRect = BlurEffectDetail::ToRenderArea(captureBounds);
 			const SdUInt32 captureWidth = std::max(1u, sourceRect.Width());
 			const SdUInt32 captureHeight = std::max(1u, sourceRect.Height());
+			const SdRect capturePixelBounds =
+			{
+				static_cast<float>(sourceRect.left),
+				static_cast<float>(sourceRect.top),
+				static_cast<float>(sourceRect.right),
+				static_cast<float>(sourceRect.bottom)
+			};
 
 			const Rhi::SdTextureDesc captureDesc =
 			{
@@ -82,19 +89,16 @@ namespace Sodium
 				1,
 				1,
 				BlurEffectDetail::ResolveLayerFormat(targetLayer),
-				static_cast<Rhi::SdTextureUsageFlags>(Rhi::SdTextureUsage::ShaderRead),
+				Rhi::SdTextureUsage::ShaderRead | Rhi::SdTextureUsage::CopyDst,
 				1,
 				false,
 				SODIUM_STRING("Sodium.Effect.BackdropBlur.Capture")
 			};
-			const Rhi::SdTextureHandle captureTexture = context.device.CreateTexture(captureDesc);
+			const Rhi::SdTextureHandle captureTexture = resources.GetOrCreateTexture(context.device, SdEffectResourceCache::TextureSlot::BackdropCapture, captureDesc);
 			if (!captureTexture.IsValid())
 				return false;
 			if (!context.device.CopyCurrentRenderTargetToTexture(captureTexture, sourceRect))
-			{
-				context.device.DestroyTexture(captureTexture);
 				return false;
-			}
 
 			const SdEffectRenderLayer sourceLayer =
 			{
@@ -103,8 +107,9 @@ namespace Sodium
 				captureDesc.format,
 				captureWidth,
 				captureHeight,
-				captureBounds
+				capturePixelBounds
 			};
+			const SdColorLinear tintColor = parameters.tintColor.ToLinear();
 			const bool applied = BlurEffectDetail::ApplyBlur(
 				context,
 				resources,
@@ -112,10 +117,12 @@ namespace Sodium
 				targetLayer,
 				parameters.radius,
 				context.payload.sourceBounds,
-				captureBounds,
+				capturePixelBounds,
 				context.payload.clipRect,
-				BlurEffectDetail::NormalizeCornerRadii(parameters.cornerRadii, parameters.cornerRadius));
-			context.device.DestroyTexture(captureTexture);
+				BlurEffectDetail::NormalizeCornerRadii(parameters.cornerRadii, parameters.cornerRadius),
+				{ tintColor.r, tintColor.g, tintColor.b, tintColor.a },
+				parameters.saturation,
+				parameters.brightness);
 			return applied;
 		}
 	};

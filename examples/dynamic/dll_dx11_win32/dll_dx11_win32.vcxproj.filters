@@ -10,17 +10,38 @@
     <Filter Include="SodiumGUI\Core">
       <UniqueIdentifier>{42ce279a-cc95-4e2f-a81b-f4cdf0190b2d}</UniqueIdentifier>
     </Filter>
-    <Filter Include="SodiumGUI\UI">
+    <Filter Include="SodiumGUI\Input">
+      <UniqueIdentifier>{ad1ef2c6-ec36-45b9-ae2d-8f3fc05f1587}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SodiumGUI\Widget">
+      <UniqueIdentifier>{6750c491-81da-4a34-b6cb-0303394cf117}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SodiumGUI\Style">
       <UniqueIdentifier>{0e5ab459-07a0-4674-ac9c-c97ea3de9e75}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SodiumGUI\Animation">
+      <UniqueIdentifier>{e583646c-1e5c-479a-a608-f75b2fc17287}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SodiumGUI\Layer">
+      <UniqueIdentifier>{3cf20632-fddb-4212-9d19-536ed1690742}</UniqueIdentifier>
     </Filter>
     <Filter Include="SodiumGUI\Render">
       <UniqueIdentifier>{5d626578-59b2-4c28-9d9e-3c7adfb50351}</UniqueIdentifier>
     </Filter>
-    <Filter Include="SodiumGUI\Widgets">
-      <UniqueIdentifier>{6750c491-81da-4a34-b6cb-0303394cf117}</UniqueIdentifier>
-    </Filter>
     <Filter Include="SodiumGUI\Backends">
       <UniqueIdentifier>{67da6ab6-f800-4c08-8b7a-83bb121aad01}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SodiumGUI\Backends\Win32">
+      <UniqueIdentifier>{b12c17f5-81eb-449f-b415-1d9bec7b8354}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SodiumGUI\Backends\Dx11">
+      <UniqueIdentifier>{2d63a4ed-1857-4dc0-bd2f-786f09c0aa6e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SodiumGUI\Backends\FreeType">
+      <UniqueIdentifier>{9f953c2b-1924-4e9c-9d6c-649fe2d9ab8b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SodiumGUI\Backends\Stb">
+      <UniqueIdentifier>{3d66bcdd-0be3-4fae-a0ac-b6216de5cffc}</UniqueIdentifier>
     </Filter>
     <Filter Include="SodiumGUI\Rhi">
       <UniqueIdentifier>{6db42e72-bb30-4df2-bbb3-0ad277de9854}</UniqueIdentifier>
@@ -28,13 +49,25 @@
     <Filter Include="SodiumGUI\Effects">
       <UniqueIdentifier>{620217a7-ee4e-4eb5-86f5-1ef3e7541045}</UniqueIdentifier>
     </Filter>
+    <Filter Include="SodiumGUI\third_party">
+      <UniqueIdentifier>{b9269bb8-c187-46e5-bd0b-c0e8bb165f9b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SodiumGUI\third_party\stb">
+      <UniqueIdentifier>{f0230adc-21fe-4d81-83de-c3215847f876}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Main.cpp">
-      <Filter>Main</Filter>
+    <ClCompile Include="..\..\..\Backends\FreeType\FreeTypeFontBackend.cpp">
+      <Filter>SodiumGUI\Backends\FreeType</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\Input\SdInput.cpp">
-      <Filter>SodiumGUI\Core</Filter>
+    <ClCompile Include="..\..\..\Backends\Stb\StbFontBackend.cpp">
+      <Filter>SodiumGUI\Backends\Stb</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Backends\Dx11\SdDx11Renderer.cpp">
+      <Filter>SodiumGUI\Backends\Dx11</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Backends\Win32\SdWin32Platform.cpp">
+      <Filter>SodiumGUI\Backends\Win32</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\Core\SdDefaultFont.cpp">
       <Filter>SodiumGUI\Core</Filter>
@@ -51,85 +84,43 @@
     <ClCompile Include="..\..\..\Render\SdRenderListText.cpp">
       <Filter>SodiumGUI\Render</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\Input\SdInput.cpp">
+      <Filter>SodiumGUI\Input</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\..\Render\SdRenderStats.cpp">
       <Filter>SodiumGUI\Render</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\Backends\Win32\SdWin32Platform.cpp">
-      <Filter>SodiumGUI\Backends</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\Backends\Dx11\SdDx11Renderer.cpp">
-      <Filter>SodiumGUI\Backends</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\Backends\FreeType\FreeTypeFontBackend.cpp">
-      <Filter>SodiumGUI\Backends</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\Backends\Stb\StbFontBackend.cpp">
-      <Filter>SodiumGUI\Backends</Filter>
+    <ClCompile Include="Main.cpp">
+      <Filter>Main</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\SodiumGUI.h">
-      <Filter>SodiumGUI</Filter>
+    <ClInclude Include="..\..\..\Backends\FreeType\FreeTypeFontBackend.h">
+      <Filter>SodiumGUI\Backends\FreeType</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\Core\SdCore.h">
-      <Filter>SodiumGUI\Core</Filter>
+    <ClInclude Include="..\..\..\Backends\Stb\StbFontBackend.h">
+      <Filter>SodiumGUI\Backends\Stb</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\Core\SdTypes.h">
-      <Filter>SodiumGUI\Core</Filter>
+    <ClInclude Include="..\..\..\Backends\Dx11\SdDx11Renderer.h">
+      <Filter>SodiumGUI\Backends\Dx11</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\Core\SdMath.h">
-      <Filter>SodiumGUI\Core</Filter>
+    <ClInclude Include="..\..\..\Backends\Dx11\SdDx11Rhi.h">
+      <Filter>SodiumGUI\Backends\Dx11</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\Core\SdColor.h">
-      <Filter>SodiumGUI\Core</Filter>
+    <ClInclude Include="..\..\..\Backends\Dx11\SdDx11PrecompiledShaders.h">
+      <Filter>SodiumGUI\Backends\Dx11</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\Core\SdUtf8.h">
-      <Filter>SodiumGUI\Core</Filter>
+    <ClInclude Include="..\..\..\Backends\Win32\SdWin32Platform.h">
+      <Filter>SodiumGUI\Backends\Win32</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\Core\SdText.h">
-      <Filter>SodiumGUI\Core</Filter>
+    <ClInclude Include="..\..\..\Animation\SdAnimation.h">
+      <Filter>SodiumGUI\Animation</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\Input\SdInput.h">
+    <ClInclude Include="..\..\..\Core\SdBackendContracts.h">
       <Filter>SodiumGUI\Core</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\Core\SdDefaultFont.h">
       <Filter>SodiumGUI\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Widget\SdUiCore.h">
-      <Filter>SodiumGUI\UI</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Layer\SdLayer.h">
-      <Filter>SodiumGUI\UI</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Style\SdStyle.h">
-      <Filter>SodiumGUI\UI</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Animation\SdAnimation.h">
-      <Filter>SodiumGUI\UI</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Core\SdRuntime.h">
-      <Filter>SodiumGUI\UI</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Core\SdRuntime.inl">
-      <Filter>SodiumGUI\UI</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Widget\SdWidgetContext.h">
-      <Filter>SodiumGUI\UI</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Core\SdRuntimeStorage.h">
-      <Filter>SodiumGUI\UI</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Core\SdIdStack.h">
-      <Filter>SodiumGUI\UI</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Widget\SdUi.h">
-      <Filter>SodiumGUI\UI</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Core\SdInstance.h">
-      <Filter>SodiumGUI\UI</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Render\SdRenderCore.h">
-      <Filter>SodiumGUI\Render</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\Render\SdRenderData.h">
       <Filter>SodiumGUI\Render</Filter>
@@ -137,38 +128,20 @@
     <ClInclude Include="..\..\..\Render\SdRenderList.h">
       <Filter>SodiumGUI\Render</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\Render\SdRender.h">
-      <Filter>SodiumGUI\Render</Filter>
+    <ClInclude Include="..\..\..\Input\SdInput.h">
+      <Filter>SodiumGUI\Input</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\Render\SdRenderStats.h">
+    <ClInclude Include="..\..\..\Layer\SdLayer.h">
+      <Filter>SodiumGUI\Layer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Render\SdRender.h">
       <Filter>SodiumGUI\Render</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\Render\SdLayerResolver.h">
       <Filter>SodiumGUI\Render</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\Core\SdBackendContracts.h">
+    <ClInclude Include="..\..\..\Render\SdRenderStats.h">
       <Filter>SodiumGUI\Render</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Backends\Win32\SdWin32Platform.h">
-      <Filter>SodiumGUI\Backends</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Backends\Dx11\SdDx11Renderer.h">
-      <Filter>SodiumGUI\Backends</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Backends\Dx11\SdDx11Rhi.h">
-      <Filter>SodiumGUI\Backends</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Backends\Dx11\SdDx11PrecompiledShaders.h">
-      <Filter>SodiumGUI\Backends</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Backends\FreeType\FreeTypeFontBackend.h">
-      <Filter>SodiumGUI\Backends</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Backends\Stb\StbFontBackend.h">
-      <Filter>SodiumGUI\Backends</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\third_party\stb\stb_truetype.h">
-      <Filter>SodiumGUI\Backends</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\Rhi\SdRhi.h">
       <Filter>SodiumGUI\Rhi</Filter>
@@ -241,6 +214,60 @@
     </ClInclude>
     <ClInclude Include="..\..\..\Effects\SdEffectPipeline.hpp">
       <Filter>SodiumGUI\Effects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Core\SdRuntime.h">
+      <Filter>SodiumGUI\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Style\SdStyle.h">
+      <Filter>SodiumGUI\Style</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Core\SdText.h">
+      <Filter>SodiumGUI\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Core\SdUtf8.h">
+      <Filter>SodiumGUI\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Core\SdTypes.h">
+      <Filter>SodiumGUI\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Core\SdMath.h">
+      <Filter>SodiumGUI\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Core\SdColor.h">
+      <Filter>SodiumGUI\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Core\SdCore.h">
+      <Filter>SodiumGUI\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Widget\SdUiCore.h">
+      <Filter>SodiumGUI\Widget</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Render\SdRenderCore.h">
+      <Filter>SodiumGUI\Render</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Widget\SdWidgetContext.h">
+      <Filter>SodiumGUI\Widget</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Core\SdRuntimeStorage.h">
+      <Filter>SodiumGUI\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Core\SdIdStack.h">
+      <Filter>SodiumGUI\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Widget\SdUi.h">
+      <Filter>SodiumGUI\Widget</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Core\SdInstance.h">
+      <Filter>SodiumGUI\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Core\SdRuntime.inl">
+      <Filter>SodiumGUI\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\third_party\stb\stb_truetype.h">
+      <Filter>SodiumGUI\third_party\stb</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\SodiumGUI.h">
+      <Filter>SodiumGUI</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

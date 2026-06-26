@@ -131,74 +131,66 @@ namespace Sodium
 
 		inline bool InitializeResources(Rhi::ISdGpuDevice& device, SdEffectResourceCache& cache, Rhi::SdTextureFormat colorFormat = Rhi::SdTextureFormat::Rgba8Unorm)
 		{
-			if (cache.GetShadowResourceSetLayout().IsValid()
-				&& cache.GetShadowParamsBuffer().IsValid()
-				&& cache.GetShadowPipeline(colorFormat).IsValid())
-			{
-				return true;
-			}
+			if (colorFormat == Rhi::SdTextureFormat::Unknown)
+				colorFormat = Rhi::SdTextureFormat::Rgba8Unorm;
 
-			cache.Shutdown(device);
+			const bool sharedResourcesReady =
+				cache.GetShadowResourceSetLayout().IsValid()
+				&& cache.GetFullscreenVertexShader().IsValid()
+				&& cache.GetShadowPixelShader().IsValid();
 
-			const Rhi::SdShaderHandle fullscreenVertexShader = device.CreateShaderFromSource({
-				Rhi::SdShaderStage::Vertex,
-				Rhi::SdShaderLanguage::Hlsl,
-				BlurEffectDetail::kFullscreenVertexShader,
-				SODIUM_STRING("main"),
-				SODIUM_STRING("vs_4_0"),
-				SODIUM_STRING("Sodium.Effect.Fullscreen.VS")
-				});
-			const Rhi::SdShaderHandle shadowPixelShader = device.CreateShaderFromSource({
-				Rhi::SdShaderStage::Pixel,
-				Rhi::SdShaderLanguage::Hlsl,
-				kShadowPixelShader,
-				SODIUM_STRING("main"),
-				SODIUM_STRING("ps_4_0"),
-				SODIUM_STRING("Sodium.Effect.Shadow.PS")
-				});
-			if (!fullscreenVertexShader.IsValid() || !shadowPixelShader.IsValid())
+			if (!sharedResourcesReady)
 			{
+				cache.Shutdown(device);
+
+				const Rhi::SdShaderHandle fullscreenVertexShader = device.CreateShaderFromSource({
+					Rhi::SdShaderStage::Vertex,
+					Rhi::SdShaderLanguage::Hlsl,
+					BlurEffectDetail::kFullscreenVertexShader,
+					SODIUM_STRING("main"),
+					SODIUM_STRING("vs_4_0"),
+					SODIUM_STRING("Sodium.Effect.Fullscreen.VS")
+					});
+				const Rhi::SdShaderHandle shadowPixelShader = device.CreateShaderFromSource({
+					Rhi::SdShaderStage::Pixel,
+					Rhi::SdShaderLanguage::Hlsl,
+					kShadowPixelShader,
+					SODIUM_STRING("main"),
+					SODIUM_STRING("ps_4_0"),
+					SODIUM_STRING("Sodium.Effect.Shadow.PS")
+					});
 				cache.SetFullscreenVertexShader(fullscreenVertexShader);
 				cache.SetShadowPixelShader(shadowPixelShader);
-				cache.Shutdown(device);
-				return false;
+				if (!fullscreenVertexShader.IsValid() || !shadowPixelShader.IsValid())
+				{
+					cache.Shutdown(device);
+					return false;
+				}
+
+				const Rhi::SdShaderBindingDesc shadowBindings[] =
+				{
+					{ SODIUM_STRING("ShadowParams"), Rhi::SdShaderResourceType::UniformBuffer, 0, 0, static_cast<Rhi::SdShaderStageFlags>(Rhi::SdShaderStageFlag::Pixel) }
+				};
+				const Rhi::SdResourceSetLayoutHandle shadowLayout = device.CreateResourceSetLayout({
+					shadowBindings,
+					SODIUM_STRING("Sodium.Effect.Shadow.ResourceLayout")
+					});
+				cache.SetShadowResourceSetLayout(shadowLayout);
+				if (!shadowLayout.IsValid())
+				{
+					cache.Shutdown(device);
+					return false;
+				}
+
 			}
 
-			cache.SetFullscreenVertexShader(fullscreenVertexShader);
-			cache.SetShadowPixelShader(shadowPixelShader);
-
-			const Rhi::SdShaderBindingDesc shadowBindings[] =
-			{
-				{ SODIUM_STRING("ShadowParams"), Rhi::SdShaderResourceType::UniformBuffer, 0, 0, static_cast<Rhi::SdShaderStageFlags>(Rhi::SdShaderStageFlag::Pixel) }
-			};
-			const Rhi::SdResourceSetLayoutHandle shadowLayout = device.CreateResourceSetLayout({
-				shadowBindings,
-				SODIUM_STRING("Sodium.Effect.Shadow.ResourceLayout")
-				});
-			if (!shadowLayout.IsValid())
-			{
-				cache.Shutdown(device);
-				return false;
-			}
-			cache.SetShadowResourceSetLayout(shadowLayout);
-
-			const Rhi::SdBufferHandle shadowParamsBuffer = device.CreateBuffer({
-				sizeof(SdShadowParams),
-				static_cast<Rhi::SdBufferUsageFlags>(Rhi::SdBufferUsage::Uniform),
-				Rhi::SdMemoryUsage::CpuToGpu,
-				SODIUM_STRING("Sodium.Effect.Shadow.Params")
-				}, nullptr);
-			if (!shadowParamsBuffer.IsValid())
-			{
-				cache.Shutdown(device);
-				return false;
-			}
-			cache.SetShadowParamsBuffer(shadowParamsBuffer);
+			if (cache.GetShadowPipeline(colorFormat).IsValid())
+				return true;
 
 			Rhi::SdGraphicsPipelineDesc shadowPipelineDesc = {};
-			shadowPipelineDesc.vertexShader = fullscreenVertexShader;
-			shadowPipelineDesc.pixelShader = shadowPixelShader;
-			shadowPipelineDesc.resourceSetLayout = shadowLayout;
+			shadowPipelineDesc.vertexShader = cache.GetFullscreenVertexShader();
+			shadowPipelineDesc.pixelShader = cache.GetShadowPixelShader();
+			shadowPipelineDesc.resourceSetLayout = cache.GetShadowResourceSetLayout();
 			shadowPipelineDesc.blendState.color.blendEnabled = true;
 			shadowPipelineDesc.rasterState.scissorEnabled = true;
 			shadowPipelineDesc.colorFormat = colorFormat;
@@ -206,13 +198,9 @@ namespace Sodium
 
 			const Rhi::SdPipelineHandle shadowPipeline = device.CreateGraphicsPipeline(shadowPipelineDesc);
 			if (!shadowPipeline.IsValid())
-			{
-				cache.SetShadowPipeline(shadowPipeline);
-				cache.Shutdown(device);
 				return false;
-			}
 
-			cache.SetShadowPipeline(shadowPipeline);
+			cache.SetShadowPipeline(colorFormat, shadowPipeline);
 			return true;
 		}
 
@@ -243,13 +231,13 @@ namespace Sodium
 		{
 			if (radius <= 0.0f || color.a == 0 || !targetLayer.IsValid())
 				return false;
-			if (!resources.GetShadowResourceSetLayout().IsValid()
-				|| !resources.GetShadowParamsBuffer().IsValid())
-			{
+			const Rhi::SdTextureFormat targetFormat = BlurEffectDetail::ResolveLayerFormat(targetLayer);
+			if (!InitializeResources(context.device, resources, targetFormat))
 				return false;
-			}
+			if (!resources.GetShadowResourceSetLayout().IsValid())
+				return false;
 
-			const Rhi::SdPipelineHandle shadowPipeline = resources.GetShadowPipeline(BlurEffectDetail::ResolveLayerFormat(targetLayer));
+			const Rhi::SdPipelineHandle shadowPipeline = resources.GetShadowPipeline(targetFormat);
 			if (!shadowPipeline.IsValid())
 				return false;
 
@@ -289,19 +277,13 @@ namespace Sodium
 				cornerRadii.bottomRight,
 				cornerRadii.bottomLeft
 			};
-			context.device.UpdateBuffer(resources.GetShadowParamsBuffer(), &params, sizeof(params), 0);
 
-			const Rhi::SdBoundBuffer buffers[] =
-			{
-				{ 0, resources.GetShadowParamsBuffer(), 0, sizeof(SdShadowParams) }
-			};
-			const Rhi::SdResourceSetHandle resourceSet = context.device.CreateResourceSet({
-				resources.GetShadowResourceSetLayout(),
-				{},
-				{},
-				buffers,
-				debugName
-				});
+			const Rhi::SdResourceSetHandle resourceSet = resources.GetOrCreateShadowParameterResourceSet(
+				context.device,
+				context.packet.packetVersion,
+				&params,
+				sizeof(params),
+				debugName);
 			if (!resourceSet.IsValid())
 				return false;
 
@@ -337,7 +319,6 @@ namespace Sodium
 			context.encoder.Draw(3, 1, 0, 0);
 			context.encoder.EndRenderPass();
 
-			context.device.DestroyResourceSet(resourceSet);
 			return true;
 		}
 	}

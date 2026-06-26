@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{7f1ac2ce-7e99-4e9d-a77f-9b71dbe3ab12}</ProjectGuid>
+    <RootNamespace>win32directx12</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>$(ProjectDir)bin\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(ProjectDir)obj\$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>$(ProjectDir)bin\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(ProjectDir)obj\$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <OutDir>$(ProjectDir)bin\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(ProjectDir)obj\$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <OutDir>$(ProjectDir)bin\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(ProjectDir)obj\$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalIncludeDirectories>../../../;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <ProgramDatabaseFile>$(IntDir)$(TargetName).pdb</ProgramDatabaseFile>
+      <ImportLibrary>$(IntDir)$(TargetName).lib</ImportLibrary>
+      <AdditionalDependencies>d3d12.lib;dxgi.lib;d3dcompiler.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalIncludeDirectories>../../../;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <ProgramDatabaseFile>$(IntDir)$(TargetName).pdb</ProgramDatabaseFile>
+      <ImportLibrary>$(IntDir)$(TargetName).lib</ImportLibrary>
+      <AdditionalDependencies>d3d12.lib;dxgi.lib;d3dcompiler.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalIncludeDirectories>../../../;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <ProgramDatabaseFile>$(IntDir)$(TargetName).pdb</ProgramDatabaseFile>
+      <ImportLibrary>$(IntDir)$(TargetName).lib</ImportLibrary>
+      <AdditionalDependencies>d3d12.lib;dxgi.lib;d3dcompiler.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalIncludeDirectories>../../../;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <ProgramDatabaseFile>$(IntDir)$(TargetName).pdb</ProgramDatabaseFile>
+      <ImportLibrary>$(IntDir)$(TargetName).lib</ImportLibrary>
+      <AdditionalDependencies>d3d12.lib;dxgi.lib;d3dcompiler.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\Backends\FreeType\FreeTypeFontBackend.cpp" />
+    <ClCompile Include="..\..\..\Backends\Stb\StbFontBackend.cpp" />
+    <ClCompile Include="..\..\..\Backends\Dx12\SdDx12Renderer.cpp" />
+    <ClCompile Include="..\..\..\Backends\Win32\SdWin32Platform.cpp" />
+    <ClCompile Include="..\..\..\Core\SdDefaultFont.cpp" />
+    <ClCompile Include="..\..\..\Input\SdInput.cpp" />
+    <ClCompile Include="..\..\..\Render\SdRenderList.cpp" />
+    <ClCompile Include="..\..\..\Render\SdRenderListPath.cpp" />
+    <ClCompile Include="..\..\..\Render\SdRenderListPrimitives.cpp" />
+    <ClCompile Include="..\..\..\Render\SdRenderListText.cpp" />
+    <ClCompile Include="..\..\..\Render\SdRenderStats.cpp" />
+    <ClCompile Include="Main.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\Backends\FreeType\FreeTypeFontBackend.h" />
+    <ClInclude Include="..\..\..\Backends\Stb\StbFontBackend.h" />
+    <ClInclude Include="..\..\..\Backends\Dx12\SdDx12Renderer.h" />
+    <ClInclude Include="..\..\..\Backends\Win32\SdWin32Platform.h" />
+    <ClInclude Include="..\..\..\Animation\SdAnimation.h" />
+    <ClInclude Include="..\..\..\Core\SdBackendContracts.h" />
+    <ClInclude Include="..\..\..\Render\SdRenderData.h" />
+    <ClInclude Include="..\..\..\Render\SdRenderList.h" />
+    <ClInclude Include="..\..\..\Style\SdStyleCore.h" />
+    <ClInclude Include="..\..\..\Widget\SdBasicWidgets.h" />
+    <ClInclude Include="..\..\..\Core\SdDefaultFont.h" />
+    <ClInclude Include="..\..\..\Input\SdInput.h" />
+    <ClInclude Include="..\..\..\Layer\SdLayer.h" />
+    <ClInclude Include="..\..\..\Render\SdRender.h" />
+    <ClInclude Include="..\..\..\Render\SdLayerResolver.h" />
+    <ClInclude Include="..\..\..\Render\SdRenderStats.h" />
+    <ClInclude Include="..\..\..\Rhi\SdRhi.h" />
+    <ClInclude Include="..\..\..\Rhi\SdGpuHandle.hpp" />
+    <ClInclude Include="..\..\..\Rhi\SdGpuCaps.hpp" />
+    <ClInclude Include="..\..\..\Rhi\SdTexture.hpp" />
+    <ClInclude Include="..\..\..\Rhi\SdBuffer.hpp" />
+    <ClInclude Include="..\..\..\Rhi\SdShader.hpp" />
+    <ClInclude Include="..\..\..\Rhi\SdSampler.hpp" />
+    <ClInclude Include="..\..\..\Rhi\SdPipeline.hpp" />
+    <ClInclude Include="..\..\..\Rhi\SdResourceSet.hpp" />
+    <ClInclude Include="..\..\..\Rhi\SdRenderPass.hpp" />
+    <ClInclude Include="..\..\..\Rhi\SdCommandEncoder.hpp" />
+    <ClInclude Include="..\..\..\Rhi\SdGpuDevice.hpp" />
+    <ClInclude Include="..\..\..\Rhi\SdTransientTexturePool.hpp" />
+    <ClInclude Include="..\..\..\Rhi\SdRenderGraph.hpp" />
+    <ClInclude Include="..\..\..\Rhi\SdFullscreenPass.hpp" />
+    <ClInclude Include="..\..\..\Effects\SdEffectTypes.hpp" />
+    <ClInclude Include="..\..\..\Effects\SdEffectRegistry.hpp" />
+    <ClInclude Include="..\..\..\Effects\SdEffect.hpp" />
+    <ClInclude Include="..\..\..\Effects\SdBlurEffect.hpp" />
+    <ClInclude Include="..\..\..\Effects\SdBackdropBlurEffect.hpp" />
+    <ClInclude Include="..\..\..\Effects\SdMaskEffect.hpp" />
+    <ClInclude Include="..\..\..\Effects\SdShadowEffect.hpp" />
+    <ClInclude Include="..\..\..\Effects\SdCustomEffect.hpp" />
+    <ClInclude Include="..\..\..\Effects\SdEffectPipeline.hpp" />
+    <ClInclude Include="..\..\..\Core\SdRuntime.h" />
+    <ClInclude Include="..\..\..\Style\SdStyle.h" />
+    <ClInclude Include="..\..\..\Core\SdText.h" />
+    <ClInclude Include="..\..\..\Core\SdTypes.h" />
+    <ClInclude Include="..\..\..\Core\SdMath.h" />
+    <ClInclude Include="..\..\..\Core\SdColor.h" />
+    <ClInclude Include="..\..\..\Core\SdCore.h" />
+    <ClInclude Include="..\..\..\Widget\SdUiCore.h" />
+    <ClInclude Include="..\..\..\Render\SdRenderCore.h" />
+    <ClInclude Include="..\..\..\Widget\SdWidgetContext.h" />
+    <ClInclude Include="..\..\..\Core\SdRuntimeStorage.h" />
+    <ClInclude Include="..\..\..\Core\SdIdStack.h" />
+    <ClInclude Include="..\..\..\Widget\SdUi.h" />
+    <ClInclude Include="..\..\..\Core\SdInstance.h" />
+    <ClInclude Include="..\..\..\Core\SdRuntime.inl" />
+    <ClInclude Include="..\..\..\third_party\stb\stb_truetype.h" />
+    <ClInclude Include="..\..\..\SodiumGUI.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
