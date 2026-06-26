@@ -1,15 +1,19 @@
-﻿#pragma once
+#pragma once
 
+#include <Effects/SdEffectTypes.hpp>
 #include <Core/SdCore.h>
 #include <Core/SdText.h>
 #include <Rhi/SdRhi.h>
 
 #include <cmath>
+#include <cstring>
 #include <unordered_map>
 #include <vector>
 
 namespace Sodium
 {
+	class SdEffectRegistry;
+
 	namespace Detail
 	{
 		constexpr SdUInt32 AlignUp(SdUInt32 value, SdUInt32 alignment) noexcept
@@ -44,17 +48,11 @@ namespace Sodium
 		PushClipRect,
 		PopClip,
 
+		BeginRenderLayer,
+		EndRenderLayer,
 		ApplyEffect,
 
 		None
-	};
-
-	enum class SdBlendMode : SdUInt8
-	{
-		Alpha,
-		Additive,
-		Multiply,
-		Replace
 	};
 
 	enum class SdClipKind : SdUInt8
@@ -72,6 +70,10 @@ namespace Sodium
 		BackdropCapture,
 		Mask
 	};
+
+	using SdRenderLayerId = SdUInt32;
+	inline constexpr SdRenderLayerId SdRootRenderLayerId = 0;
+	inline constexpr SdRenderLayerId SdInvalidRenderLayerId = SdInvalidIndex<SdRenderLayerId>;
 
 	struct SdRenderCommand final
 	{
@@ -114,14 +116,15 @@ namespace Sodium
 		}
 
 		template<class TPayload>
-		[[nodiscard]] const TPayload& ReadPayload(const SdRenderCommand& command) const
+		[[nodiscard]] TPayload ReadPayload(const SdRenderCommand& command) const
 		{
-			static_assert(std::is_trivially_copyable_v<TPayload>, "Render command payloads must be trivially copyable.");
+			static_assert(std::is_trivially_copyable_v<TPayload>, SODIUM_STRING("Render command payloads must be trivially copyable."));
 			assert(command.payloadSize == sizeof(TPayload));
 			assert(command.payloadOffset + command.payloadSize <= payloads.size());
-			const std::byte* payloadPtr = payloads.data() + command.payloadOffset;
-			assert(reinterpret_cast<std::uintptr_t>(payloadPtr) % std::min<SdSize>(alignof(TPayload), alignof(std::max_align_t)) == 0);
-			return *std::launder(reinterpret_cast<const TPayload*>(payloadPtr));
+			TPayload payload = {};
+			if (command.payloadSize == sizeof(TPayload) && command.payloadOffset <= payloads.size() && command.payloadSize <= payloads.size() - command.payloadOffset)
+				std::memcpy(&payload, payloads.data() + command.payloadOffset, sizeof(TPayload));
+			return payload;
 		}
 
 		std::span<const SdRenderCommand> GetCommands() const noexcept { return commands; }
@@ -154,12 +157,40 @@ namespace Sodium
 	{
 	};
 
-	struct SdApplyEffectPayload final
+	struct SdBeginRenderLayerPayload final
 	{
-
+		SdRenderLayerId layerId = SdInvalidRenderLayerId;
+		SdRenderLayerUsage usage = SdRenderLayerUsage::Generic;
+		SdRect bounds = {};
+		Rhi::SdTextureFormat format = Rhi::SdTextureFormat::Unknown;
+		SdColorLinear clearColor = {};
+		bool clear = true;
 	};
 
-	using SdRenderLayerId = SdUInt32;
+	struct SdEndRenderLayerPayload final
+	{
+		SdRenderLayerId layerId = SdInvalidRenderLayerId;
+	};
+
+	struct SdEffectParameterRange final
+	{
+		SdUInt32 offset = 0;
+		SdUInt32 size = 0;
+	};
+
+	struct SdApplyEffectPayload final
+	{
+		SdEffectHandle effect = {};
+		SdRenderLayerId sourceLayer = SdInvalidRenderLayerId;
+		SdRenderLayerId targetLayer = SdRootRenderLayerId;
+		SdRenderLayerId backdropLayer = SdInvalidRenderLayerId;
+		SdRenderLayerId maskLayer = SdInvalidRenderLayerId;
+		SdRect sourceBounds = {};
+		SdRect expandedBounds = {};
+		SdRect clipRect = {};
+		SdUInt32 parameterOffset = 0;
+		SdUInt32 parameterSize = 0;
+	};
 
 	struct SdRenderBatch final
 	{
@@ -169,37 +200,6 @@ namespace Sodium
 		SdUInt32 indexCount = 0;
 		SdTextureHandle texture = {};
 		SdRect clipRect = {};
-	};
-
-	struct SdBackdropBlurDraw final
-	{
-		SdRect rect = {};
-		SdRect clipRect = {};
-		float radius = 12.0f;
-		float cornerRadius = 0.0f;
-		SdCornerRadii cornerRadii = {};
-	};
-
-	struct SdDropShadowDraw final
-	{
-		SdRect rect = {};
-		SdRect clipRect = {};
-		SdVec2 offset = {};
-		SdColor color = { 0, 0, 0, 96 };
-		float radius = 16.0f;
-		float spread = 0.0f;
-		SdCornerRadii cornerRadii = {};
-	};
-
-	struct SdInnerShadowDraw final
-	{
-		SdRect rect = {};
-		SdRect clipRect = {};
-		SdVec2 offset = {};
-		SdColor color = { 0, 0, 0, 96 };
-		float radius = 16.0f;
-		float spread = 0.0f;
-		SdCornerRadii cornerRadii = {};
 	};
 
 	struct SdUploadRequest final
@@ -213,11 +213,37 @@ namespace Sodium
 	struct SdRenderPacket final
 	{
 		const SdRenderCommandBuffer& commandBuffer;
+		std::span<const SdRenderCommand> commands = {};
 		std::span<const SdVertex> vertices = {};
 		std::span<const SdUInt32> indices = {};
 		std::span<const SdRenderBatch> batches = {};
+		std::span<const std::byte> effectParameters = {};
 		std::span<const SdUploadRequest> resourceUpdates = {};
+		const SdEffectRegistry* effectRegistry = nullptr;
 		SdUInt32 packetVersion = 0;
+
+		std::span<const std::byte> ReadEffectParameterBytes(const SdApplyEffectPayload& payload) const noexcept
+		{
+			if (payload.parameterSize == 0)
+				return {};
+			if (payload.parameterOffset > effectParameters.size())
+				return {};
+			if (payload.parameterSize > effectParameters.size() - payload.parameterOffset)
+				return {};
+			return effectParameters.subspan(payload.parameterOffset, payload.parameterSize);
+		}
+
+		template<class TParameters>
+		const TParameters* TryReadEffectParameters(const SdApplyEffectPayload& payload) const noexcept
+		{
+			static_assert(std::is_trivially_copyable_v<TParameters>, SODIUM_STRING("Effect command parameters must be trivially copyable."));
+			if (payload.parameterSize != sizeof(TParameters))
+				return nullptr;
+			const std::span<const std::byte> bytes = ReadEffectParameterBytes(payload);
+			if (bytes.size_bytes() != sizeof(TParameters))
+				return nullptr;
+			return std::launder(reinterpret_cast<const TParameters*>(bytes.data()));
+		}
 	};
 
 	struct SdRendererFrameInfo final
@@ -273,6 +299,7 @@ namespace Sodium
 		SdRect whitePixelUv = { 0.0f, 0.0f, 1.0f, 1.0f };
 		std::array<SdVec4, BakedLineTextureCount> bakedLineUvs = {};
 		std::array<SdVec2, 32> fastArcSamples = {};
+		SdBuiltInEffectHandles builtInEffects = {};
 		SdUInt32 flags = UseAntiAliasing;
 
 		SdRenderSharedData() 
@@ -286,14 +313,11 @@ namespace Sodium
 		SdRenderCommandBuffer commandBuffer = {};
 
 		std::vector<SdUploadRequest> uploadRequests = {};
+		std::vector<std::byte> effectParameters = {};
 
 		std::vector<SdVertex> vertices = {};
 		std::vector<SdUInt32> indices = {};
 		std::vector<SdRenderBatch> batches = {};
-
-		//std::vector<SdBackdropBlurDraw> backdropBlurs = {};
-		//std::vector<SdDropShadowDraw> dropShadows = {};
-		//std::vector<SdInnerShadowDraw> innerShadows = {};
 
 		void Clear()
 		{
@@ -301,6 +325,7 @@ namespace Sodium
 			vertices.clear();
 			indices.clear();
 			batches.clear();
+			effectParameters.clear();
 			uploadRequests.clear();
 		}
 
@@ -309,24 +334,58 @@ namespace Sodium
 			vertices.assign(packet.vertices.begin(), packet.vertices.end());
 			indices.assign(packet.indices.begin(), packet.indices.end());
 			batches.assign(packet.batches.begin(), packet.batches.end());
+			effectParameters.assign(packet.effectParameters.begin(), packet.effectParameters.end());
 			uploadRequests.assign(packet.resourceUpdates.begin(), packet.resourceUpdates.end());
 		}
 
-		SdRenderPacket BuildPacket(SdUInt32 packetVersion = 0) const noexcept
+		template<class TParameters>
+		SdEffectParameterRange PushEffectParameters(const TParameters& parameters)
+		{
+			static_assert(std::is_trivially_copyable_v<TParameters>, SODIUM_STRING("Effect command parameters must be trivially copyable."));
+
+			const SdUInt32 alignment = static_cast<SdUInt32>(alignof(TParameters));
+			const SdUInt32 offset = Detail::AlignUp(static_cast<SdUInt32>(effectParameters.size()), alignment);
+			if (effectParameters.size() < offset)
+				effectParameters.resize(offset);
+
+			const SdUInt32 size = static_cast<SdUInt32>(sizeof(TParameters));
+			effectParameters.resize(offset + size);
+			std::memcpy(effectParameters.data() + offset, &parameters, size);
+			return { offset, size };
+		}
+
+		SdEffectParameterRange PushEffectParameterBytes(std::span<const std::byte> parameters, SdUInt32 alignment = static_cast<SdUInt32>(alignof(std::max_align_t)))
+		{
+			if (parameters.empty())
+				return {};
+
+			const SdUInt32 offset = Detail::AlignUp(static_cast<SdUInt32>(effectParameters.size()), alignment);
+			if (effectParameters.size() < offset)
+				effectParameters.resize(offset);
+
+			const SdUInt32 size = static_cast<SdUInt32>(parameters.size_bytes());
+			effectParameters.resize(offset + size);
+			std::memcpy(effectParameters.data() + offset, parameters.data(), size);
+			return { offset, size };
+		}
+
+		SdRenderPacket BuildPacket(SdUInt32 packetVersion = 0, const SdEffectRegistry* effectRegistry = nullptr) const noexcept
 		{
 			return {
 				commandBuffer,
+				commandBuffer.GetCommands(),
 				std::span<const SdVertex>(vertices.data(), vertices.size()),
 				std::span<const SdUInt32>(indices.data(), indices.size()),
 				std::span<const SdRenderBatch>(batches.data(), batches.size()),
-				//std::span<const SdBackdropBlurDraw>(backdropBlurs.data(), backdropBlurs.size()),
-				//std::span<const SdDropShadowDraw>(dropShadows.data(), dropShadows.size()),
-				//std::span<const SdInnerShadowDraw>(innerShadows.data(), innerShadows.size()),
+				std::span<const std::byte>(effectParameters.data(), effectParameters.size()),
 				std::span<const SdUploadRequest>(uploadRequests.data(), uploadRequests.size()),
+				effectRegistry,
 				packetVersion
 			};
 		}
 	};
 
 	using SdRenderPacketVersion = SdUInt32;
+	using SdDrawPacket = SdRenderPacket;
+	using SdDrawData = SdRenderData;
 }

@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 namespace Sodium
 {
@@ -33,6 +33,11 @@ namespace Sodium
 	inline SdInstance::SdInstance()
 		: renderList(&context.renderStats, &context.renderSharedData), uiObject(*this), ui(uiObject)
 	{
+		context.renderSharedData.builtInEffects.blur = context.effectRegistry.Register<SdBlurEffect>();
+		context.renderSharedData.builtInEffects.backdropBlur = context.effectRegistry.Register<SdBackdropBlurEffect>();
+		context.renderSharedData.builtInEffects.dropShadow = context.effectRegistry.Register<SdDropShadowEffect>();
+		context.renderSharedData.builtInEffects.innerShadow = context.effectRegistry.Register<SdInnerShadowEffect>();
+		context.renderSharedData.builtInEffects.mask = context.effectRegistry.Register<SdMaskEffect>();
 	}
 
 	inline bool SdInstance::Initialize(ISdPlatformBackend* platform, ISdRendererBackend* renderer, ISdFontBackend* fontBackend) noexcept
@@ -40,9 +45,15 @@ namespace Sodium
 		SetPlatformBackend(platform);
 		SetRendererBackend(renderer);
 		SetFontBackend(fontBackend);
-		return context.platform && context.platform->IsInitialized()
+		const bool initialized = context.platform && context.platform->IsInitialized()
 			&& context.renderer && context.renderer->IsInitialized()
 			&& context.fontBackend && context.fontBackend->IsInitialized();
+		if (initialized)
+		{
+			if (Rhi::ISdGpuDevice* device = context.renderer->GetRhiDeviceInterface())
+				return context.effectRegistry.Initialize(*device);
+		}
+		return initialized;
 	}
 
 	inline void SdInstance::BeginInputFrame()
@@ -84,6 +95,7 @@ namespace Sodium
 
 	inline void SdInstance::Shutdown()
 	{
+		context.effectRegistry.Shutdown();
 		context.stateStorage.Clear();
 		context.frameOrder.clear();
 		renderList.Reset();

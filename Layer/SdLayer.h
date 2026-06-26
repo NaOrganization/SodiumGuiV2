@@ -317,7 +317,7 @@ namespace Sodium
 
 		std::vector<SdWidgetId> HitTest(const SdVec2& point) const
 		{
-			assert(finalized && "SdLayerSystem::HitTest called before Finalize().");
+			assert(finalized && SODIUM_STRING("SdLayerSystem::HitTest called before Finalize()."));
 			const SdHitTestRecord* bestHit = nullptr;
 			const SdHitTestRecord* bestBlocker = nullptr;
 			for (const SdHitTestRecord& record : hitTestRecords)

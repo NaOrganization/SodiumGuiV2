@@ -1,4 +1,4 @@
-﻿#include "Render/SdRenderList.h"
+#include "Render/SdRenderList.h"
 
 #include <cmath>
 
@@ -86,10 +86,26 @@ namespace Sodium
 		PathStroke(color, thickness, true);
 	}
 
+	void SdRenderList::AddRect(const SdRect& rect, const SdColor& color, const SdRect& clipRect, float thickness, float rounding, SdUInt32 roundingSegments)
+	{
+		const SdRect previousClipRect = currentClipRect;
+		currentClipRect = clipRect;
+		AddRect(rect, color, thickness, rounding, roundingSegments);
+		currentClipRect = previousClipRect;
+	}
+
 	void SdRenderList::AddRectFilled(const SdRect& rect, const SdColor& color, float rounding, SdUInt32 roundingSegments)
 	{
 		PathRect(rect, rounding, roundingSegments);
 		PathFillConvex(color);
+	}
+
+	void SdRenderList::AddRectFilled(const SdRect& rect, const SdColor& color, const SdRect& clipRect, float rounding, SdUInt32 roundingSegments)
+	{
+		const SdRect previousClipRect = currentClipRect;
+		currentClipRect = clipRect;
+		AddRectFilled(rect, color, rounding, roundingSegments);
+		currentClipRect = previousClipRect;
 	}
 
 	void SdRenderList::AddRectFilledMultiColor(const SdRect& rect, const SdColor& colorUpperLeft, const SdColor& colorUpperRight, const SdColor& colorBottomRight, const SdColor& colorBottomLeft)

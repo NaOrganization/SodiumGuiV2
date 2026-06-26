@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <cstdio>
 #include <string>
 #include <thread>
@@ -21,6 +22,25 @@ namespace
 			std::printf("FAIL: %s\n", message);
 			++gFailedChecks;
 		}
+	}
+
+	void CheckNear(float actual, float expected, float tolerance, const char* message)
+	{
+		Check(std::fabs(actual - expected) <= tolerance, message);
+	}
+
+	void CheckColorNear(SdColor actual, SdColor expected, SdUInt8 tolerance, const char* message)
+	{
+		const auto channelDelta = [](SdUInt8 left, SdUInt8 right)
+		{
+			return left > right ? left - right : right - left;
+		};
+		Check(
+			channelDelta(actual.r, expected.r) <= tolerance
+			&& channelDelta(actual.g, expected.g) <= tolerance
+			&& channelDelta(actual.b, expected.b) <= tolerance
+			&& channelDelta(actual.a, expected.a) <= tolerance,
+			message);
 	}
 
 	void PumpFrame(SdInstance& instance)
@@ -457,6 +477,40 @@ namespace
 	{
 		const auto& records = instance.GetStateStorage().GetWidgetRecords();
 		return records.empty() ? 0 : records.begin()->first;
+	}
+
+	void TestCoreMathAndColor()
+	{
+		const SdVec2 vector = { 3.0f, 4.0f };
+		CheckNear(SdVecLength(vector), 5.0f, 0.0001f, "math vec2 length");
+		const SdVec2 normal = SdNormalize(vector);
+		CheckNear(normal.x, 0.6f, 0.0001f, "math vec2 normalized x");
+		CheckNear(normal.y, 0.8f, 0.0001f, "math vec2 normalized y");
+		Check(SdCross(SdVec3::UnitX(), SdVec3::UnitY()) == SdVec3::UnitZ(), "math vec3 cross product");
+
+		const SdRect rect = SdRect::FromPositionSize({ 10.0f, 20.0f }, { 30.0f, 40.0f });
+		Check(rect.Size() == SdVec2(30.0f, 40.0f), "math rect size");
+		Check(rect.Center() == SdVec2(25.0f, 40.0f), "math rect center");
+		Check(rect.Intersection({ 20.0f, 10.0f, 50.0f, 35.0f }) == SdRect(20.0f, 20.0f, 40.0f, 35.0f), "math rect intersection");
+		const SdCircle circle = { { 10.0f, 10.0f }, 5.0f };
+		Check(circle.Contains({ 13.0f, 14.0f }) && !circle.Contains({ 16.0f, 10.0f }), "math circle containment");
+
+		Check(SdColor::FromHsl({ 0.0f, 1.0f, 0.5f }) == SdColor(255, 0, 0, 255), "color hsl converts red");
+		const SdColorHsl greenHsl = SdColor(0, 255, 0, 255).ToHsl();
+		CheckNear(greenHsl.h, 120.0f, 0.001f, "color rgba to hsl hue");
+		CheckNear(greenHsl.s, 1.0f, 0.001f, "color rgba to hsl saturation");
+		CheckNear(greenHsl.l, 0.5f, 0.001f, "color rgba to hsl lightness");
+
+		Check(SdColor::FromHsb({ 240.0f, 1.0f, 1.0f }) == SdColor(0, 0, 255, 255), "color hsb converts blue");
+		const SdColorHsb blueHsb = SdColor(0, 0, 255, 255).ToHsb();
+		CheckNear(blueHsb.h, 240.0f, 0.001f, "color rgba to hsb hue");
+		CheckNear(blueHsb.s, 1.0f, 0.001f, "color rgba to hsb saturation");
+		CheckNear(blueHsb.b, 1.0f, 0.001f, "color rgba to hsb brightness");
+
+		const SdColor oklchSource = { 120, 64, 210, 191 };
+		CheckColorNear(oklchSource.ToOklch().ToRgba(), oklchSource, 2, "color oklch round trip");
+		Check(SdColors::Blue == SdGetColorPreset(SdColorPreset::Blue), "color preset lookup");
+		Check(SdColorWhite == SdColors::White && SdColorTransparent == SdColors::Transparent, "color legacy constants map to presets");
 	}
 
 	void TestSmokeAndDrawPacket()
@@ -3622,34 +3676,41 @@ namespace
 		const SdRect clip = { 0.0f, 0.0f, 200.0f, 200.0f };
 		list.AddRectFilled({ 0.0f, 0.0f, 10.0f, 10.0f }, SdColorWhite, clip);
 		list.AddRectFilled({ 20.0f, 0.0f, 30.0f, 10.0f }, SdColorWhite, clip);
-		Check(list.GetDrawData().commands.size() == 1, "render list batches matching texture and clip");
+		Check(list.GetDrawData().commandBuffer.GetCommands().size() == 1, "render list batches matching texture and clip");
 		Check(list.GetDrawData().vertices.size() > 0 && list.GetDrawData().indices.size() > 0, "render list emits geometry");
 
 		list.AddRectFilled({ 40.0f, 0.0f, 50.0f, 10.0f }, SdColorWhite, { 0.0f, 0.0f, 50.0f, 50.0f });
-		Check(list.GetDrawData().commands.size() == 2, "render list splits batch by clip");
+		Check(list.GetDrawData().commandBuffer.GetCommands().size() == 2, "render list splits batch by clip");
 
 		list.Reset();
 		list.AddRectFilled({ 0.0f, 0.0f, 10.0f, 10.0f }, SdColorWhite, clip);
 		list.AddBackdropBlur({ 20.0f, 0.0f, 50.0f, 30.0f }, clip, 12.0f);
 		list.AddRectFilled({ 60.0f, 0.0f, 70.0f, 10.0f }, SdColorWhite, clip);
 		const SdDrawData& blurData = list.GetDrawData();
+		const std::span<const SdRenderCommand> blurCommands = blurData.commandBuffer.GetCommands();
 		Check(blurData.batches.size() == 2, "backdrop blur prevents geometry from merging across effect command");
 		Check(
-			blurData.commands.size() == 3
-			&& blurData.commands[0].kind == SdDrawCommandKind::OwnedBatch
-			&& blurData.commands[1].kind == SdDrawCommandKind::BackdropBlur
-			&& blurData.commands[2].kind == SdDrawCommandKind::OwnedBatch,
+			blurCommands.size() == 3
+			&& blurCommands[0].kind == SdRenderCommandKind::DrawBatch
+			&& blurCommands[1].kind == SdRenderCommandKind::ApplyEffect
+			&& blurCommands[2].kind == SdRenderCommandKind::DrawBatch,
 			"backdrop blur preserves draw command order");
 
 		list.Reset();
 		list.AddBackdropBlur({ 20.0f, 0.0f, 50.0f, 30.0f }, clip, 12.0f, { 2.0f, 4.0f, 6.0f, 8.0f });
 		const SdDrawData& cornerBlurData = list.GetDrawData();
+		const SdDrawPacket cornerBlurPacket = cornerBlurData.BuildPacket();
+		const std::span<const SdRenderCommand> cornerBlurCommands = cornerBlurData.commandBuffer.GetCommands();
+		const SdApplyEffectPayload cornerBlurPayload = cornerBlurData.commandBuffer.ReadPayload<SdApplyEffectPayload>(cornerBlurCommands[0]);
+		const SdBackdropBlurEffectParameters* cornerBlurParameters = cornerBlurPacket.TryReadEffectParameters<SdBackdropBlurEffectParameters>(cornerBlurPayload);
 		Check(
-			cornerBlurData.backdropBlurs.size() == 1
-			&& cornerBlurData.backdropBlurs[0].cornerRadii.topLeft == 2.0f
-			&& cornerBlurData.backdropBlurs[0].cornerRadii.topRight == 4.0f
-			&& cornerBlurData.backdropBlurs[0].cornerRadii.bottomRight == 6.0f
-			&& cornerBlurData.backdropBlurs[0].cornerRadii.bottomLeft == 8.0f,
+			cornerBlurCommands.size() == 1
+			&& cornerBlurCommands[0].kind == SdRenderCommandKind::ApplyEffect
+			&& cornerBlurParameters
+			&& cornerBlurParameters->cornerRadii.topLeft == 2.0f
+			&& cornerBlurParameters->cornerRadii.topRight == 4.0f
+			&& cornerBlurParameters->cornerRadii.bottomRight == 6.0f
+			&& cornerBlurParameters->cornerRadii.bottomLeft == 8.0f,
 			"backdrop blur stores per-corner radii");
 
 		list.Reset();
@@ -3658,33 +3719,40 @@ namespace
 		list.AddInnerShadow({ 80.0f, 0.0f, 110.0f, 30.0f }, clip, { 0.0f, 2.0f }, { 0, 0, 0, 96 }, 12.0f, 0.0f, SdCornerRadii(3.0f, 5.0f, 7.0f, 9.0f));
 		list.AddRectFilled({ 60.0f, 0.0f, 70.0f, 10.0f }, SdColorWhite, clip);
 		const SdDrawData& shadowData = list.GetDrawData();
-		Check(shadowData.batches.size() == 3, "shadow effects prevent geometry from merging across effect command");
+		const SdDrawPacket shadowPacket = shadowData.BuildPacket();
+		const std::span<const SdRenderCommand> shadowCommands = shadowData.commandBuffer.GetCommands();
+		const SdApplyEffectPayload dropShadowPayload = shadowData.commandBuffer.ReadPayload<SdApplyEffectPayload>(shadowCommands[1]);
+		const SdApplyEffectPayload innerShadowPayload = shadowData.commandBuffer.ReadPayload<SdApplyEffectPayload>(shadowCommands[2]);
+		const SdDropShadowEffectParameters* dropShadowParameters = shadowPacket.TryReadEffectParameters<SdDropShadowEffectParameters>(dropShadowPayload);
+		const SdInnerShadowEffectParameters* innerShadowParameters = shadowPacket.TryReadEffectParameters<SdInnerShadowEffectParameters>(innerShadowPayload);
+		Check(shadowData.batches.size() == 2, "shadow effects prevent geometry from merging across effect command");
 		Check(
-			shadowData.dropShadows.size() == 1
-			&& shadowData.dropShadows[0].cornerRadii.topLeft == 2.0f
-			&& shadowData.dropShadows[0].cornerRadii.topRight == 4.0f
-			&& shadowData.dropShadows[0].cornerRadii.bottomRight == 6.0f
-			&& shadowData.dropShadows[0].cornerRadii.bottomLeft == 8.0f,
+			dropShadowParameters
+			&& dropShadowParameters->cornerRadii.topLeft == 2.0f
+			&& dropShadowParameters->cornerRadii.topRight == 4.0f
+			&& dropShadowParameters->cornerRadii.bottomRight == 6.0f
+			&& dropShadowParameters->cornerRadii.bottomLeft == 8.0f,
 			"drop shadow stores per-corner radii");
 		Check(
-			shadowData.innerShadows.size() == 1
-			&& shadowData.innerShadows[0].cornerRadii.topLeft == 3.0f
-			&& shadowData.innerShadows[0].cornerRadii.topRight == 5.0f
-			&& shadowData.innerShadows[0].cornerRadii.bottomRight == 7.0f
-			&& shadowData.innerShadows[0].cornerRadii.bottomLeft == 9.0f,
+			innerShadowParameters
+			&& innerShadowParameters->cornerRadii.topLeft == 3.0f
+			&& innerShadowParameters->cornerRadii.topRight == 5.0f
+			&& innerShadowParameters->cornerRadii.bottomRight == 7.0f
+			&& innerShadowParameters->cornerRadii.bottomLeft == 9.0f,
 			"inner shadow stores per-corner radii");
 		Check(
-			shadowData.commands.size() == 4
-			&& shadowData.commands[0].kind == SdDrawCommandKind::OwnedBatch
-			&& shadowData.commands[1].kind == SdDrawCommandKind::DropShadow
-			&& shadowData.commands[2].kind == SdDrawCommandKind::InnerShadow
-			&& shadowData.commands[3].kind == SdDrawCommandKind::OwnedBatch,
+			shadowCommands.size() == 4
+			&& shadowCommands[0].kind == SdRenderCommandKind::DrawBatch
+			&& shadowCommands[1].kind == SdRenderCommandKind::ApplyEffect
+			&& shadowCommands[2].kind == SdRenderCommandKind::ApplyEffect
+			&& shadowCommands[3].kind == SdRenderCommandKind::DrawBatch,
 			"shadow effects preserve draw command order");
 	}
 }
 
 int main()
 {
+	TestCoreMathAndColor();
 	TestSmokeAndDrawPacket();
 	TestStyleCorePhaseOneTypes();
 	TestStyleNodeRuntimeParts();

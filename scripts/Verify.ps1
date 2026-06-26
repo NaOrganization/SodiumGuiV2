@@ -38,10 +38,10 @@ $testExe = Join-Path $testOutDir "SdCoreTests.exe"
 $sources = @(
 	"tests\CoreTests.cpp",
 	"Input\SdInput.cpp",
-	"Render\SdDrawList.cpp",
-	"Render\SdDrawListPath.cpp",
-	"Render\SdDrawListPrimitives.cpp",
-	"Render\SdDrawListText.cpp",
+	"Render\SdRenderList.cpp",
+	"Render\SdRenderListPath.cpp",
+	"Render\SdRenderListPrimitives.cpp",
+	"Render\SdRenderListText.cpp",
 	"Render\SdRenderStats.cpp"
 ) | ForEach-Object { Join-Path $root $_ }
 

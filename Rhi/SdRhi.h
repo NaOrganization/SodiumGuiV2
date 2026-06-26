@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "Core/SdCore.h"
 
@@ -98,6 +98,14 @@ namespace Sodium::Rhi
 		Compute
 	};
 
+	enum class SdShaderLanguage : SdUInt8
+	{
+		Unknown,
+		Hlsl,
+		Spirv,
+		Msl
+	};
+
 	enum class SdShaderStageFlag : SdUInt32
 	{
 		None = 0,
@@ -105,6 +113,14 @@ namespace Sodium::Rhi
 		Pixel = 1 << 1,
 		Compute = 1 << 2,
 		AllGraphics = 3
+	};
+
+	enum class SdShaderLanguageFlag : SdUInt32
+	{
+		None = 0,
+		Hlsl = 1 << 0,
+		Spirv = 1 << 1,
+		Msl = 1 << 2
 	};
 
 	constexpr SdShaderStageFlags operator|(SdShaderStageFlag lhs, SdShaderStageFlag rhs) noexcept
@@ -115,6 +131,16 @@ namespace Sodium::Rhi
 	constexpr bool SdHasFlag(SdShaderStageFlags flags, SdShaderStageFlag value) noexcept
 	{
 		return (flags & static_cast<SdShaderStageFlags>(value)) != 0;
+	}
+
+	constexpr SdShaderLanguageFlags operator|(SdShaderLanguageFlag lhs, SdShaderLanguageFlag rhs) noexcept
+	{
+		return static_cast<SdShaderLanguageFlags>(lhs) | static_cast<SdShaderLanguageFlags>(rhs);
+	}
+
+	constexpr bool SdHasFlag(SdShaderLanguageFlags flags, SdShaderLanguageFlag value) noexcept
+	{
+		return (flags & static_cast<SdShaderLanguageFlags>(value)) != 0;
 	}
 
 	enum class SdFilterMode : SdUInt8
@@ -297,6 +323,16 @@ namespace Sodium::Rhi
 		SdUtf8StringView debugName = {};
 	};
 
+	struct SdShaderSourceDesc final
+	{
+		SdShaderStage stage = SdShaderStage::Vertex;
+		SdShaderLanguage language = SdShaderLanguage::Hlsl;
+		SdUtf8StringView source = {};
+		SdUtf8StringView entryPoint = SODIUM_STRING("main");
+		SdUtf8StringView targetProfile = {};
+		SdUtf8StringView debugName = {};
+	};
+
 	struct SdSamplerDesc final
 	{
 		SdFilterMode minFilter = SdFilterMode::Linear;
@@ -458,10 +494,12 @@ namespace Sodium::Rhi
 		virtual SdTextureHandle CreateTexture(const SdTextureDesc& desc) = 0;
 		virtual void DestroyTexture(SdTextureHandle texture) = 0;
 		virtual bool UpdateTexture(SdTextureHandle texture, const void* pixels, SdUInt32 rowPitch) = 0;
+		virtual bool CopyCurrentRenderTargetToTexture(SdTextureHandle, const SdRectI&) { return false; }
 		virtual SdBufferHandle CreateBuffer(const SdBufferDesc& desc, const void* initialData) = 0;
 		virtual void DestroyBuffer(SdBufferHandle buffer) = 0;
 		virtual bool UpdateBuffer(SdBufferHandle buffer, const void* data, SdUInt64 size, SdUInt64 offset) = 0;
 		virtual SdShaderHandle CreateShader(const SdShaderDesc& desc) = 0;
+		virtual SdShaderHandle CreateShaderFromSource(const SdShaderSourceDesc&) { return {}; }
 		virtual void DestroyShader(SdShaderHandle shader) = 0;
 		virtual SdSamplerHandle CreateSampler(const SdSamplerDesc& desc) = 0;
 		virtual void DestroySampler(SdSamplerHandle sampler) = 0;
@@ -492,6 +530,8 @@ namespace Sodium
 	using Rhi::SdMemoryUsage;
 	using Rhi::SdShaderStage;
 	using Rhi::SdShaderStageFlag;
+	using Rhi::SdShaderLanguage;
+	using Rhi::SdShaderLanguageFlag;
 	using Rhi::SdFilterMode;
 	using Rhi::SdAddressMode;
 	using Rhi::SdVertexFormat;

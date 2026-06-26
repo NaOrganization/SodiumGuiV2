@@ -2,6 +2,7 @@
 
 #include "Effects/SdEffect.hpp"
 
+#include <algorithm>
 #include <vector>
 
 namespace Sodium
@@ -28,47 +29,54 @@ namespace Sodium
 	class SdLayerResolver final
 	{
 	public:
-		static SdLayerMode ResolveLayerMode(SdSpan<const ISdEffect* const> effects) noexcept
+		static SdLayerMode ResolveLayerMode(SdSpan<const SdEffectLayerRequirements> requirements) noexcept
 		{
-			for (const ISdEffect* effect : effects)
+			for (const SdEffectLayerRequirements& requirement : requirements)
 			{
-				if (!effect)
-					continue;
-				if (effect->RequiresBackdropCapture())
+				if (requirement.requiresBackdrop)
 					return SdLayerMode::Backdrop;
 			}
 
-			for (const ISdEffect* effect : effects)
+			for (const SdEffectLayerRequirements& requirement : requirements)
 			{
-				if (!effect)
-					continue;
-				if (effect->GetType() == SdEffectType::Mask)
+				if (requirement.requiresMask)
 					return SdLayerMode::Masked;
-				if (effect->RequiresIsolatedLayer())
+				if (requirement.requiresIsolatedLayer)
 					return SdLayerMode::Isolated;
 			}
 
 			return SdLayerMode::Direct;
 		}
 
-		static SdRenderLayerDesc BuildLayerDesc(SdRect bounds, SdSpan<const ISdEffect* const> effects)
+		static SdRenderLayerDesc BuildLayerDesc(
+			SdRect bounds,
+			SdSpan<const SdEffectLayerRequirements> requirements,
+			SdSpan<const SdEffectHandle> effects = {})
 		{
 			SdRenderLayerDesc desc = {};
 			desc.bounds = bounds;
 			desc.expandedBounds = bounds;
-			desc.mode = ResolveLayerMode(effects);
+			desc.mode = ResolveLayerMode(requirements);
 			desc.requiresBackdrop = desc.mode == SdLayerMode::Backdrop;
 			desc.requiresMask = desc.mode == SdLayerMode::Masked;
 			desc.canBatchWithParent = desc.mode == SdLayerMode::Direct;
+			desc.effects.assign(effects.begin(), effects.end());
 
-			for (const ISdEffect* effect : effects)
+			for (const SdEffectLayerRequirements& requirement : requirements)
 			{
-				if (!effect)
-					continue;
-				desc.expandedBounds = effect->ExpandBounds(desc.expandedBounds);
-				desc.requiresBackdrop = desc.requiresBackdrop || effect->RequiresBackdropCapture();
-				desc.requiresMask = desc.requiresMask || effect->GetType() == SdEffectType::Mask;
-				if (effect->RequiresIsolatedLayer())
+				if (requirement.expandedBounds.Width() > 0.0f && requirement.expandedBounds.Height() > 0.0f)
+				{
+					desc.expandedBounds =
+					{
+						std::min(desc.expandedBounds.min.x, requirement.expandedBounds.min.x),
+						std::min(desc.expandedBounds.min.y, requirement.expandedBounds.min.y),
+						std::max(desc.expandedBounds.max.x, requirement.expandedBounds.max.x),
+						std::max(desc.expandedBounds.max.y, requirement.expandedBounds.max.y)
+					};
+				}
+				desc.requiresBackdrop = desc.requiresBackdrop || requirement.requiresBackdrop;
+				desc.requiresMask = desc.requiresMask || requirement.requiresMask;
+				if (requirement.requiresIsolatedLayer)
 					desc.canBatchWithParent = false;
 			}
 			return desc;

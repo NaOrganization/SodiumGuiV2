@@ -6,7 +6,7 @@
 
 namespace Sodium
 {
-	struct SdMaskEffect final : ISdEffect
+	struct SdMaskEffect final : ISdEffector
 	{
 		SdMaskType type = SdMaskType::Rectangle;
 		SdRect bounds = {};
@@ -14,29 +14,25 @@ namespace Sodium
 		SdSpan<const SdVec2> polygonPoints = {};
 		Rhi::SdTextureHandle alphaTexture = {};
 
-		SdEffectType GetType() const noexcept override { return SdEffectType::Mask; }
-		bool RequiresIsolatedLayer() const noexcept override { return true; }
-		bool RequiresBackdropCapture() const noexcept override { return false; }
-		SdRect ExpandBounds(const SdRect& sourceBounds) const noexcept override { return sourceBounds; }
+		SdEffectTypeId GetTypeId() const noexcept override { return SdMaskEffectTypeId; }
 
-		void BuildGraph(SdEffectBuildContext& context) const override
+		bool Initialize(const SdEffectInitContext&) override { return true; }
+		void Shutdown(Rhi::ISdGpuDevice&) noexcept override {}
+
+		SdEffectLayerRequirements QueryLayerRequirements(const SdEffectCommandView& command) const noexcept override
 		{
-			if (!context.mask.IsValid())
-				context.mask = context.graph.CreateTexture({
-					std::max(1u, context.pixelWidth),
-					std::max(1u, context.pixelHeight),
-					Rhi::SdTextureFormat::R8Unorm,
-					Rhi::SdTextureUsage::RenderTarget | Rhi::SdTextureUsage::ShaderRead,
-					1,
-					true,
-					"Sodium.Mask.Output"
-				});
+			SdEffectLayerRequirements requirements = {};
+			requirements.requiresSource = true;
+			requirements.requiresTarget = true;
+			requirements.requiresMask = true;
+			requirements.requiresIsolatedLayer = true;
+			requirements.expandedBounds = command.payload.sourceBounds;
+			return requirements;
+		}
 
-			Rhi::SdRenderGraphPassHandle pass = context.graph.AddPass({
-				type == SdMaskType::Polygon ? "Sodium.Mask.Polygon" : "Sodium.Mask.RoundedRect",
-				Rhi::SdRenderGraphPassType::Raster
-			});
-			context.graph.WriteTexture(pass, context.mask);
+		bool Apply(const SdEffectApplyContext&) override
+		{
+			return false;
 		}
 	};
 }

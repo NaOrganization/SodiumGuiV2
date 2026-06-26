@@ -264,25 +264,25 @@ namespace Sodium::Rhi
 					TextureResource* resource = TryGetTexture(texture);
 					if (!resource)
 					{
-						compileResult.errorMessage = "RenderGraph pass reads an invalid texture.";
+						compileResult.errorMessage = SODIUM_STRING("RenderGraph pass reads an invalid texture.");
 						outResult = compileResult;
 						return false;
 					}
 					if (ContainsTexture(pass.writes, texture))
 					{
-						compileResult.errorMessage = "RenderGraph pass reads and writes the same texture.";
+						compileResult.errorMessage = SODIUM_STRING("RenderGraph pass reads and writes the same texture.");
 						outResult = compileResult;
 						return false;
 					}
 					if (!resource->written)
 					{
-						compileResult.errorMessage = "RenderGraph pass reads a texture before it is written.";
+						compileResult.errorMessage = SODIUM_STRING("RenderGraph pass reads a texture before it is written.");
 						outResult = compileResult;
 						return false;
 					}
 					if (!SdHasFlag(resource->desc.usage, SdTextureUsage::ShaderRead) && !resource->imported)
 					{
-						compileResult.errorMessage = "RenderGraph pass reads a texture without ShaderRead usage.";
+						compileResult.errorMessage = SODIUM_STRING("RenderGraph pass reads a texture without ShaderRead usage.");
 						outResult = compileResult;
 						return false;
 					}
@@ -294,13 +294,13 @@ namespace Sodium::Rhi
 					TextureResource* resource = TryGetTexture(texture);
 					if (!resource)
 					{
-						compileResult.errorMessage = "RenderGraph pass writes an invalid texture.";
+						compileResult.errorMessage = SODIUM_STRING("RenderGraph pass writes an invalid texture.");
 						outResult = compileResult;
 						return false;
 					}
 					if (!SdHasFlag(resource->desc.usage, SdTextureUsage::RenderTarget) && !resource->imported)
 					{
-						compileResult.errorMessage = "RenderGraph pass writes a texture without RenderTarget usage.";
+						compileResult.errorMessage = SODIUM_STRING("RenderGraph pass writes a texture without RenderTarget usage.");
 						outResult = compileResult;
 						return false;
 					}

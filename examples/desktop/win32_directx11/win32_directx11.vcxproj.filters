@@ -74,6 +74,15 @@
     <ClInclude Include="..\..\..\Core\SdCore.h">
       <Filter>SodiumGUI\Core</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\Core\SdTypes.h">
+      <Filter>SodiumGUI\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Core\SdMath.h">
+      <Filter>SodiumGUI\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Core\SdColor.h">
+      <Filter>SodiumGUI\Core</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\..\Core\SdText.h">
       <Filter>SodiumGUI\Core</Filter>
     </ClInclude>
@@ -140,9 +149,6 @@
     <ClInclude Include="..\..\..\Backends\Dx11\SdDx11Rhi.h">
       <Filter>SodiumGUI\Backends</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\Backends\Dx11\SdDx11EffectResources.h">
-      <Filter>SodiumGUI\Backends</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\Backends\Dx11\SdDx11PrecompiledShaders.h">
       <Filter>SodiumGUI\Backends</Filter>
     </ClInclude>
@@ -202,6 +208,12 @@
     </ClInclude>
     <ClInclude Include="..\..\..\Rhi\SdFullscreenPass.hpp">
       <Filter>SodiumGUI\Rhi</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Effects\SdEffectTypes.hpp">
+      <Filter>SodiumGUI\Effects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Effects\SdEffectRegistry.hpp">
+      <Filter>SodiumGUI\Effects</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\Effects\SdEffect.hpp">
       <Filter>SodiumGUI\Effects</Filter>

@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "Animation/SdAnimation.h"
 #include "Style/SdStyleCore.h"
@@ -936,7 +936,7 @@ namespace Sodium
 
 			auto [it, inserted] = submittedIdsThisFrame.try_emplace(widgetId, std::move(info));
 			(void)it;
-			assert(inserted && "Duplicate widget id detected. Use a unique key or push a different id scope.");
+			assert(inserted && SODIUM_STRING("Duplicate widget id detected. Use a unique key or push a different id scope."));
 		}
 #endif
 

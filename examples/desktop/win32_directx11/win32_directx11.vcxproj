@@ -177,7 +177,6 @@
     <ClInclude Include="..\..\..\Backends\Stb\StbFontBackend.h" />
     <ClInclude Include="..\..\..\Backends\Dx11\SdDx11Renderer.h" />
     <ClInclude Include="..\..\..\Backends\Dx11\SdDx11Rhi.h" />
-    <ClInclude Include="..\..\..\Backends\Dx11\SdDx11EffectResources.h" />
     <ClInclude Include="..\..\..\Backends\Dx11\SdDx11PrecompiledShaders.h" />
     <ClInclude Include="..\..\..\Backends\Win32\SdWin32Platform.h" />
     <ClInclude Include="..\..\..\Animation\SdAnimation.h" />
@@ -207,6 +206,8 @@
     <ClInclude Include="..\..\..\Rhi\SdTransientTexturePool.hpp" />
     <ClInclude Include="..\..\..\Rhi\SdRenderGraph.hpp" />
     <ClInclude Include="..\..\..\Rhi\SdFullscreenPass.hpp" />
+    <ClInclude Include="..\..\..\Effects\SdEffectTypes.hpp" />
+    <ClInclude Include="..\..\..\Effects\SdEffectRegistry.hpp" />
     <ClInclude Include="..\..\..\Effects\SdEffect.hpp" />
     <ClInclude Include="..\..\..\Effects\SdBlurEffect.hpp" />
     <ClInclude Include="..\..\..\Effects\SdBackdropBlurEffect.hpp" />
@@ -217,6 +218,9 @@
     <ClInclude Include="..\..\..\Core\SdRuntime.h" />
     <ClInclude Include="..\..\..\Style\SdStyle.h" />
     <ClInclude Include="..\..\..\Core\SdText.h" />
+    <ClInclude Include="..\..\..\Core\SdTypes.h" />
+    <ClInclude Include="..\..\..\Core\SdMath.h" />
+    <ClInclude Include="..\..\..\Core\SdColor.h" />
     <ClInclude Include="..\..\..\Core\SdCore.h" />
     <ClInclude Include="..\..\..\Widget\SdUiCore.h" />
     <ClInclude Include="..\..\..\Render\SdRenderCore.h" />

@@ -1,17 +1,13 @@
-﻿#pragma once
+#pragma once
 
+#include "Effects/SdEffectTypes.hpp"
 #include "Core/SdCore.h"
-#include "Rhi/SdFullscreenPass.hpp"
-#include "Rhi/SdRenderGraph.hpp"
-#include "Rhi/SdTransientTexturePool.hpp"
+#include "Render/SdRenderData.h"
 
 #include <vector>
 
 namespace Sodium
 {
-	struct SdEffectTag final {};
-	using SdEffectHandle = SdHandle<SdEffectTag>;
-
 	enum class SdEffectType : SdUInt16
 	{
 		None,
@@ -49,6 +45,120 @@ namespace Sodium
 		Compute
 	};
 
+	struct SdBlurEffectParameters final
+	{
+		float radius = 8.0f;
+		SdBlurQuality quality = SdBlurQuality::Balanced;
+		bool clampToEdge = true;
+		float cornerRadius = 0.0f;
+		SdCornerRadii cornerRadii = {};
+	};
+
+	struct SdBackdropBlurEffectParameters final
+	{
+		float radius = 16.0f;
+		SdColorRgba tintColor = { 255, 255, 255, 48 };
+		float saturation = 1.2f;
+		float brightness = 1.0f;
+		float cornerRadius = 0.0f;
+		SdCornerRadii cornerRadii = {};
+	};
+
+	struct SdDropShadowEffectParameters final
+	{
+		SdVec2 offset = { 0.0f, 4.0f };
+		float radius = 12.0f;
+		float spread = 0.0f;
+		SdColorRgba color = { 0, 0, 0, 128 };
+		SdCornerRadii cornerRadii = {};
+	};
+
+	struct SdInnerShadowEffectParameters final
+	{
+		SdVec2 offset = { 0.0f, 2.0f };
+		float radius = 8.0f;
+		float spread = 0.0f;
+		SdColorRgba color = { 0, 0, 0, 96 };
+		SdCornerRadii cornerRadii = {};
+	};
+
+	struct SdEffectRenderLayer final
+	{
+		SdRenderLayerId id = SdInvalidRenderLayerId;
+		Rhi::SdTextureHandle texture = {};
+		Rhi::SdTextureFormat format = Rhi::SdTextureFormat::Unknown;
+		SdUInt32 width = 0;
+		SdUInt32 height = 0;
+		SdRect bounds = {};
+
+		bool IsValid() const noexcept { return texture.IsValid(); }
+	};
+
+	class ISdRenderLayerProvider
+	{
+	public:
+		virtual ~ISdRenderLayerProvider() = default;
+
+		virtual SdEffectRenderLayer FindRenderLayer(SdRenderLayerId layerId) const noexcept = 0;
+	};
+
+	class SdEffectResourceCache;
+
+	struct SdEffectLayerRequirements final
+	{
+		bool requiresSource = true;
+		bool requiresTarget = true;
+		bool requiresBackdrop = false;
+		bool requiresMask = false;
+		bool requiresIsolatedLayer = false;
+		SdRect expandedBounds = {};
+	};
+
+	struct SdEffectInitContext final
+	{
+		Rhi::ISdGpuDevice& device;
+		const Rhi::SdGpuCaps& caps;
+	};
+
+	struct SdEffectCommandView final
+	{
+		const SdApplyEffectPayload& payload;
+		std::span<const std::byte> parameters = {};
+		const SdRenderPacket& packet;
+	};
+
+	struct SdEffectApplyContext final
+	{
+		Rhi::ISdGpuDevice& device;
+		Rhi::ISdCommandEncoder& encoder;
+		const SdRendererFrameInfo& frameInfo;
+		const SdApplyEffectPayload& payload;
+		std::span<const std::byte> parameters = {};
+		const SdRenderPacket& packet;
+		const ISdRenderLayerProvider* layers = nullptr;
+	};
+
+	class ISdEffector
+	{
+	public:
+		virtual ~ISdEffector() = default;
+
+		virtual SdEffectTypeId GetTypeId() const noexcept = 0;
+		virtual bool Initialize(const SdEffectInitContext& context) = 0;
+		virtual void Shutdown(Rhi::ISdGpuDevice& device) noexcept = 0;
+		virtual SdEffectLayerRequirements QueryLayerRequirements(const SdEffectCommandView& command) const noexcept = 0;
+		virtual bool Apply(const SdEffectApplyContext& context) = 0;
+	};
+
+	template<class TParameters>
+	const TParameters* SdTryReadEffectParameters(std::span<const std::byte> bytes) noexcept
+	{
+		static_assert(std::is_trivially_copyable_v<TParameters>, SODIUM_STRING("Effect command parameters must be trivially copyable."));
+		if (bytes.size_bytes() != sizeof(TParameters))
+			return nullptr;
+		return std::launder(reinterpret_cast<const TParameters*>(bytes.data()));
+	}
+
 	class SdEffectResourceCache final
 	{
 	private:
@@ -63,6 +173,10 @@ namespace Sodium
 		Rhi::SdPipelineHandle maskPipeline = {};
 		Rhi::SdSamplerHandle linearClampSampler = {};
 		Rhi::SdSamplerHandle nearestClampSampler = {};
+		Rhi::SdShaderHandle fullscreenVertexShader = {};
+		Rhi::SdShaderHandle blurPixelShader = {};
+		Rhi::SdShaderHandle compositePixelShader = {};
+		Rhi::SdShaderHandle shadowPixelShader = {};
 
 	public:
 		Rhi::SdResourceSetLayoutHandle GetBlurResourceSetLayout() const noexcept { return blurResourceSetLayout; }
@@ -76,6 +190,10 @@ namespace Sodium
 		Rhi::SdPipelineHandle GetMaskPipeline(SdMaskType) const noexcept { return maskPipeline; }
 		Rhi::SdSamplerHandle GetLinearClampSampler() const noexcept { return linearClampSampler; }
 		Rhi::SdSamplerHandle GetNearestClampSampler() const noexcept { return nearestClampSampler; }
+		Rhi::SdShaderHandle GetFullscreenVertexShader() const noexcept { return fullscreenVertexShader; }
+		Rhi::SdShaderHandle GetBlurPixelShader() const noexcept { return blurPixelShader; }
+		Rhi::SdShaderHandle GetCompositePixelShader() const noexcept { return compositePixelShader; }
+		Rhi::SdShaderHandle GetShadowPixelShader() const noexcept { return shadowPixelShader; }
 
 		void SetBlurResourceSetLayout(Rhi::SdResourceSetLayoutHandle layout) noexcept { blurResourceSetLayout = layout; }
 		void SetBlurParamsBuffer(Rhi::SdBufferHandle buffer) noexcept { blurParamsBuffer = buffer; }
@@ -88,38 +206,45 @@ namespace Sodium
 		void SetMaskPipeline(Rhi::SdPipelineHandle pipeline) noexcept { maskPipeline = pipeline; }
 		void SetLinearClampSampler(Rhi::SdSamplerHandle sampler) noexcept { linearClampSampler = sampler; }
 		void SetNearestClampSampler(Rhi::SdSamplerHandle sampler) noexcept { nearestClampSampler = sampler; }
-	};
+		void SetFullscreenVertexShader(Rhi::SdShaderHandle shader) noexcept { fullscreenVertexShader = shader; }
+		void SetBlurPixelShader(Rhi::SdShaderHandle shader) noexcept { blurPixelShader = shader; }
+		void SetCompositePixelShader(Rhi::SdShaderHandle shader) noexcept { compositePixelShader = shader; }
+		void SetShadowPixelShader(Rhi::SdShaderHandle shader) noexcept { shadowPixelShader = shader; }
 
-	struct SdEffectBuildContext final
-	{
-		Rhi::SdRenderGraph& graph;
-		Rhi::SdRenderGraphTexture source = {};
-		Rhi::SdRenderGraphTexture backdrop = {};
-		Rhi::SdRenderGraphTexture target = {};
-		Rhi::SdRenderGraphTexture mask = {};
-		SdRect sourceBounds = {};
-		SdRect expandedBounds = {};
-		SdRect clipRect = {};
-		SdUInt32 pixelWidth = 0;
-		SdUInt32 pixelHeight = 0;
-		SdEffectResourceCache& resources;
-		Rhi::SdTransientTexturePool& texturePool;
-		const Rhi::SdGpuCaps& caps;
-		Rhi::ISdGpuDevice* device = nullptr;
-		float cornerRadius = 0.0f;
-		SdCornerRadii cornerRadii = {};
-	};
-
-	class ISdEffect
-	{
-	public:
-		virtual ~ISdEffect() = default;
-
-		virtual SdEffectType GetType() const noexcept = 0;
-		virtual bool RequiresIsolatedLayer() const noexcept = 0;
-		virtual bool RequiresBackdropCapture() const noexcept = 0;
-		virtual SdRect ExpandBounds(const SdRect& sourceBounds) const noexcept = 0;
-		virtual void BuildGraph(SdEffectBuildContext& context) const = 0;
+		void Shutdown(Rhi::ISdGpuDevice& device) noexcept
+		{
+			if (maskPipeline.IsValid())
+				device.DestroyPipeline(maskPipeline);
+			if (shadowPipeline.IsValid())
+				device.DestroyPipeline(shadowPipeline);
+			if (compositePipeline.IsValid())
+				device.DestroyPipeline(compositePipeline);
+			if (blurVerticalPipeline.IsValid())
+				device.DestroyPipeline(blurVerticalPipeline);
+			if (blurHorizontalPipeline.IsValid())
+				device.DestroyPipeline(blurHorizontalPipeline);
+			if (shadowResourceSetLayout.IsValid())
+				device.DestroyResourceSetLayout(shadowResourceSetLayout);
+			if (blurResourceSetLayout.IsValid())
+				device.DestroyResourceSetLayout(blurResourceSetLayout);
+			if (shadowParamsBuffer.IsValid())
+				device.DestroyBuffer(shadowParamsBuffer);
+			if (blurParamsBuffer.IsValid())
+				device.DestroyBuffer(blurParamsBuffer);
+			if (nearestClampSampler.IsValid())
+				device.DestroySampler(nearestClampSampler);
+			if (linearClampSampler.IsValid())
+				device.DestroySampler(linearClampSampler);
+			if (shadowPixelShader.IsValid())
+				device.DestroyShader(shadowPixelShader);
+			if (compositePixelShader.IsValid())
+				device.DestroyShader(compositePixelShader);
+			if (blurPixelShader.IsValid())
+				device.DestroyShader(blurPixelShader);
+			if (fullscreenVertexShader.IsValid())
+				device.DestroyShader(fullscreenVertexShader);
+			*this = {};
+		}
 	};
 
 	struct SdBlurParams final
@@ -136,13 +261,6 @@ namespace Sodium
 	};
 
 	static_assert(sizeof(SdBlurParams) == 80);
-
-	struct SdCompositeParams final
-	{
-		SdVec4 tintColor = { 1.0f, 1.0f, 1.0f, 1.0f };
-		float opacity = 1.0f;
-		float padding[3] = {};
-	};
 
 	struct SdShadowParams final
 	{
@@ -161,20 +279,4 @@ namespace Sodium
 
 	static_assert(sizeof(SdShadowParams) == 80);
 
-	inline Rhi::SdRenderGraphTextureDesc SdMakeEffectTextureDesc(
-		SdUInt32 width,
-		SdUInt32 height,
-		Rhi::SdTextureFormat format,
-		SdUtf8StringView debugName)
-	{
-		return {
-			width,
-			height,
-			format,
-			Rhi::SdTextureUsage::RenderTarget | Rhi::SdTextureUsage::ShaderRead,
-			1,
-			true,
-			debugName
-		};
-	}
 }

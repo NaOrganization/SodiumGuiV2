@@ -1,4 +1,5 @@
-﻿#include <Render/SdRenderList.h>
+#include <Render/SdRenderList.h>
+#include <Effects/SdEffect.hpp>
 #include <Rhi/SdRhi.h>
 
 #include <algorithm>
@@ -20,6 +21,7 @@ namespace Sodium
 	{
 		drawData.Clear();
 		path.clear();
+		clipStack = {};
 		currentTexture = sharedData ? sharedData->whiteTexture : SdTextureHandle{};
 		listFlags = sharedData && (sharedData->flags & SdRenderSharedData::UseAntiAliasing)
 			? static_cast<SdUInt32>(ListFlag::UseAntiAliasing)
@@ -144,6 +146,51 @@ namespace Sodium
 		currentClipRect = clipStack.empty() ? SdRect{} : clipStack.top();
 	}
 
+	void SdRenderList::BeginRenderLayer(const SdBeginRenderLayerPayload& payload)
+	{
+		if (payload.layerId == SdInvalidRenderLayerId)
+			return;
+		if (payload.bounds.Width() <= 0.0f || payload.bounds.Height() <= 0.0f)
+			return;
+
+		drawData.commandBuffer.Push(SdRenderCommandKind::BeginRenderLayer, payload);
+		forceNewBatch = true;
+	}
+
+	void SdRenderList::BeginRenderLayer(SdRenderLayerId layerId, const SdRect& bounds, SdRenderLayerUsage usage)
+	{
+		SdBeginRenderLayerPayload payload = {};
+		payload.layerId = layerId;
+		payload.usage = usage;
+		payload.bounds = bounds;
+		BeginRenderLayer(payload);
+	}
+
+	void SdRenderList::EndRenderLayer(SdRenderLayerId layerId)
+	{
+		SdEndRenderLayerPayload payload = {};
+		payload.layerId = layerId;
+		drawData.commandBuffer.Push(SdRenderCommandKind::EndRenderLayer, payload);
+		forceNewBatch = true;
+	}
+
+	void SdRenderList::ApplyEffect(const SdApplyEffectPayload& payload)
+	{
+		if (!payload.effect.IsValid())
+			return;
+
+		drawData.commandBuffer.Push(SdRenderCommandKind::ApplyEffect, payload);
+		forceNewBatch = true;
+	}
+
+	void SdRenderList::ApplyEffect(SdApplyEffectPayload payload, std::span<const std::byte> parameters, SdUInt32 parameterAlignment)
+	{
+		const SdEffectParameterRange range = drawData.PushEffectParameterBytes(parameters, parameterAlignment);
+		payload.parameterOffset = range.offset;
+		payload.parameterSize = range.size;
+		ApplyEffect(payload);
+	}
+
 	bool SdRenderList::CanAddVertices(SdUInt32 vertexCount) const
 	{
 		return static_cast<SdUInt64>(drawData.vertices.size()) + vertexCount <= SdMaxIndexValue;
@@ -194,29 +241,33 @@ namespace Sodium
 		if (radius <= 0.0f || rect.Width() <= 0.0f || rect.Height() <= 0.0f)
 			return;
 
-		//const SdCornerRadii normalizedCornerRadii =
-		//{
-		//	std::max(0.0f, cornerRadii.topLeft),
-		//	std::max(0.0f, cornerRadii.topRight),
-		//	std::max(0.0f, cornerRadii.bottomRight),
-		//	std::max(0.0f, cornerRadii.bottomLeft)
-		//};
-		//const SdUInt32 index = static_cast<SdUInt32>(drawData.backdropBlurs.size());
-		//const float legacyCornerRadius = std::max(
-		//	std::max(normalizedCornerRadii.topLeft, normalizedCornerRadii.topRight),
-		//	std::max(normalizedCornerRadii.bottomRight, normalizedCornerRadii.bottomLeft));
-		//drawData.backdropBlurs.push_back({
-		//	rect,
-		//	clipRect,
-		//	radius,
-		//	legacyCornerRadius,
-		//	normalizedCornerRadii
-		//});
-		//drawData.commands.push_back({
-		//	SdDrawCommandKind::BackdropBlur,
-		//	index
-		//});
-		//forceNewBatch = true;
+		SdApplyEffectPayload payload = {};
+		payload.effect = sharedData ? sharedData->builtInEffects.backdropBlur : SdEffectHandle{};
+		payload.targetLayer = SdRootRenderLayerId;
+		payload.sourceBounds = rect;
+		payload.expandedBounds = rect;
+		payload.clipRect = currentClipRect;
+
+		SdBackdropBlurEffectParameters parameters = {};
+		parameters.radius = radius;
+		parameters.cornerRadius = std::max(
+			std::max(cornerRadii.topLeft, cornerRadii.topRight),
+			std::max(cornerRadii.bottomRight, cornerRadii.bottomLeft));
+		parameters.cornerRadii = cornerRadii;
+		ApplyEffect(payload, parameters);
+	}
+
+	void SdRenderList::AddBackdropBlur(const SdRect& rect, const SdRect& clipRect, float radius, float cornerRadius)
+	{
+		AddBackdropBlur(rect, clipRect, radius, SdCornerRadii(cornerRadius, cornerRadius, cornerRadius, cornerRadius));
+	}
+
+	void SdRenderList::AddBackdropBlur(const SdRect& rect, const SdRect& clipRect, float radius, const SdCornerRadii& cornerRadii)
+	{
+		const SdRect previousClipRect = currentClipRect;
+		currentClipRect = clipRect;
+		AddBackdropBlur(rect, radius, cornerRadii);
+		currentClipRect = previousClipRect;
 	}
 
 	void SdRenderList::AddDropShadow(const SdRect& rect, const SdVec2& offset, const SdColor& color, float radius, float spread, float cornerRadius)
@@ -229,28 +280,46 @@ namespace Sodium
 		if (color.a == 0 || radius <= 0.0f || rect.Width() <= 0.0f || rect.Height() <= 0.0f)
 			return;
 
-		//const SdCornerRadii normalizedCornerRadii =
-		//{
-		//	std::max(0.0f, cornerRadii.topLeft),
-		//	std::max(0.0f, cornerRadii.topRight),
-		//	std::max(0.0f, cornerRadii.bottomRight),
-		//	std::max(0.0f, cornerRadii.bottomLeft)
-		//};
-		//const SdUInt32 index = static_cast<SdUInt32>(drawData.dropShadows.size());
-		//drawData.dropShadows.push_back({
-		//	rect,
-		//	clipRect,
-		//	offset,
-		//	color,
-		//	radius,
-		//	spread,
-		//	normalizedCornerRadii
-		//});
-		//drawData.commands.push_back({
-		//	SdDrawCommandKind::DropShadow,
-		//	index
-		//});
-		//forceNewBatch = true;
+		const float expand = std::max(0.0f, radius) + std::max(0.0f, spread);
+		SdApplyEffectPayload payload = {};
+		payload.effect = sharedData ? sharedData->builtInEffects.dropShadow : SdEffectHandle{};
+		payload.targetLayer = SdRootRenderLayerId;
+		payload.sourceBounds = rect;
+		payload.expandedBounds =
+		{
+			rect.min.x - expand + std::min(0.0f, offset.x),
+			rect.min.y - expand + std::min(0.0f, offset.y),
+			rect.max.x + expand + std::max(0.0f, offset.x),
+			rect.max.y + expand + std::max(0.0f, offset.y)
+		};
+		payload.clipRect = currentClipRect;
+
+		SdDropShadowEffectParameters parameters = {};
+		parameters.offset = offset;
+		parameters.radius = radius;
+		parameters.spread = spread;
+		parameters.color = color;
+		parameters.cornerRadii =
+		{
+			std::max(0.0f, cornerRadii.topLeft),
+			std::max(0.0f, cornerRadii.topRight),
+			std::max(0.0f, cornerRadii.bottomRight),
+			std::max(0.0f, cornerRadii.bottomLeft)
+		};
+		ApplyEffect(payload, parameters);
+	}
+
+	void SdRenderList::AddDropShadow(const SdRect& rect, const SdRect& clipRect, const SdVec2& offset, const SdColor& color, float radius, float spread, float cornerRadius)
+	{
+		AddDropShadow(rect, clipRect, offset, color, radius, spread, SdCornerRadii(cornerRadius, cornerRadius, cornerRadius, cornerRadius));
+	}
+
+	void SdRenderList::AddDropShadow(const SdRect& rect, const SdRect& clipRect, const SdVec2& offset, const SdColor& color, float radius, float spread, const SdCornerRadii& cornerRadii)
+	{
+		const SdRect previousClipRect = currentClipRect;
+		currentClipRect = clipRect;
+		AddDropShadow(rect, offset, color, radius, spread, cornerRadii);
+		currentClipRect = previousClipRect;
 	}
 
 	void SdRenderList::AddInnerShadow(const SdRect& rect, const SdVec2& offset, const SdColor& color, float radius, float spread, float cornerRadius)
@@ -263,27 +332,38 @@ namespace Sodium
 		if (color.a == 0 || radius <= 0.0f || rect.Width() <= 0.0f || rect.Height() <= 0.0f)
 			return;
 
-		//const SdCornerRadii normalizedCornerRadii =
-		//{
-		//	std::max(0.0f, cornerRadii.topLeft),
-		//	std::max(0.0f, cornerRadii.topRight),
-		//	std::max(0.0f, cornerRadii.bottomRight),
-		//	std::max(0.0f, cornerRadii.bottomLeft)
-		//};
-		//const SdUInt32 index = static_cast<SdUInt32>(drawData.innerShadows.size());
-		//drawData.innerShadows.push_back({
-		//	rect,
-		//	clipRect,
-		//	offset,
-		//	color,
-		//	radius,
-		//	spread,
-		//	normalizedCornerRadii
-		//});
-		//drawData.commands.push_back({
-		//	SdDrawCommandKind::InnerShadow,
-		//	index
-		//});
-		//forceNewBatch = true;
+		SdApplyEffectPayload payload = {};
+		payload.effect = sharedData ? sharedData->builtInEffects.innerShadow : SdEffectHandle{};
+		payload.targetLayer = SdRootRenderLayerId;
+		payload.sourceBounds = rect;
+		payload.expandedBounds = rect;
+		payload.clipRect = currentClipRect;
+
+		SdInnerShadowEffectParameters parameters = {};
+		parameters.offset = offset;
+		parameters.radius = radius;
+		parameters.spread = spread;
+		parameters.color = color;
+		parameters.cornerRadii =
+		{
+			std::max(0.0f, cornerRadii.topLeft),
+			std::max(0.0f, cornerRadii.topRight),
+			std::max(0.0f, cornerRadii.bottomRight),
+			std::max(0.0f, cornerRadii.bottomLeft)
+		};
+		ApplyEffect(payload, parameters);
+	}
+
+	void SdRenderList::AddInnerShadow(const SdRect& rect, const SdRect& clipRect, const SdVec2& offset, const SdColor& color, float radius, float spread, float cornerRadius)
+	{
+		AddInnerShadow(rect, clipRect, offset, color, radius, spread, SdCornerRadii(cornerRadius, cornerRadius, cornerRadius, cornerRadius));
+	}
+
+	void SdRenderList::AddInnerShadow(const SdRect& rect, const SdRect& clipRect, const SdVec2& offset, const SdColor& color, float radius, float spread, const SdCornerRadii& cornerRadii)
+	{
+		const SdRect previousClipRect = currentClipRect;
+		currentClipRect = clipRect;
+		AddInnerShadow(rect, offset, color, radius, spread, cornerRadii);
+		currentClipRect = previousClipRect;
 	}
 }

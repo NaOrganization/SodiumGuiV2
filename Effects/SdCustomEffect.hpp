@@ -22,28 +22,28 @@ namespace Sodium
 		bool requiresBackdropCapture = false;
 	};
 
-	struct SdCustomEffect final : ISdEffect
+	struct SdCustomEffect final : ISdEffector
 	{
 		SdCustomEffectDesc desc = {};
 
-		SdEffectType GetType() const noexcept override { return SdEffectType::Custom; }
-		bool RequiresIsolatedLayer() const noexcept override { return desc.requiresIsolatedLayer; }
-		bool RequiresBackdropCapture() const noexcept override { return desc.requiresBackdropCapture; }
-		SdRect ExpandBounds(const SdRect& sourceBounds) const noexcept override { return sourceBounds; }
+		SdEffectTypeId GetTypeId() const noexcept override { return SdCustomEffectTypeId; }
+		bool Initialize(const SdEffectInitContext&) override { return true; }
+		void Shutdown(Rhi::ISdGpuDevice&) noexcept override {}
 
-		void BuildGraph(SdEffectBuildContext& context) const override
+		SdEffectLayerRequirements QueryLayerRequirements(const SdEffectCommandView& command) const noexcept override
 		{
-			for (const SdEffectPassDesc& effectPass : desc.passes)
-			{
-				const Rhi::SdRenderGraphPassType graphPassType = effectPass.type == SdEffectPassType::Copy
-					? Rhi::SdRenderGraphPassType::Copy
-					: (effectPass.type == SdEffectPassType::Compute ? Rhi::SdRenderGraphPassType::Compute : Rhi::SdRenderGraphPassType::Fullscreen);
-				Rhi::SdRenderGraphPassHandle pass = context.graph.AddPass({ effectPass.name, graphPassType });
-				if (context.source.IsValid())
-					context.graph.ReadTexture(pass, context.source);
-				if (context.target.IsValid())
-					context.graph.WriteTexture(pass, context.target);
-			}
+			SdEffectLayerRequirements requirements = {};
+			requirements.requiresSource = true;
+			requirements.requiresTarget = true;
+			requirements.requiresBackdrop = desc.requiresBackdropCapture;
+			requirements.requiresIsolatedLayer = desc.requiresIsolatedLayer;
+			requirements.expandedBounds = command.payload.sourceBounds;
+			return requirements;
+		}
+
+		bool Apply(const SdEffectApplyContext&) override
+		{
+			return false;
 		}
 	};
 }

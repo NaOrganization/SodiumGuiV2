@@ -1,5 +1,8 @@
 #pragma once
 
+#include "Core/SdTypes.h"
+#include "Core/SdMath.h"
+#include "Core/SdColor.h"
 #include "Core/SdCore.h"
 #include "Core/SdText.h"
 #include "Input/SdInput.h"
@@ -16,6 +19,8 @@
 #include "Rhi/SdRenderGraph.hpp"
 #include "Rhi/SdTransientTexturePool.hpp"
 #include "Rhi/SdFullscreenPass.hpp"
+#include "Effects/SdEffectTypes.hpp"
+#include "Effects/SdEffectRegistry.hpp"
 #include "Effects/SdEffectPipeline.hpp"
 #include "Core/SdRuntime.h"
 #include "Widget/SdBasicWidgets.h"

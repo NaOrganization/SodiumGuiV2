@@ -1,6 +1,8 @@
-﻿#pragma once
+#pragma once
 
 #include "Animation/SdAnimation.h"
+#include "Effects/SdEffectPipeline.hpp"
+#include "Effects/SdEffectRegistry.hpp"
 #include "Input/SdInput.h"
 #include "Layer/SdLayer.h"
 #include "Layout/SdBoxLayout.h"
@@ -137,6 +139,7 @@ namespace Sodium
 		SdRenderSystem renderSystem = {};
 		SdRenderSharedData renderSharedData = {};
 		SdRenderStats renderStats = {};
+		SdEffectRegistry effectRegistry = {};
 		SdThemeView theme = {};
 		ISdPlatformBackend* platform = nullptr;
 		ISdRendererBackend* renderer = nullptr;
@@ -269,7 +272,9 @@ namespace Sodium
 		SdStyleSystem& GetStyleSystem() noexcept { return context.styling; }
 		const SdStyleSystem& GetStyleSystem() const noexcept { return context.styling; }
 		const SdRenderSystem& GetRenderSystem() const noexcept { return context.renderSystem; }
-		SdRenderPacket GetDrawPacket() const noexcept { return renderList.BuildPacket(static_cast<SdUInt32>(context.frame.frameIndex)); }
+		SdEffectRegistry& GetEffectRegistry() noexcept { return context.effectRegistry; }
+		const SdEffectRegistry& GetEffectRegistry() const noexcept { return context.effectRegistry; }
+		SdRenderPacket GetDrawPacket() const noexcept { return renderList.BuildPacket(static_cast<SdUInt32>(context.frame.frameIndex), &context.effectRegistry); }
 		SdFrameIndex GetFrameIndex() const noexcept { return context.frame.frameIndex; }
 		SdDuration GetDeltaTime() const noexcept { return context.frame.deltaTime; }
 		SdVec2 GetDisplaySize() const noexcept { return context.frame.displaySize; }

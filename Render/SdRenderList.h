@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "Render/SdRenderData.h"
 #include "Render/SdRenderStats.h"
@@ -71,20 +71,42 @@ namespace Sodium
 		void PushClipRect(const SdRect& rect);
 		void PopClip();
 
+		void BeginRenderLayer(const SdBeginRenderLayerPayload& payload);
+		void BeginRenderLayer(SdRenderLayerId layerId, const SdRect& bounds, SdRenderLayerUsage usage = SdRenderLayerUsage::Generic);
+		void EndRenderLayer(SdRenderLayerId layerId = SdInvalidRenderLayerId);
+		void ApplyEffect(const SdApplyEffectPayload& payload);
+		void ApplyEffect(SdApplyEffectPayload payload, std::span<const std::byte> parameters, SdUInt32 parameterAlignment = static_cast<SdUInt32>(alignof(std::max_align_t)));
+		template<class TParameters>
+		void ApplyEffect(SdApplyEffectPayload payload, const TParameters& parameters)
+		{
+			const SdEffectParameterRange range = drawData.PushEffectParameters(parameters);
+			payload.parameterOffset = range.offset;
+			payload.parameterSize = range.size;
+			ApplyEffect(payload);
+		}
+
 		void AddLine(const SdVec2& a, const SdVec2& b, const SdColor& color, float thickness = 1.0f);
 		void AddTriangle(const SdVec2& a, const SdVec2& b, const SdVec2& c, const SdColor& color, float thickness = 1.0f);
 		void AddTriangleFilled(const SdVec2& a, const SdVec2& b, const SdVec2& c, const SdColor& color);
 		void AddQuad(const SdVec2& a, const SdVec2& b, const SdVec2& c, const SdVec2& d, const SdColor& color, float thickness = 1.0f);
 		void AddQuadFilled(const SdVec2& a, const SdVec2& b, const SdVec2& c, const SdVec2& d, const SdColor& color);
 		void AddRect(const SdRect& rect, const SdColor& color, float thickness = 1.0f, float rounding = 0.0f, SdUInt32 roundingSegments = 0);
+		void AddRect(const SdRect& rect, const SdColor& color, const SdRect& clipRect, float thickness = 1.0f, float rounding = 0.0f, SdUInt32 roundingSegments = 0);
 		void AddRectFilled(const SdRect& rect, const SdColor& color, float rounding = 0.0f, SdUInt32 roundingSegments = 0);
+		void AddRectFilled(const SdRect& rect, const SdColor& color, const SdRect& clipRect, float rounding = 0.0f, SdUInt32 roundingSegments = 0);
 		void AddRectFilledMultiColor(const SdRect& rect, const SdColor& colorUpperLeft, const SdColor& colorUpperRight, const SdColor& colorBottomRight, const SdColor& colorBottomLeft);
 		void AddBackdropBlur(const SdRect& rect, float radius, float cornerRadius = 0.0f);
 		void AddBackdropBlur(const SdRect& rect, float radius, const SdCornerRadii& cornerRadii);
+		void AddBackdropBlur(const SdRect& rect, const SdRect& clipRect, float radius, float cornerRadius = 0.0f);
+		void AddBackdropBlur(const SdRect& rect, const SdRect& clipRect, float radius, const SdCornerRadii& cornerRadii);
 		void AddDropShadow(const SdRect& rect, const SdVec2& offset, const SdColor& color, float radius, float spread = 0.0f, float cornerRadius = 0.0f);
 		void AddDropShadow(const SdRect& rect, const SdVec2& offset, const SdColor& color, float radius, float spread, const SdCornerRadii& cornerRadii);
+		void AddDropShadow(const SdRect& rect, const SdRect& clipRect, const SdVec2& offset, const SdColor& color, float radius, float spread = 0.0f, float cornerRadius = 0.0f);
+		void AddDropShadow(const SdRect& rect, const SdRect& clipRect, const SdVec2& offset, const SdColor& color, float radius, float spread, const SdCornerRadii& cornerRadii);
 		void AddInnerShadow(const SdRect& rect, const SdVec2& offset, const SdColor& color, float radius, float spread = 0.0f, float cornerRadius = 0.0f);
 		void AddInnerShadow(const SdRect& rect, const SdVec2& offset, const SdColor& color, float radius, float spread, const SdCornerRadii& cornerRadii);
+		void AddInnerShadow(const SdRect& rect, const SdRect& clipRect, const SdVec2& offset, const SdColor& color, float radius, float spread = 0.0f, float cornerRadius = 0.0f);
+		void AddInnerShadow(const SdRect& rect, const SdRect& clipRect, const SdVec2& offset, const SdColor& color, float radius, float spread, const SdCornerRadii& cornerRadii);
 		void AddCircle(const SdVec2& center, float radius, const SdColor& color, float thickness = 1.0f, SdUInt32 segmentCount = 0);
 		void AddCircleFilled(const SdVec2& center, float radius, const SdColor& color, SdUInt32 segmentCount = 0);
 		void AddImage(SdTextureHandle texture, const SdRect& rect, const SdRect& uvRect, const SdColor& color);
@@ -94,6 +116,14 @@ namespace Sodium
 			if (!sharedData)
 				return;
 			AddText(text, sharedData->defaultTextStyle, position, color);
+		}
+
+		void AddText(SdUtf8StringView text, const SdVec2& position, const SdColor& color, const SdRect& clipRect)
+		{
+			const SdRect previousClipRect = currentClipRect;
+			currentClipRect = clipRect;
+			AddText(text, position, color);
+			currentClipRect = previousClipRect;
 		}
 
 		void AddText(SdUtf8StringView text, const SdTextStyle& style, const SdVec2& position, const SdColor& color)
@@ -112,6 +142,14 @@ namespace Sodium
 				glyph.rect.max.y += position.y;
 			}
 			AddTextLayout(layout, color);
+		}
+
+		void AddText(SdUtf8StringView text, const SdTextStyle& style, const SdVec2& position, const SdColor& color, const SdRect& clipRect)
+		{
+			const SdRect previousClipRect = currentClipRect;
+			currentClipRect = clipRect;
+			AddText(text, style, position, color);
+			currentClipRect = previousClipRect;
 		}
 
 		void AddParagraph(SdUtf8StringView text, const SdTextStyle& style, const SdVec2& position, float maxWidth, const SdColor& color)
@@ -138,7 +176,7 @@ namespace Sodium
 		const SdRenderData& GetDrawData() const noexcept { return drawData; }
 		SdRenderData& GetData() noexcept { return drawData; }
 		const SdRenderData& GetData() const noexcept { return drawData; }
-		SdRenderPacket BuildPacket(SdUInt32 packetVersion = 0) const noexcept { return drawData.BuildPacket(packetVersion); }
+		SdRenderPacket BuildPacket(SdUInt32 packetVersion = 0, const SdEffectRegistry* effectRegistry = nullptr) const noexcept { return drawData.BuildPacket(packetVersion, effectRegistry); }
 	};
 
 	using SdDrawList = SdRenderList;

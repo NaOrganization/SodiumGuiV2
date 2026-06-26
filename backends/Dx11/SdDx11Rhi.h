@@ -1,9 +1,10 @@
-﻿#pragma once
+#pragma once
 
 #include "Rhi/SdRhi.h"
 
 #include <Windows.h>
 #include <d3d11.h>
+#include <d3dcompiler.h>
 #include <wrl/client.h>
 
 #include <algorithm>
@@ -12,6 +13,8 @@
 #include <limits>
 #include <string>
 #include <vector>
+
+#pragma comment(lib, "d3dcompiler.lib")
 
 #ifdef min
 #undef min
@@ -318,6 +321,7 @@ namespace Sodium::Backends
 			caps.supportsIndependentBlend = false;
 			caps.supportsFramebufferFetch = false;
 			caps.supportsMultisampleRenderTarget = true;
+			caps.supportedShaderLanguages = static_cast<Rhi::SdShaderLanguageFlags>(Rhi::SdShaderLanguageFlag::Hlsl);
 		}
 
 	public:
@@ -459,7 +463,7 @@ namespace Sodium::Backends
 
 		void DestroyTexture(Rhi::SdTextureHandle texture) override { Release(textures, texture); }
 
-		bool CopyCurrentRenderTargetToTexture(Rhi::SdTextureHandle destination, const Rhi::SdRectI& sourceRect)
+		bool CopyCurrentRenderTargetToTexture(Rhi::SdTextureHandle destination, const Rhi::SdRectI& sourceRect) override
 		{
 			if (!nativeContext || sourceRect.Width() == 0 || sourceRect.Height() == 0)
 				return false;
@@ -596,6 +600,66 @@ namespace Sodium::Backends
 			entry.stage = desc.stage;
 			entry.bytecode.assign(desc.bytecode.begin(), desc.bytecode.end());
 			return handle;
+		}
+
+		Rhi::SdShaderHandle CreateShaderFromSource(const Rhi::SdShaderSourceDesc& desc) override
+		{
+			if (!nativeDevice || desc.source.empty() || desc.language != Rhi::SdShaderLanguage::Hlsl)
+				return {};
+
+			const char* defaultProfile = nullptr;
+			switch (desc.stage)
+			{
+			case Rhi::SdShaderStage::Vertex:
+				defaultProfile = SODIUM_STRING("vs_4_0");
+				break;
+			case Rhi::SdShaderStage::Pixel:
+				defaultProfile = SODIUM_STRING("ps_4_0");
+				break;
+			case Rhi::SdShaderStage::Compute:
+				defaultProfile = SODIUM_STRING("cs_5_0");
+				break;
+			default:
+				return {};
+			}
+
+			const std::string entryPoint = desc.entryPoint.empty()
+				? std::string(SODIUM_STRING("main"))
+				: std::string(desc.entryPoint);
+			const std::string targetProfile = desc.targetProfile.empty()
+				? std::string(defaultProfile)
+				: std::string(desc.targetProfile);
+
+			Microsoft::WRL::ComPtr<ID3DBlob> bytecode = {};
+			Microsoft::WRL::ComPtr<ID3DBlob> errors = {};
+			const UINT flags =
+#if defined(_DEBUG)
+				D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+#else
+				D3DCOMPILE_OPTIMIZATION_LEVEL3;
+#endif
+			if (FAILED(::D3DCompile(
+				desc.source.data(),
+				desc.source.size(),
+				nullptr,
+				nullptr,
+				nullptr,
+				entryPoint.c_str(),
+				targetProfile.c_str(),
+				flags,
+				0,
+				bytecode.GetAddressOf(),
+				errors.GetAddressOf())))
+			{
+				return {};
+			}
+
+			return CreateShader({
+				desc.stage,
+				SdSpan<const Rhi::SdByte>(static_cast<const Rhi::SdByte*>(bytecode->GetBufferPointer()), bytecode->GetBufferSize()),
+				entryPoint,
+				desc.debugName
+				});
 		}
 
 		void DestroyShader(Rhi::SdShaderHandle shader) override { Release(shaders, shader); }

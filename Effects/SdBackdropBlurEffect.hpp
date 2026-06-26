@@ -4,38 +4,119 @@
 
 namespace Sodium
 {
-	struct SdBackdropBlurEffect final : ISdEffect
+	struct SdBackdropBlurEffect final : ISdEffector
 	{
 		float radius = 16.0f;
 		SdColorRgba tintColor = { 255, 255, 255, 48 };
 		float saturation = 1.2f;
 		float brightness = 1.0f;
+		SdEffectResourceCache resources = {};
 
-		SdEffectType GetType() const noexcept override { return SdEffectType::BackdropBlur; }
-		bool RequiresIsolatedLayer() const noexcept override { return true; }
-		bool RequiresBackdropCapture() const noexcept override { return true; }
-		SdRect ExpandBounds(const SdRect& sourceBounds) const noexcept override { return sourceBounds; }
+		SdEffectTypeId GetTypeId() const noexcept override { return SdBackdropBlurEffectTypeId; }
 
-		void BuildGraph(SdEffectBuildContext& context) const override
+		bool Initialize(const SdEffectInitContext& context) override
 		{
-			if (!context.backdrop.IsValid() || !context.target.IsValid())
-				return;
+			return BlurEffectDetail::InitializeResources(context.device, resources);
+		}
 
-			Rhi::SdRenderGraphTexture captured = context.graph.CreateTexture(SdMakeEffectTextureDesc(
-				std::max(1u, context.pixelWidth),
-				std::max(1u, context.pixelHeight),
-				Rhi::SdTextureFormat::Rgba8Unorm,
-				"Sodium.BackdropBlur.Capture"));
+		void Shutdown(Rhi::ISdGpuDevice& device) noexcept override
+		{
+			resources.Shutdown(device);
+		}
 
-			Rhi::SdRenderGraphPassHandle capturePass = context.graph.AddPass({ "Sodium.BackdropBlur.Capture", Rhi::SdRenderGraphPassType::Copy });
-			context.graph.ReadTexture(capturePass, context.backdrop);
-			context.graph.WriteTexture(capturePass, captured);
+		SdEffectLayerRequirements QueryLayerRequirements(const SdEffectCommandView& command) const noexcept override
+		{
+			SdEffectLayerRequirements requirements = {};
+			requirements.requiresSource = false;
+			requirements.requiresTarget = true;
+			requirements.requiresBackdrop = true;
+			requirements.requiresIsolatedLayer = true;
+			requirements.expandedBounds = command.payload.sourceBounds;
+			return requirements;
+		}
 
-			SdEffectBuildContext blurContext = context;
-			blurContext.source = captured;
-			SdBlurEffect blur = {};
-			blur.radius = radius;
-			blur.BuildGraph(blurContext);
+		bool Apply(const SdEffectApplyContext& context) override
+		{
+			if (!context.layers)
+				return false;
+
+			SdBackdropBlurEffectParameters parameters = {};
+			parameters.radius = radius;
+			parameters.tintColor = tintColor;
+			parameters.saturation = saturation;
+			parameters.brightness = brightness;
+			if (const SdBackdropBlurEffectParameters* commandParameters = SdTryReadEffectParameters<SdBackdropBlurEffectParameters>(context.parameters))
+				parameters = *commandParameters;
+			if (parameters.radius <= 0.0f)
+				return false;
+
+			const SdEffectRenderLayer targetLayer = context.layers->FindRenderLayer(context.payload.targetLayer);
+			if (!targetLayer.IsValid())
+				return false;
+
+			const SdRect frameRect = BlurEffectDetail::ResolveLayerBounds(targetLayer);
+			SdRect clippedRect = context.payload.sourceBounds;
+			if (BlurEffectDetail::HasArea(context.payload.clipRect))
+				clippedRect = BlurEffectDetail::IntersectRect(clippedRect, context.payload.clipRect);
+			clippedRect = BlurEffectDetail::IntersectRect(clippedRect, frameRect);
+			if (!BlurEffectDetail::HasArea(clippedRect))
+				return false;
+
+			const float capturePadding = std::ceil(std::max(0.0f, parameters.radius));
+			const SdRect captureBounds = BlurEffectDetail::IntersectRect(
+				{
+					clippedRect.min.x - capturePadding,
+					clippedRect.min.y - capturePadding,
+					clippedRect.max.x + capturePadding,
+					clippedRect.max.y + capturePadding
+				},
+				frameRect);
+			const Rhi::SdRectI sourceRect = BlurEffectDetail::ToRenderArea(captureBounds);
+			const SdUInt32 captureWidth = std::max(1u, sourceRect.Width());
+			const SdUInt32 captureHeight = std::max(1u, sourceRect.Height());
+
+			const Rhi::SdTextureDesc captureDesc =
+			{
+				captureWidth,
+				captureHeight,
+				1,
+				1,
+				BlurEffectDetail::ResolveLayerFormat(targetLayer),
+				static_cast<Rhi::SdTextureUsageFlags>(Rhi::SdTextureUsage::ShaderRead),
+				1,
+				false,
+				SODIUM_STRING("Sodium.Effect.BackdropBlur.Capture")
+			};
+			const Rhi::SdTextureHandle captureTexture = context.device.CreateTexture(captureDesc);
+			if (!captureTexture.IsValid())
+				return false;
+			if (!context.device.CopyCurrentRenderTargetToTexture(captureTexture, sourceRect))
+			{
+				context.device.DestroyTexture(captureTexture);
+				return false;
+			}
+
+			const SdEffectRenderLayer sourceLayer =
+			{
+				SdInvalidRenderLayerId,
+				captureTexture,
+				captureDesc.format,
+				captureWidth,
+				captureHeight,
+				captureBounds
+			};
+			const bool applied = BlurEffectDetail::ApplyBlur(
+				context,
+				resources,
+				sourceLayer,
+				targetLayer,
+				parameters.radius,
+				context.payload.sourceBounds,
+				captureBounds,
+				context.payload.clipRect,
+				BlurEffectDetail::NormalizeCornerRadii(parameters.cornerRadii, parameters.cornerRadius));
+			context.device.DestroyTexture(captureTexture);
+			return applied;
 		}
 	};
 }

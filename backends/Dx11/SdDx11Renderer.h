@@ -1,6 +1,5 @@
-﻿#pragma once
+#pragma once
 
-#include "backends/Dx11/SdDx11EffectResources.h"
 #include "backends/Dx11/SdDx11Rhi.h"
 #include "Render/SdRenderCore.h"
 
@@ -43,8 +42,6 @@ namespace Sodium::Backends
 		Rhi::SdSamplerHandle sampler = {};
 		Rhi::SdResourceSetLayoutHandle resourceSetLayout = {};
 		Rhi::SdPipelineHandle pipeline = {};
-		SdEffectResourceCache effectResources = {};
-		std::unique_ptr<Rhi::SdTransientTexturePool> transientTexturePool = {};
 		std::vector<TextureEntry> textures = {};
 		SdUInt32 vertexCapacity = 0;
 		SdUInt32 indexCapacity = 0;
@@ -55,9 +52,6 @@ namespace Sodium::Backends
 		bool UploadBuffers(const SdRenderPacket& packet);
 		bool UploadTexture(const SdUploadRequest& request);
 		bool RebuildTextureResourceSet(TextureEntry& entry);
-		bool RenderBackdropBlur(const SdBackdropBlurDraw& blur, const SdRendererFrameInfo& frameInfo);
-		bool RenderDropShadow(const SdDropShadowDraw& shadow, const SdRendererFrameInfo& frameInfo);
-		bool RenderInnerShadow(const SdInnerShadowDraw& shadow, const SdRendererFrameInfo& frameInfo);
 		TextureEntry& EnsureTextureEntry(SdTextureHandle texture);
 		void BindPipeline(SdVec2 displaySize);
 		TextureEntry* TryGetTexture(SdTextureHandle texture) noexcept;
@@ -70,6 +64,8 @@ namespace Sodium::Backends
 		bool IsInitialized() const noexcept override { return rhiDevice.IsInitialized() && pipeline.IsValid(); }
 		SdDx11GpuDevice& GetRhiDevice() noexcept { return rhiDevice; }
 		const SdDx11GpuDevice& GetRhiDevice() const noexcept { return rhiDevice; }
+		Rhi::ISdGpuDevice* GetRhiDeviceInterface() noexcept override { return &rhiDevice; }
+		const Rhi::ISdGpuDevice* GetRhiDeviceInterface() const noexcept override { return &rhiDevice; }
 		SdTextureHandle CreateTexture(SdUInt32 width, SdUInt32 height, const void* rgbaPixels);
 		SdTextureHandle CreateTexture(const SdTextureDesc& desc) override;
 		void DestroyTexture(SdTextureHandle texture) override;
